@@ -1,0 +1,71 @@
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import {
+  cva,
+  type VariantProps,
+} from "class-variance-authority";
+
+import { cn } from "./utils";
+
+// h-12 bg-[#155dfc] hover:bg-[#1250e0] text-white font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+
+const buttonVariants = cva(
+  "h-14 inline-flex w-full cursor-pointer font-medium items-center !text-base justify-center gap-2 whitespace-nowrap rounded-xl transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-6 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-[#155dfc] hover:bg-[#1250e0] w-full disabled:opacity-50 disabled:cursor-not-allowed",
+        destructive:
+          "border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-300 dark:hover:border-red-800",
+        outline:
+          "border bg-background hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+        secondary:
+          "bg-[#404040] hover:bg-[#505050] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        link: "underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-12 px-4 has-[>svg]:px-3",
+        sm: "h-10 !text-sm !rounded-2xl has-[>svg]:px-4",
+        lg: "h-14 px-6 has-[>svg]:px-4",
+        icon: "size-9 !rounded-full",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+);
+
+const Button = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<"button"> &
+    VariantProps<typeof buttonVariants> & {
+      asChild?: boolean;
+    }
+>(
+  (
+    { className, variant, size, asChild = false, ...props },
+    ref,
+  ) => {
+    const Comp = asChild ? Slot : "button";
+
+    return (
+      <Comp
+        data-slot="button"
+        className={cn(
+          buttonVariants({ variant, size, className }),
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+
+Button.displayName = "Button";
+
+export { Button, buttonVariants };

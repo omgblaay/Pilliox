@@ -1,0 +1,575 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Eye, EyeOff } from "lucide-react";
+import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { getSupabaseClient } from "@/utils/supabase/client";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { Label } from "@/app/components/ui/label";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import Vector from "@/imports/Vector";
+import svgPaths from "@/imports/svg-hepzwgk5tt";
+import imgFrame3 from "figma:asset/d4750969fc6e1ecdb0e81241cf229682cfd97a4a.png";
+import imgImage1 from "figma:asset/84229552ad15a973e3ff4d1f571f1de3e034300c.png";
+
+interface AuthFormProps {
+  onAuthSuccess: (
+    accessToken: string,
+    userEmail: string,
+  ) => void;
+}
+
+export function AuthForm({ onAuthSuccess }: AuthFormProps) {
+  const { t } = useTranslation();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<
+    "login" | "signup"
+  >("login");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupName, setSignupName] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({
+            email: loginEmail,
+            password: loginPassword,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Login failed");
+        setIsLoading(false);
+        return;
+      }
+
+      if (data?.access_token) {
+        onAuthSuccess(data.access_token, loginEmail);
+      }
+    } catch (err: any) {
+      console.error("❌ Login error:", err);
+      setError(err.message || "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/signup`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({
+            email: signupEmail,
+            password: signupPassword,
+            name: signupName,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Signup failed");
+        setIsLoading(false);
+        return;
+      }
+
+      if (data?.access_token) {
+        onAuthSuccess(data.access_token, signupEmail);
+      }
+    } catch (err: any) {
+      console.error("❌ Signup error:", err);
+      setError(
+        err.message ||
+          "Signup failed. Please check console for details.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } =
+        await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/`,
+            skipBrowserRedirect: false,
+            queryParams: {
+              access_type: "offline",
+              prompt: "consent",
+            },
+          },
+        });
+
+      if (error) {
+        console.error("❌ OAuth initiation error:", error);
+        setError(error.message);
+        setIsLoading(false);
+      }
+      // If successful, user will be redirected to Google
+    } catch (err: any) {
+      console.error("❌ Google login error:", err);
+      setError(err.message || "Google login failed");
+      setIsLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+      }
+      // If successful, user will be redirected
+    } catch (err: any) {
+      console.error("❌ Facebook login error:", err);
+      setError(err.message || "Facebook login failed");
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="flex w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
+        {/* Left Side - Decorative Panel */}
+        <div className="hidden md:flex relative w-[320px] bg-gray-800 flex-col gap-2 p-8">
+          {/* Background Image with Overlay */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+          >
+            <img
+              alt=""
+              className="absolute max-w-none object-cover size-full"
+              src={imgFrame3}
+            />
+            <div className="absolute bg-[rgba(0,0,0,0.4)] inset-0" />
+          </div>
+
+          {/* Calendar Preview Image */}
+          <div className="absolute h-[361px] left-[32px] bottom-[-64px] w-[249px]">
+            <img
+              alt="Calendar preview"
+              className="absolute inset-0 max-w-none object-cover pointer-events-none size-full rounded-lg"
+              src={imgImage1}
+            />
+          </div>
+
+          {/* Feature List */}
+          <ul className="relative space-y-2 text-white text-l">
+            <li className="flex items-start gap-2">
+              <span className="text-white mt-1">•</span>
+              <span className="leading-6">
+                {t("auth.features.medications")}
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-white mt-1">•</span>
+              <span className="leading-6">
+                {t("auth.features.expenses")}
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-white mt-1">•</span>
+              <span className="leading-6">
+                {t("auth.features.colorCoded")}
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-white mt-1">•</span>
+              <span className="leading-6">
+                {t("auth.features.notes")}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Right Side - Auth Card */}
+        <div className="flex-1 bg-[#1a1a1a] p-4 md:p-8 flex flex-col gap-4">
+          {/* Logo and Tagline */}
+          <div className="inline-flex flex-col items-start gap-2 w-auto">
+            <div className="h-[40px] w-[120px]">
+              <Vector />
+            </div>
+            <p className="text-[#888] text-base">
+              {t("app.welcome")}
+            </p>
+          </div>
+
+          {/* Tab Buttons */}
+          <div className="bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab("login")}
+              className={`flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all ${
+                activeTab === "login"
+                  ? "bg-[#404040] text-white shadow-sm"
+                  : "bg-transparent text-[#888]"
+              }`}
+            >
+              {t("auth.login")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("signup")}
+              className={`flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all ${
+                activeTab === "signup"
+                  ? "bg-[#404040] text-white shadow-sm"
+                  : "bg-transparent text-[#888]"
+              }`}
+            >
+              {t("auth.signup")}
+            </button>
+          </div>
+
+          {/* Login Form */}
+          {activeTab === "login" && (
+            <form
+              onSubmit={handleLogin}
+              className="flex flex-col gap-6"
+            >
+              {/* Email Field */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="login-email"
+                  className="text-white text-sm font-medium"
+                >
+                  {t("auth.email")}
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder={t("auth.emailPlaceholder")}
+                  value={loginEmail}
+                  onChange={(e) =>
+                    setLoginEmail(e.target.value)
+                  }
+                  required
+                  autoComplete="email"
+                  className="h-12 px-3 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="login-password"
+                  className="text-white text-sm font-medium"
+                >
+                  {t("auth.password")}
+                </label>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t("auth.passwordPlaceholder")}
+                    value={loginPassword}
+                    onChange={(e) =>
+                      setLoginPassword(e.target.value)
+                    }
+                    required
+                    autoComplete="current-password"
+                    className="h-12 px-3 pr-10 w-full bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
+                  />
+                  {/* Show password button */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888] hover:text-white transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Login Button */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-[#155dfc] hover:bg-[#1250e0] text-white font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading
+                  ? t("auth.loggingIn")
+                  : t("auth.login")}
+              </Button>
+            </form>
+          )}
+
+          {/* Signup Form */}
+          {activeTab === "signup" && (
+            <form
+              onSubmit={handleSignup}
+              className="flex flex-col gap-6"
+            >
+              {/* Name Field */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="signup-name"
+                  className="text-white text-sm font-medium"
+                >
+                  {t("auth.name")}
+                </label>
+                <input
+                  id="signup-name"
+                  type="text"
+                  placeholder={t("auth.namePlaceholder")}
+                  value={signupName}
+                  onChange={(e) =>
+                    setSignupName(e.target.value)
+                  }
+                  autoComplete="name"
+                  className="px-3 h-12 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Email Field */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="signup-email"
+                  className="text-white text-sm font-medium"
+                >
+                  {t("auth.email")}
+                </label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  placeholder={t("auth.emailPlaceholder")}
+                  value={signupEmail}
+                  onChange={(e) =>
+                    setSignupEmail(e.target.value)
+                  }
+                  required
+                  autoComplete="email"
+                  className="px-3 h-12 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="signup-password"
+                  className="text-white text-sm font-medium"
+                >
+                  {t("auth.password")}
+                </label>
+                <div className="relative">
+                  <input
+                    id="signup-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t(
+                      "auth.passwordPlaceholderDots",
+                    )}
+                    value={signupPassword}
+                    onChange={(e) =>
+                      setSignupPassword(e.target.value)
+                    }
+                    required
+                    autoComplete="new-password"
+                    minLength={6}
+                    className="px-3 w-full h-12 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
+                  />
+
+                  {/* Show password button */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888] hover:text-white transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Signup Button */}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading
+                  ? t("auth.signingUp")
+                  : t("auth.signupButton")}
+              </Button>
+            </form>
+          )}
+
+          {/* Divider - Removed social login for now */}
+          <div className="text-center text-[#888] text-sm">
+            {t("auth.orContinueWith")}
+          </div>
+
+          {/* Social Login Buttons */}
+          <div className="flex flex-row gap-4">
+            {/* Google Button */}
+            <Button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+              variant="secondary"
+              className="flex-1"
+            >
+              {/* Google Icon */}
+              <div className="relative shrink-0 size-5">
+                <svg
+                  className="block size-full"
+                  fill="none"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 16.8902 17.4926"
+                >
+                  <g>
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p3f20ec00}
+                      fill="#F44336"
+                      fillRule="evenodd"
+                      opacity="0.987"
+                    />
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p15800}
+                      fill="#FFC107"
+                      fillRule="evenodd"
+                      opacity="0.997"
+                    />
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p21d1cc20}
+                      fill="#448AFF"
+                      fillRule="evenodd"
+                      opacity="0.999"
+                    />
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p1af26300}
+                      fill="#43A047"
+                      fillRule="evenodd"
+                      opacity="0.993"
+                    />
+                  </g>
+                </svg>
+              </div>
+              Google
+            </Button>
+
+            {/* Facebook Button */}
+            <Button
+              type="button"
+              onClick={handleFacebookLogin}
+              disabled={isLoading}
+              variant="secondary"
+              className="flex-1"
+            >
+              {/* Facebook Icon */}
+              <div className="relative shrink-0 size-5">
+                <svg
+                  className="block size-full"
+                  fill="none"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 20 20"
+                >
+                  <g clipPath="url(#clip0_35_74)">
+                    <path
+                      d={svgPaths.p3ef31c80}
+                      fill="#1877F2"
+                    />
+                    <path d={svgPaths.p1634fa00} fill="white" />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_35_74">
+                      <rect
+                        fill="white"
+                        height="20"
+                        width="20"
+                      />
+                    </clipPath>
+                  </defs>
+                </svg>
+              </div>
+              Facebook
+            </Button>
+          </div>
+
+          {/* Language Selector */}
+          <div className="flex justify-center">
+            <LanguageSelector
+              variant="ghost"
+              className="text-[#888] hover:text-white hover:bg-[#2a2a2a] h-11 rounded-lg"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
