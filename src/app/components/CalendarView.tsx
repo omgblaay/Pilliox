@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   format,
   startOfMonth,
@@ -27,6 +27,7 @@ import {
   User,
   Pencil,
 } from "lucide-react";
+import { motion, AnimatePresence, type PanInfo } from "motion/react";
 import { Button } from "@/app/components/ui/button";
 import {
   Dialog,
@@ -42,7 +43,6 @@ import { Badge } from "@/app/components/ui/badge";
 import { ProfileSettings } from "@/app/components/ProfileSettings";
 import { AppSettings } from "@/app/components/AppSettings";
 import { cn } from "@/app/components/ui/utils";
-import { supabase } from "/utils/supabase/client";
 import { useTheme, type Theme } from "@/app/hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import Vector from "@/imports/Vector";
@@ -202,17 +202,20 @@ export function CalendarView({
   };
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const prevMonthRef = useRef(new Date());
   const [entries, setEntries] = useState<
     Record<string, CalendarEntry>
   >({});
   const [selectedDate, setSelectedDate] = useState<Date | null>(
     null,
   );
+  const prevSelectedDateRef = useRef<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [pills, setPills] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState(false);
 
   // Multi-select mode
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -230,6 +233,9 @@ export function CalendarView({
   const [weekStartsOnMonday, setWeekStartsOnMonday] =
     useState(true);
 
+  // User profile
+  const [name, setName] = useState("");
+
   // Tag editing
   const [editingTag, setEditingTag] = useState(false);
   const [tempTagText, setTempTagText] = useState("");
@@ -240,6 +246,51 @@ export function CalendarView({
 
   // Force re-render when theme changes to update cell colors
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Swipe animation state - use ref for synchronous updates
+  const swipeDirectionRef = useRef<number>(0);
+  const [, forceUpdate] = useState({});
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [dragX, setDragX] = useState(0);
+
+  // Animation variants for month/day transitions
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: 300 * direction,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: -300 * direction,
+      opacity: 0,
+    }),
+  };
+
+  const headerSlideVariants = {
+    enter: (direction: number) => ({
+      x: 100 * direction,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: -100 * direction,
+      opacity: 0,
+    }),
+  };
+
+  // Preload adjacent months for smooth swiping
+  const [adjacentMonthEntries, setAdjacentMonthEntries] = useState<{
+    prev: Record<string, CalendarEntry>;
+    next: Record<string, CalendarEntry>;
+  }>({ prev: {}, next: {} });
+
+
 
   useEffect(() => {
     // Initial check after theme is applied
@@ -263,13 +314,39 @@ export function CalendarView({
     return () => observer.disconnect();
   }, [theme]);
 
-  // Load entries for current month
+  // Health check - test server connectivity
   useEffect(() => {
-    const monthKey = format(currentMonth, "yyyy-MM");
-    const fetchEntries = async () => {
+    const testConnection = async () => {
+      try {
+        const healthUrl = `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/health`;
+        const response = await fetch(healthUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${anonKey}`,
+          },
+        });
+        
+        if (response.ok) {
+          await response.json();
+          setServerError(false);
+        } else {
+          await response.text();
+          setServerError(true);
+        }
+      } catch (error) {
+        setServerError(true);
+      }
+    };
+    testConnection();
+  }, [projectId, anonKey]);
+
+  // Load user profile
+  useEffect(() => {
+    const loadUserProfile = async () => {
       try {
         const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`,
+          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
           {
             headers: {
               Authorization: `Bearer ${anonKey}`,
@@ -280,17 +357,38 @@ export function CalendarView({
 
         if (response.ok) {
           const data = await response.json();
-          setEntries(data.entries || {});
-        } else {
-          const errorData = await response.json();
-          console.error(
-            `❌ Failed to load entries:`,
-            response.status,
-            errorData,
-          );
+          setName(data.user.name || "");
         }
       } catch (error) {
-        console.error("❌ Failed to load entries:", error);
+        // Error loading user profile
+      }
+    };
+
+    loadUserProfile();
+  }, [accessToken, projectId, anonKey]);
+
+  // Load entries for current month
+  useEffect(() => {
+    const monthKey = format(currentMonth, "yyyy-MM");
+    const fetchEntries = async () => {
+      try {
+        const url = `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`;
+        
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setEntries(data.entries || {});
+        } else {
+          await response.json();
+        }
+      } catch (error) {
+        setServerError(true);
       } finally {
         setIsLoading(false);
       }
@@ -298,7 +396,47 @@ export function CalendarView({
 
     setIsLoading(true);
     fetchEntries();
-  }, [currentMonth, accessToken]); // Reload when month changes OR access token changes
+  }, [currentMonth, accessToken, projectId, anonKey]); // Reload when month changes OR access token changes
+
+  // Preload adjacent months for smooth swiping
+  useEffect(() => {
+    const fetchAdjacentMonths = async () => {
+      const prevMonth = subMonths(currentMonth, 1);
+      const nextMonth = addMonths(currentMonth, 1);
+      
+      const prevMonthKey = format(prevMonth, "yyyy-MM");
+      const nextMonthKey = format(nextMonth, "yyyy-MM");
+      
+      try {
+        const [prevResponse, nextResponse] = await Promise.all([
+          fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${prevMonthKey}`, {
+            headers: {
+              Authorization: `Bearer ${anonKey}`,
+              "X-User-Token": accessToken,
+            },
+          }),
+          fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${nextMonthKey}`, {
+            headers: {
+              Authorization: `Bearer ${anonKey}`,
+              "X-User-Token": accessToken,
+            },
+          }),
+        ]);
+
+        const prevData = prevResponse.ok ? await prevResponse.json() : { entries: {} };
+        const nextData = nextResponse.ok ? await nextResponse.json() : { entries: {} };
+
+        setAdjacentMonthEntries({
+          prev: prevData.entries || {},
+          next: nextData.entries || {},
+        });
+      } catch (error) {
+        console.error("Error preloading adjacent months:", error);
+      }
+    };
+
+    fetchAdjacentMonths();
+  }, [currentMonth, accessToken, projectId, anonKey]);
 
   const saveEntries = async (
     newEntries: Record<string, CalendarEntry>,
@@ -319,15 +457,10 @@ export function CalendarView({
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error(
-          `❌ Failed to save entries:`,
-          response.status,
-          errorData,
-        );
+        await response.json();
       }
     } catch (error) {
-      console.error("❌ Failed to save entries:", error);
+      // Error saving entries
     }
   };
 
@@ -457,14 +590,39 @@ export function CalendarView({
     setSelectedDates(new Set());
   };
 
-  const previousMonth = () =>
-    setCurrentMonth(subMonths(currentMonth, 1));
-  const nextMonth = () =>
-    setCurrentMonth(addMonths(currentMonth, 1));
+  const previousMonth = () => {
+    const newMonth = subMonths(currentMonth, 1);
+    swipeDirectionRef.current = -1; // Moving backward in time
+    setCurrentMonth(newMonth);
+  };
+
+  const nextMonth = () => {
+    const newMonth = addMonths(currentMonth, 1);
+    swipeDirectionRef.current = 1; // Moving forward in time
+    setCurrentMonth(newMonth);
+  };
+
+  // Swipe handlers for calendar month navigation
+  const handleCalendarSwipe = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const swipeThreshold = 50;
+    if (Math.abs(info.offset.x) > swipeThreshold) {
+      if (info.offset.x > 0) {
+        // Swiped right - go to previous month
+        previousMonth();
+      } else {
+        // Swiped left - go to next month
+        nextMonth();
+      }
+    }
+  };
 
   // Day navigation in dialog
   const navigateToPreviousDay = () => {
     if (!selectedDate) return;
+    swipeDirectionRef.current = -1; // Moving backward in time
     const previousDay = subDays(selectedDate, 1);
     setSelectedDate(previousDay);
     const dateKey = format(previousDay, "yyyy-MM-dd");
@@ -480,6 +638,7 @@ export function CalendarView({
 
   const navigateToNextDay = () => {
     if (!selectedDate) return;
+    swipeDirectionRef.current = 1; // Moving forward in time
     const nextDay = addDays(selectedDate, 1);
     setSelectedDate(nextDay);
     const dateKey = format(nextDay, "yyyy-MM-dd");
@@ -490,6 +649,23 @@ export function CalendarView({
     // Update month if we crossed month boundary
     if (!isSameMonth(nextDay, currentMonth)) {
       setCurrentMonth(nextDay);
+    }
+  };
+
+  // Swipe handlers for day modal navigation
+  const handleDayModalSwipe = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const swipeThreshold = 50;
+    if (Math.abs(info.offset.x) > swipeThreshold) {
+      if (info.offset.x > 0) {
+        // Swiped right - go to previous day
+        navigateToPreviousDay();
+      } else {
+        // Swiped left - go to next day
+        navigateToNextDay();
+      }
     }
   };
 
@@ -662,12 +838,12 @@ export function CalendarView({
       ];
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="h-full bg-background relative">
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-50">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent dark:border-blue-400"></div>
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-700 border-t-blue-400"></div>
             <p className="mt-3 text-white font-medium text-sm">
               {t("calendar.loading")}
             </p>
@@ -675,16 +851,26 @@ export function CalendarView({
         </div>
       )}
 
+      {/* Server Error Banner */}
+      {serverError && (
+        <div className="fixed top-0 left-0 right-0 bg-red-600 text-white px-4 py-3 z-50 text-center text-sm">
+          <p className="font-medium">⚠️ Server Connection Error</p>
+          <p className="text-xs mt-1 opacity-90">
+            Unable to connect to the backend server. Check console for details.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div>
-        <div className="max-w-md lg:max-w-[800px] mx-auto px-[24px] py-[20px]">
+        <div className="max-w-md lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
           <div className="flex items-center gap-8 justify-between mt-[0px] mr-[0px] ml-[0px] m-[0px]">
             <div className="flex items-start flex-col gap-2">
               <div className="h-[28px] w-[120px]">
                 <Vector />
               </div>
               <p className="text-[14px] text-muted-foreground">
-                {t("app.welcome")}
+                {t("app.welcome", { name })}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -724,12 +910,31 @@ export function CalendarView({
               >
                 <ChevronLeft className="h-5 w-5 text-foreground" />
               </Button>
-              <h2 className="text-lg font-semibold text-foreground text-[14px]">
-                {getMonthName(currentMonth)}{" "}
-                {format(currentMonth, "yyyy", {
-                  locale: dateLocale,
-                })}
-              </h2>
+              <motion.div
+                className="flex-1 overflow-hidden relative"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={handleCalendarSwipe}
+              >
+                <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                  <motion.h2
+                    key={format(currentMonth, "yyyy-MM")}
+                    custom={swipeDirectionRef.current}
+                    variants={headerSlideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="text-lg font-semibold text-foreground text-[14px] text-center"
+                  >
+                    {getMonthName(currentMonth)}{" "}
+                    {format(currentMonth, "yyyy", {
+                      locale: dateLocale,
+                    })}
+                  </motion.h2>
+                </AnimatePresence>
+              </motion.div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -743,7 +948,7 @@ export function CalendarView({
 
           {/* Multi-select Controls */}
           {multiSelectMode && (
-            <div className="px-6 py-3 bg-blue-50 dark:bg-blue-950 border-b border-blue-100 dark:border-blue-900">
+            <div className="px-4 sm:px-6 py-3 bg-blue-50 dark:bg-blue-950 border-b border-blue-100 dark:border-blue-900">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Palette className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -778,7 +983,13 @@ export function CalendarView({
           )}
 
           {/* Calendar Grid */}
-          <div className="px-6 py-5">
+          <motion.div 
+            className="px-4 sm:px-6 py-4 sm:py-5"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleCalendarSwipe}
+          >
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-2.5 mb-4">
               {dayHeaders.map((day) => (
@@ -791,7 +1002,17 @@ export function CalendarView({
             </div>
 
             {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-y-2">
+            <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+              <motion.div 
+                key={format(currentMonth, "yyyy-MM")}
+                custom={swipeDirectionRef.current}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="grid grid-cols-7 gap-y-2"
+              >
               {emptyDays.map((_, index) => (
                 <div
                   key={`empty-${index}`}
@@ -860,6 +1081,54 @@ export function CalendarView({
                   nextEntry.color === entry.color &&
                   nextEntry.tag === entry.tag;
 
+                // Check if this day is part of a tagged group (for margin-top)
+                const isPartOfTaggedGroup =
+                  hasColor &&
+                  entry.tag &&
+                  (hasSameColorTagAsPrev ||
+                    hasSameColorTagAsNext ||
+                    (!hasSameColorTagAsPrev &&
+                      !hasSameColorTagAsNext));
+
+                // Count consecutive days with same color and tag (for tag width calculation)
+                let consecutiveDaysCount = 1;
+                if (
+                  hasColor &&
+                  entry.tag &&
+                  !hasSameColorTagAsPrev
+                ) {
+                  let checkIndex = dayIndex + 1;
+                  while (checkIndex < daysInMonth.length) {
+                    const checkDay = daysInMonth[checkIndex];
+                    const checkDateStr = format(
+                      checkDay,
+                      "yyyy-MM-dd",
+                    );
+                    const checkEntry = entries[checkDateStr];
+                    const checkGridIndex =
+                      emptyDays.length + checkIndex;
+                    const checkPositionInWeek =
+                      checkGridIndex % 7;
+                    const isCheckLastDayOfWeek =
+                      checkPositionInWeek === 6;
+
+                    // Check if same color/tag and not crossing week boundary
+                    if (
+                      checkEntry?.color === entry.color &&
+                      checkEntry?.tag === entry.tag
+                    ) {
+                      consecutiveDaysCount++;
+                      // Stop if the day we just counted is the last day of the week
+                      if (isCheckLastDayOfWeek) {
+                        break;
+                      }
+                      checkIndex++;
+                    } else {
+                      break;
+                    }
+                  }
+                }
+
                 // Determine border radius based on grouping
                 let roundedClass = "rounded-xl";
                 if (
@@ -895,7 +1164,7 @@ export function CalendarView({
                     key={dateStr}
                     onClick={() => handleDayClick(day)}
                     className={cn(
-                      "w-full h-18 relative transition-all duration-200",
+                      "w-full min-h-18 relative transition-all duration-200",
                       roundedClass,
                       "flex flex-col items-center justify-center p-2",
                       "focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:ring-offset-1",
@@ -909,6 +1178,11 @@ export function CalendarView({
                         "hover:opacity-80 border-2 border-transparent",
                       isSelected &&
                         "ring-2 ring-blue-600 ring-offset-2",
+                      // Add z-index for first day of tagged group to keep tag on top
+                      hasColor &&
+                        entry.tag &&
+                        !hasSameColorTagAsPrev &&
+                        "z-40",
                     )}
                     style={
                       displayColor
@@ -918,58 +1192,36 @@ export function CalendarView({
                         : undefined
                     }
                   >
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      {/* Tag Display - Show when color and tag exist */}
-                      {hasColor && entry.tag && (
-                        <div
-                          className={cn(
-                            "text-[10px] font-semibold px-1.5 py-0.5 rounded max-w-full truncate",
-                            hasColor && !isDarkMode
-                              ? "bg-black/20 text-gray-900"
-                              : hasColor && isDarkMode
-                                ? "bg-white/20 text-gray-300"
-                                : "",
-                          )}
-                          title={entry.tag}
-                        >
-                          {entry.tag}
-                        </div>
+                    <div
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1",
+                        isPartOfTaggedGroup && "mt-5",
                       )}
-                      {/* Day Number */}
-                      <span
-                        className={cn(
-                          "text-sm font-semibold leading-none",
-                          isToday &&
-                            !hasColor &&
-                            "text-blue-600 dark:text-blue-400",
-                          !isToday &&
-                            !hasColor &&
-                            "text-gray-700 dark:text-gray-300",
-                          hasColor &&
-                            "text-gray-900 dark:text-gray-300",
+                    >
+                      {/* Tag Display - Show only once per consecutive group at the top center of first day */}
+                      {hasColor &&
+                        entry.tag &&
+                        !hasSameColorTagAsPrev && (
+                          <div
+                            className={cn(
+                              "absolute top-0 left-0 text-[10px] font-semibold py-0.5 rounded-t-xl truncate z-50 text-left pl-2",
+                              hasColor && !isDarkMode
+                                ? "bg-black/20 text-gray-900"
+                                : hasColor && isDarkMode
+                                  ? "bg-white/20 text-gray-300"
+                                  : "",
+                            )}
+                            style={{
+                              width:
+                                consecutiveDaysCount > 1
+                                  ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 3}px)`
+                                  : "100%",
+                            }}
+                            title={entry.tag}
+                          >
+                            {entry.tag}
+                          </div>
                         )}
-                      >
-                        {format(day, "d")}
-                      </span>
-
-                      {/* Pills Counter */}
-                      {hasPills && (
-                        <div
-                          className={cn(
-                            "flex items-center gap-2 text-[10px] font-semibold px-1 py-0.5 rounded",
-                            hasColor && !isDarkMode
-                              ? "bg-black/20 text-gray-900"
-                              : hasColor && isDarkMode
-                                ? "bg-white/20 text-gray-300"
-                                : !isDarkMode
-                                  ? "bg-purple-100 text-purple-700"
-                                  : "bg-purple-900 text-purple-100",
-                          )}
-                        >
-                          <Pill className="h-2.5 w-2.5" />
-                          <span>{entry.pills}</span>
-                        </div>
-                      )}
 
                       {/* Amount Display */}
                       {hasAmount && (
@@ -995,30 +1247,66 @@ export function CalendarView({
                         </div>
                       )}
 
-                      {/* Note Indicator - Always show when note exists */}
-                      {hasNote && (
+                      {/* Day Number */}
+                      <span
+                        className={cn(
+                          "text-sm font-semibold leading-none",
+                          isToday &&
+                            !hasColor &&
+                            "text-blue-600 dark:text-blue-400",
+                          !isToday &&
+                            !hasColor &&
+                            "text-gray-700 dark:text-gray-300",
+                          hasColor &&
+                            "text-gray-900 dark:text-gray-300",
+                        )}
+                      >
+                        {format(day, "d")}
+                        {/* Note Indicator - Show next to day number when note exists */}
+                        {hasNote && (
+                          <span
+                            className={cn(
+                              "inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle",
+                              hasColor && !isDarkMode
+                                ? "bg-gray-900/80"
+                                : hasColor && isDarkMode
+                                  ? "bg-gray-300"
+                                  : !isDarkMode
+                                    ? "bg-blue-500"
+                                    : "bg-blue-400",
+                            )}
+                          />
+                        )}
+                      </span>
+
+                      {/* Pills Counter */}
+                      {hasPills && (
                         <div
                           className={cn(
-                            "w-2 h-2 rounded-full mt-0.5",
+                            "flex items-center gap-2 text-[10px] font-semibold px-1 py-0.5 rounded",
                             hasColor && !isDarkMode
-                              ? "bg-gray-900/80"
+                              ? "bg-black/20 text-gray-900"
                               : hasColor && isDarkMode
-                                ? "bg-gray-300"
+                                ? "bg-white/20 text-gray-300"
                                 : !isDarkMode
-                                  ? "bg-blue-500"
-                                  : "bg-blue-400",
+                                  ? "bg-purple-100 text-purple-700"
+                                  : "bg-purple-900 text-purple-100",
                           )}
-                        />
+                        >
+                          <Pill className="h-2.5 w-2.5" />
+                          <span>{entry.pills}</span>
+                        </div>
                       )}
                     </div>
                   </button>
                 );
               })}
-            </div>
-          </div>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
 
           {/* Action Buttons */}
-          <div className="px-6 py-4 border-t flex gap-2">
+          <div className="px-4 sm:px-6 py-4 border-t flex gap-2">
             <Button
               onClick={handleMultiSelectStart}
               variant="outline"
@@ -1057,10 +1345,29 @@ export function CalendarView({
                 >
                   <ChevronLeft className="h-4 w-4 text-foreground" />
                 </Button>
-                <div className="text-l font-bold text-foreground text-[14px] text-center flex-1 font-normal">
-                  {selectedDate &&
-                    formatDialogDate(selectedDate)}
-                </div>
+                <motion.div
+                  className="flex-1 overflow-hidden"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={handleDayModalSwipe}
+                >
+                  <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                    <motion.div
+                      key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
+                      custom={swipeDirectionRef.current}
+                      variants={headerSlideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="text-l font-bold text-foreground text-[14px] text-center flex-1 font-normal"
+                    >
+                      {selectedDate &&
+                        formatDialogDate(selectedDate)}
+                    </motion.div>
+                  </AnimatePresence>
+                </motion.div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1074,7 +1381,23 @@ export function CalendarView({
           </div>
 
           {/* Content */}
-          <div className="px-6 py-5 space-y-5 bg-card">
+          <motion.div 
+            className="px-6 py-5 space-y-5 bg-card"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDayModalSwipe}
+          >
+            <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+              <motion.div
+                key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
+                custom={swipeDirectionRef.current}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
             {/* Color/Tag Section - Show if day has a color */}
             {selectedDate &&
               entries[format(selectedDate, "yyyy-MM-dd")]
@@ -1163,7 +1486,7 @@ export function CalendarView({
                             format(selectedDate, "yyyy-MM-dd")
                           ]?.tag || t("calendar.noTag")}
                         </span>
-                        
+
                         {/* Edit Icon Button */}
                         <button
                           onClick={startEditingTag}
@@ -1412,7 +1735,9 @@ export function CalendarView({
                 {t("day.saveChanges")}
               </Button>
             </div>
-          </div>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
         </DialogContent>
       </Dialog>
 

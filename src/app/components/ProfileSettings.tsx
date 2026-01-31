@@ -76,13 +76,10 @@ export function ProfileSettings({
         setName(data.user.name || "");
         setEmail(data.user.email || "");
       } else {
-        console.error(
-          "Failed to load profile:",
-          response.status,
-        );
+        // Failed to load profile
       }
     } catch (error) {
-      console.error("Error loading profile:", error);
+      // Error loading profile
     }
   };
 
@@ -208,8 +205,8 @@ export function ProfileSettings({
               <User className="h-6 w-6 text-muted-foreground" />
               {t("profile.title")}
             </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              {t("profile.description")}
+            <DialogDescription className="sr-only">
+              {t("profile.title")}
             </DialogDescription>
           </DialogHeader>
 
@@ -231,16 +228,16 @@ export function ProfileSettings({
             defaultValue="profile"
             className="w-full mt-4 m-[0px]"
           >
-            <TabsList className="grid w-full h-[48px] grid-cols-2 bg-muted">
+            <TabsList className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0 w-full h-auto grid-cols-2">
               <TabsTrigger
                 value="profile"
-                className="data-[state=active]:!bg-[#404040] data-[state=active]:!text-foreground data-[state=active]:!font-semibold data-[state=active]:!shadow-sm data-[state=active]:!border-border transition-all"
+                className="flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]"
               >
                 {t("profile.tabs.profile")}
               </TabsTrigger>
               <TabsTrigger
                 value="security"
-                className="data-[state=active]:!bg-[#404040] data-[state=active]:!text-foreground data-[state=active]:!font-semibold data-[state=active]:!shadow-sm data-[state=active]:!border-border transition-all"
+                className="flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]"
               >
                 {t("profile.tabs.security")}
               </TabsTrigger>
@@ -370,7 +367,7 @@ export function ProfileSettings({
                 </Button>
 
                 <div className="pt-6 border-t border-border">
-                  <div className="flex items-center gap-2 text-destructive mb-4">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-4">
                     <Trash2 className="h-5 w-5" />
                     <h3 className="font-semibold">
                       {t("profile.dangerZone")}
@@ -387,8 +384,8 @@ export function ProfileSettings({
                     </Button>
                   ) : (
                     <div className="space-y-4">
-                      <Alert variant="destructive">
-                        <AlertDescription>
+                      <Alert variant="destructive" className="bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800">
+                        <AlertDescription className="text-red-800 dark:text-red-300">
                           {t("profile.deleteWarning")}
                         </AlertDescription>
                       </Alert>

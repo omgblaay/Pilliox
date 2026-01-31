@@ -68,7 +68,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         onAuthSuccess(data.access_token, loginEmail);
       }
     } catch (err: any) {
-      console.error("❌ Login error:", err);
       setError(err.message || "Login failed");
     } finally {
       setIsLoading(false);
@@ -109,7 +108,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         onAuthSuccess(data.access_token, signupEmail);
       }
     } catch (err: any) {
-      console.error("❌ Signup error:", err);
       setError(
         err.message ||
           "Signup failed. Please check console for details.",
@@ -140,13 +138,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
         });
 
       if (error) {
-        console.error("❌ OAuth initiation error:", error);
         setError(error.message);
         setIsLoading(false);
       }
       // If successful, user will be redirected to Google
     } catch (err: any) {
-      console.error("❌ Google login error:", err);
       setError(err.message || "Google login failed");
       setIsLoading(false);
     }
@@ -172,17 +168,16 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
       }
       // If successful, user will be redirected
     } catch (err: any) {
-      console.error("❌ Facebook login error:", err);
       setError(err.message || "Facebook login failed");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+    <div className="h-full bg-white dark:bg-[#0a0a0a] flex items-center justify-center p-4">
       <div className="flex w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
         {/* Left Side - Decorative Panel */}
-        <div className="hidden md:flex relative w-[320px] bg-gray-800 flex-col gap-2 p-8">
+        <div className="hidden md:flex relative w-[320px] bg-gray-200 dark:bg-gray-800 flex-col gap-2 p-6">
           {/* Background Image with Overlay */}
           <div
             aria-hidden="true"
@@ -193,11 +188,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               className="absolute max-w-none object-cover size-full"
               src={imgFrame3}
             />
-            <div className="absolute bg-[rgba(0,0,0,0.4)] inset-0" />
+            <div className="absolute bg-[rgba(0,0,0,0.5)] inset-0" />
           </div>
 
           {/* Calendar Preview Image */}
-          <div className="absolute h-[361px] left-[32px] bottom-[-64px] w-[249px]">
+          <div className="absolute h-[361px] left-[32px] bottom-[-100px] w-[249px] rotate-[5deg]">
             <img
               alt="Calendar preview"
               className="absolute inset-0 max-w-none object-cover pointer-events-none size-full rounded-lg"
@@ -206,55 +201,51 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
           </div>
 
           {/* Feature List */}
-          <ul className="relative space-y-2 text-white text-l">
-            <li className="flex items-start gap-2">
-              <span className="text-white mt-1">•</span>
-              <span className="leading-6">
-                {t("auth.features.medications")}
-              </span>
+          <ul className="relative space-y-4 !text-white text-l">
+            <li>
+              <h1>{t("auth.features.title")}</h1>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-white mt-1">•</span>
-              <span className="leading-6">
-                {t("auth.features.expenses")}
-              </span>
+              • {t("auth.features.medications")}
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-white mt-1">•</span>
-              <span className="leading-6">
-                {t("auth.features.colorCoded")}
-              </span>
+              • {t("auth.features.expenses")}
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-white mt-1">•</span>
-              <span className="leading-6">
-                {t("auth.features.notes")}
-              </span>
+              • {t("auth.features.colorCoded")}
+            </li>
+            <li className="flex items-start gap-2">
+              • {t("auth.features.notes")}
             </li>
           </ul>
         </div>
 
         {/* Right Side - Auth Card */}
-        <div className="flex-1 bg-[#1a1a1a] p-4 md:p-8 flex flex-col gap-4">
+        <div className="flex-1 bg-gray-50 dark:bg-[#1a1a1a] p-4 md:p-8 flex flex-col gap-4">
           {/* Logo and Tagline */}
-          <div className="inline-flex flex-col items-start gap-2 w-auto">
-            <div className="h-[40px] w-[120px]">
-              <Vector />
+
+          <div className="flex spece-between w-auto">
+            <div className="inline-flex flex-col items-start gap-2 flex-1 w-auto">
+              <div className="h-[40px] w-[120px]">
+                <Vector />
+              </div>
             </div>
-            <p className="text-[#888] text-base">
-              {t("app.welcome")}
-            </p>
+
+            {/* Language Selector */}
+            <div className="flex-0 justify-center">
+              <LanguageSelector variant="ghost" />
+            </div>
           </div>
 
           {/* Tab Buttons */}
-          <div className="bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0">
+          <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0">
             <button
               type="button"
               onClick={() => setActiveTab("login")}
               className={`flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all ${
                 activeTab === "login"
-                  ? "bg-[#404040] text-white shadow-sm"
-                  : "bg-transparent text-[#888]"
+                  ? "bg-white dark:bg-[#404040] text-gray-900 dark:text-white shadow-sm"
+                  : "bg-transparent text-gray-500 dark:text-[#888]"
               }`}
             >
               {t("auth.login")}
@@ -264,8 +255,8 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               onClick={() => setActiveTab("signup")}
               className={`flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all ${
                 activeTab === "signup"
-                  ? "bg-[#404040] text-white shadow-sm"
-                  : "bg-transparent text-[#888]"
+                  ? "bg-white dark:bg-[#404040] text-gray-900 dark:text-white shadow-sm"
+                  : "bg-transparent text-gray-500 dark:text-[#888]"
               }`}
             >
               {t("auth.signup")}
@@ -282,11 +273,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="login-email"
-                  className="text-white text-sm font-medium"
+                  className="text-gray-900 dark:text-white text-sm font-medium"
                 >
                   {t("auth.email")}
                 </label>
-                <input
+                <Input
                   id="login-email"
                   type="email"
                   placeholder={t("auth.emailPlaceholder")}
@@ -296,7 +287,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                   }
                   required
                   autoComplete="email"
-                  className="h-12 px-3 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
                 />
               </div>
 
@@ -304,12 +294,12 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="login-password"
-                  className="text-white text-sm font-medium"
+                  className="text-gray-900 dark:text-white text-sm font-medium"
                 >
                   {t("auth.password")}
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
                     placeholder={t("auth.passwordPlaceholder")}
@@ -319,7 +309,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                     }
                     required
                     autoComplete="current-password"
-                    className="h-12 px-3 pr-10 w-full bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
                   />
                   {/* Show password button */}
                   <button
@@ -327,7 +316,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                     onClick={() =>
                       setShowPassword(!showPassword)
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888] hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#888] hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -349,7 +338,10 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-[#155dfc] hover:bg-[#1250e0] text-white font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: "var(--color-brand)",
+                }}
+                className="hover:!bg-[var(--color-brand-dark)]"
               >
                 {isLoading
                   ? t("auth.loggingIn")
@@ -368,11 +360,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="signup-name"
-                  className="text-white text-sm font-medium"
+                  className="text-gray-900 dark:text-white text-sm font-medium"
                 >
                   {t("auth.name")}
                 </label>
-                <input
+                <Input
                   id="signup-name"
                   type="text"
                   placeholder={t("auth.namePlaceholder")}
@@ -381,7 +373,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                     setSignupName(e.target.value)
                   }
                   autoComplete="name"
-                  className="px-3 h-12 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
                 />
               </div>
 
@@ -389,11 +380,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="signup-email"
-                  className="text-white text-sm font-medium"
+                  className="text-gray-900 dark:text-white text-sm font-medium"
                 >
                   {t("auth.email")}
                 </label>
-                <input
+                <Input
                   id="signup-email"
                   type="email"
                   placeholder={t("auth.emailPlaceholder")}
@@ -403,7 +394,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                   }
                   required
                   autoComplete="email"
-                  className="px-3 h-12 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
                 />
               </div>
 
@@ -411,12 +401,12 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="signup-password"
-                  className="text-white text-sm font-medium"
+                  className="text-gray-900 dark:text-white text-sm font-medium"
                 >
                   {t("auth.password")}
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     id="signup-password"
                     type={showPassword ? "text" : "password"}
                     placeholder={t(
@@ -429,7 +419,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                     required
                     autoComplete="new-password"
                     minLength={6}
-                    className="px-3 w-full h-12 bg-[#1a1a1a] border border-[#3a3a3a] rounded-lg text-white placeholder:text-[#888] focus:outline-none focus:ring-2 focus:ring-[#155dfc] focus:border-transparent transition-all"
                   />
 
                   {/* Show password button */}
@@ -438,7 +427,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                     onClick={() =>
                       setShowPassword(!showPassword)
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888] hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#888] hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -466,7 +455,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
           )}
 
           {/* Divider - Removed social login for now */}
-          <div className="text-center text-[#888] text-sm">
+          <div className="text-center text-gray-500 dark:text-[#888] text-sm">
             {t("auth.orContinueWith")}
           </div>
 
@@ -559,14 +548,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               </div>
               Facebook
             </Button>
-          </div>
-
-          {/* Language Selector */}
-          <div className="flex justify-center">
-            <LanguageSelector
-              variant="ghost"
-              className="text-[#888] hover:text-white hover:bg-[#2a2a2a] h-11 rounded-lg"
-            />
           </div>
         </div>
       </div>

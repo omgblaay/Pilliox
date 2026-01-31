@@ -37,7 +37,14 @@ const kvGetByPrefix = async (prefix: string): Promise<any[]> => {
 };
 
 // Middleware
-app.use('*', cors());
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-Token'],
+  exposeHeaders: ['Content-Length', 'X-Request-Id'],
+  maxAge: 86400,
+  credentials: false,
+}));
 
 // Helper function to get user from token (supports both OAuth and email/password)
 async function getUserFromToken(accessToken: string): Promise<{ id: string; email: string; name: string } | null> {
@@ -189,7 +196,6 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     
     return c.json({ error: 'Invalid email or password' }, 401);
   } catch (error) {
-    console.error(`❌ Login error: ${error}`);
     return c.json({ error: 'Login failed' }, 500);
   }
 });
@@ -224,7 +230,6 @@ app.get('/make-server-c7e1f966/verify', async (c) => {
       valid: true
     });
   } catch (error) {
-    console.error(`❌ Verify error: ${error}`);
     return c.json({ error: 'Verification failed' }, 500);
   }
 });
@@ -253,7 +258,6 @@ app.get('/make-server-c7e1f966/calendar/:month', async (c) => {
     
     return c.json({ entries: entries || {} });
   } catch (error) {
-    console.error(`❌ Get calendar entries error: ${error}`);
     return c.json({ error: 'Failed to get calendar entries' }, 500);
   }
 });
@@ -283,7 +287,6 @@ app.post('/make-server-c7e1f966/calendar/:month', async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error(`❌ Save calendar entries error: ${error}`);
     return c.json({ error: 'Failed to save calendar entries' }, 500);
   }
 });
@@ -321,7 +324,6 @@ app.delete('/make-server-c7e1f966/user/data', async (c) => {
     
     return c.json({ success: true, message: 'All data cleared' });
   } catch (error) {
-    console.error(`❌ Clear data error: ${error}`);
     return c.json({ error: 'Failed to clear data' }, 500);
   }
 });
@@ -357,7 +359,6 @@ app.get('/make-server-c7e1f966/settings', async (c) => {
       settings 
     });
   } catch (error) {
-    console.error(`❌ Get settings error: ${error}`);
     return c.json({ error: 'Failed to get settings' }, 500);
   }
 });
@@ -389,7 +390,6 @@ app.post('/make-server-c7e1f966/profile', async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error(`❌ Update profile error: ${error}`);
     return c.json({ error: 'Failed to update profile' }, 500);
   }
 });
@@ -422,7 +422,6 @@ app.post('/make-server-c7e1f966/settings', async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error(`❌ Update settings error: ${error}`);
     return c.json({ error: 'Failed to update settings' }, 500);
   }
 });
@@ -459,7 +458,6 @@ app.post('/make-server-c7e1f966/change-password', async (c) => {
       return c.json({ error: 'Cannot change password for OAuth accounts' }, 400);
     }
   } catch (error) {
-    console.error(`❌ Change password error: ${error}`);
     return c.json({ error: 'Failed to change password' }, 500);
   }
 });
@@ -495,7 +493,6 @@ app.delete('/make-server-c7e1f966/account', async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error(`❌ Delete account error: ${error}`);
     return c.json({ error: 'Failed to delete account' }, 500);
   }
 });

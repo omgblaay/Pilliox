@@ -69,10 +69,10 @@ export function AppSettings({
           setLocalWeekStartsOnMonday(data.settings.weekStartsOnMonday ?? true);
         }
       } else {
-        console.error('Failed to load settings:', response.status);
+        // Failed to load settings
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      // Error loading settings
     }
   };
 
@@ -94,7 +94,7 @@ export function AppSettings({
         }
       );
     } catch (error) {
-      console.error('Failed to save week start preference:', error);
+      // Failed to save week start preference
     }
   };
 
@@ -117,7 +117,7 @@ export function AppSettings({
         }
       );
     } catch (error) {
-      console.error('Failed to save theme preference:', error);
+      // Failed to save theme preference
     }
   };
 

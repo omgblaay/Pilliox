@@ -1,16 +1,28 @@
-// Simple client for our custom auth system
-// No Supabase dependencies needed
+import { createClient } from '@supabase/supabase-js';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 
-export const createSimpleClient = () => {
-  return {
-    // Not used anymore - we have custom auth
-    auth: {
-      signInWithPassword: async () => ({ data: null, error: new Error('Use custom auth') }),
-      signOut: async () => ({ error: null }),
-      getSession: async () => ({ data: { session: null }, error: null }),
-    }
-  };
-};
+// Create a singleton Supabase client instance
+let supabaseClient: ReturnType<typeof createClient> | null = null;
 
-// Export for compatibility
-export const supabase = createSimpleClient();
+export function getSupabaseClient() {
+  if (!supabaseClient) {
+    supabaseClient = createClient(
+      `https://${projectId}.supabase.co`,
+      publicAnonKey,
+      {
+        auth: {
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+          storageKey: 'pilliox-auth-token',
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true, // CRITICAL: Detect OAuth callback in URL
+          flowType: 'pkce' // Use PKCE flow for OAuth
+        }
+      }
+    );
+  }
+  return supabaseClient;
+}
+
+// Export singleton instance
+export const supabase = getSupabaseClient();

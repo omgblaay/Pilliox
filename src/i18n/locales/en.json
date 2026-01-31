@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Pilliox",
-    "welcome": "Medical Calendar App"
+    "welcome": "Welcome, {{name}} in your calendar"
   },
   "auth": {
     "welcome": "Welcome to Pilliox",
@@ -19,7 +19,7 @@
     "signingUp": "Creating account...",
     "orContinueWith": "Or continue with",
     "features": {
-      "title": "Features",
+      "title": "Your medical calendar app",
       "medications": "Track your medications with a daily counter",
       "expenses": "Monitor expenses with INR values",
       "colorCoded": "Color-code days for easy visualization",

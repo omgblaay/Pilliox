@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Pilliox",
-    "welcome": "Kalendarz medyczny"
+    "welcome": "Witaj, {{name}} w twoim kalendarzu"
   },
   "auth": {
     "welcome": "Witamy w Pilliox",

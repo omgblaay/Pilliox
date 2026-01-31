@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
-import { AuthForm } from '@/app/components/AuthForm';
-import { CalendarView } from '@/app/components/CalendarView';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
-import { getSupabaseClient } from '@/utils/supabase/client';
-import '@/i18n/config'; // Initialize i18n
+import { useState, useEffect } from "react";
+import { AuthForm } from "@/app/components/AuthForm";
+import { CalendarView } from "@/app/components/CalendarView";
+import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { getSupabaseClient } from "@/utils/supabase/client";
+import { useTheme } from "@/app/hooks/useTheme";
+import "@/i18n/config"; // Initialize i18n
 
 export default function App() {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
+  // Initialize theme system to detect browser preference
+  useTheme("system");
+
+  const [accessToken, setAccessToken] = useState<string | null>(
+    null,
+  );
+  const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,66 +24,98 @@ export default function App() {
     const initAuth = async () => {
       try {
         // CRITICAL: Handle OAuth callback from URL hash
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessTokenFromHash = hashParams.get('access_token');
-        const searchParams = new URLSearchParams(window.location.search);
-        const errorParam = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
-        
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1),
+        );
+        const accessTokenFromHash =
+          hashParams.get("access_token");
+        const searchParams = new URLSearchParams(
+          window.location.search,
+        );
+        const errorParam = searchParams.get("error");
+        const errorDescription = searchParams.get(
+          "error_description",
+        );
+
         if (errorParam) {
-          console.error('🔗 ❌ OAuth error in URL:', errorParam, errorDescription);
-          setError(`OAuth error: ${errorDescription || errorParam}`);
+          setError(
+            `OAuth error: ${errorDescription || errorParam}`,
+          );
         }
 
         // Set up auth state listener to handle OAuth callbacks
-        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
+        const {
+          data: { subscription: sub },
+        } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (session?.access_token && session?.user?.email) {
               setAccessToken(session.access_token);
               setUserEmail(session.user.email);
-              localStorage.setItem('accessToken', session.access_token);
-              localStorage.setItem('userEmail', session.user.email);
-              
+              localStorage.setItem(
+                "accessToken",
+                session.access_token,
+              );
+              localStorage.setItem(
+                "userEmail",
+                session.user.email,
+              );
+
               // Clear URL hash after successful auth
               if (window.location.hash) {
-                window.history.replaceState(null, '', window.location.pathname);
+                window.history.replaceState(
+                  null,
+                  "",
+                  window.location.pathname,
+                );
               }
-              
+
               setIsLoading(false);
-            } else if (event === 'SIGNED_OUT') {
+            } else if (event === "SIGNED_OUT") {
               setAccessToken(null);
-              setUserEmail('');
-              localStorage.removeItem('accessToken');
-              localStorage.removeItem('userEmail');
+              setUserEmail("");
+              localStorage.removeItem("accessToken");
+              localStorage.removeItem("userEmail");
               setIsLoading(false);
-            } else if (event === 'INITIAL_SESSION' && !session) {
+            } else if (
+              event === "INITIAL_SESSION" &&
+              !session
+            ) {
               // During OAuth flow, INITIAL_SESSION may be null - don't stop loading yet
             } else if (!session) {
               // No session after all auth events - safe to stop loading
               setIsLoading(false);
             }
-          }
+          },
         );
-        
+
         subscription = sub;
 
         // Check for existing session on initial load
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
-          console.error('❌ Error getting session:', error);
           setIsLoading(false);
-        } else if (session?.access_token && session?.user?.email) {
+        } else if (
+          session?.access_token &&
+          session?.user?.email
+        ) {
           setAccessToken(session.access_token);
           setUserEmail(session.user.email);
-          localStorage.setItem('accessToken', session.access_token);
-          localStorage.setItem('userEmail', session.user.email);
+          localStorage.setItem(
+            "accessToken",
+            session.access_token,
+          );
+          localStorage.setItem("userEmail", session.user.email);
           setIsLoading(false);
         } else {
           // No active session - check localStorage as fallback
-          const storedToken = localStorage.getItem('accessToken');
-          const storedEmail = localStorage.getItem('userEmail');
-          
+          const storedToken =
+            localStorage.getItem("accessToken");
+          const storedEmail = localStorage.getItem("userEmail");
+
           if (storedToken && storedEmail) {
             setAccessToken(storedToken);
             setUserEmail(storedEmail);
@@ -88,17 +126,16 @@ export default function App() {
               if (!accessToken) {
                 setIsLoading(false);
               }
-            }, 3000); // Increased timeout to 3 seconds
+            }, 2000); // Increased timeout to 3 seconds
           }
         }
       } catch (err) {
-        console.error('❌ Auth initialization error:', err);
         setIsLoading(false);
       }
     };
-    
+
     initAuth();
-    
+
     // Cleanup listener on unmount
     return () => {
       if (subscription) {
@@ -110,8 +147,8 @@ export default function App() {
   const handleAuthSuccess = (token: string, email: string) => {
     setAccessToken(token);
     setUserEmail(email);
-    localStorage.setItem('accessToken', token);
-    localStorage.setItem('userEmail', email);
+    localStorage.setItem("accessToken", token);
+    localStorage.setItem("userEmail", email);
   };
 
   const handleLogout = async () => {
@@ -120,15 +157,15 @@ export default function App() {
       const supabase = getSupabaseClient();
       await supabase.auth.signOut();
     } catch (err) {
-      console.error('⚠️ Error signing out from Supabase:', err);
+      // Error signing out
     }
-    
+
     // Clear local state and storage
     setAccessToken(null);
-    setUserEmail('');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('pilliox-auth-token'); // Clear Supabase session storage
+    setUserEmail("");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("pilliox-auth-token"); // Clear Supabase session storage
   };
 
   if (!accessToken) {
@@ -139,8 +176,10 @@ export default function App() {
         {isLoading && (
           <div className="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent dark:border-blue-400"></div>
-              <p className="mt-4 text-white font-medium text-sm">Loading...</p>
+              <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-700 border-t-blue-400"></div>
+              <p className="mt-4 text-white font-medium text-sm">
+                Loading...
+              </p>
             </div>
           </div>
         )}
@@ -149,8 +188,8 @@ export default function App() {
   }
 
   return (
-    <CalendarView 
-      accessToken={accessToken} 
+    <CalendarView
+      accessToken={accessToken}
       onLogout={handleLogout}
       projectId={projectId}
       anonKey={publicAnonKey}

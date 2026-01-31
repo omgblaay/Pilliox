@@ -1,50 +1,22 @@
 import svgPaths from "./svg-7i1ugmeb9t";
+import lightLogo from "figma:asset/8b8f0e9c1ea8aecb447fa3fdf3be6669b8941f38.png";
+import darkLogo from "figma:asset/279c4b4dd91c2aeda3938e1b868a9874fc6a66bc.png";
 
 export default function Vector() {
   return (
-    <div data-name="Vector">
-      <svg
-        className="block"
-        fill="none"
-        preserveAspectRatio="none"
-        viewBox="0 0 285.852 83.3333"
-      >
-        <g id="Vector">
-          <path d={svgPaths.p29802d00} fill="#6D6D6D" />
-          <path
-            d={svgPaths.p1d183c00}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p3913aa00}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p2c9ae300}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p1384c480}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p3880d040}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p1174ec00}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p27e6db00}
-            fill="var(--fill-0, white)"
-          />
-          <path
-            d={svgPaths.p22d835c0}
-            fill="var(--fill-0, white)"
-          />
-        </g>
-      </svg>
+    <div data-name="Vector" className="w-full h-full">
+      {/* Light mode logo */}
+      <img
+        src={lightLogo}
+        alt="Pilliox"
+        className="block dark:hidden h-full object-contain"
+      />
+      {/* Dark mode logo */}
+      <img
+        src={darkLogo}
+        alt="Pilliox"
+        className="hidden dark:block h-full object-contain"
+      />
     </div>
   );
 }
