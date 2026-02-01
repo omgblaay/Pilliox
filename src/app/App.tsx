@@ -4,6 +4,8 @@ import { CalendarView } from "@/app/components/CalendarView";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { getSupabaseClient } from "@/utils/supabase/client";
 import { useTheme } from "@/app/hooks/useTheme";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import "@/i18n/config"; // Initialize i18n
 
 export default function App() {
@@ -16,6 +18,12 @@ export default function App() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Log platform info for debugging
+  useEffect(() => {
+    console.log("Capacitor Platform:", Capacitor.getPlatform());
+    console.log("Is Native:", Capacitor.isNativePlatform());
+  }, []);
 
   useEffect(() => {
     const supabase = getSupabaseClient();

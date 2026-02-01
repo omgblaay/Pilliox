@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { getSupabaseClient } from "@/utils/supabase/client";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
@@ -170,6 +172,14 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     } catch (err: any) {
       setError(err.message || "Facebook login failed");
       setIsLoading(false);
+    }
+  };
+
+  const openBrowser = async (url: string) => {
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url });
+    } else {
+      window.open(url, "_blank");
     }
   };
 

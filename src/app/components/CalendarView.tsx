@@ -27,7 +27,11 @@ import {
   User,
   Pencil,
 } from "lucide-react";
-import { motion, AnimatePresence, type PanInfo } from "motion/react";
+import {
+  motion,
+  AnimatePresence,
+  type PanInfo,
+} from "motion/react";
 import { Button } from "@/app/components/ui/button";
 import {
   Dialog,
@@ -285,12 +289,11 @@ export function CalendarView({
   };
 
   // Preload adjacent months for smooth swiping
-  const [adjacentMonthEntries, setAdjacentMonthEntries] = useState<{
-    prev: Record<string, CalendarEntry>;
-    next: Record<string, CalendarEntry>;
-  }>({ prev: {}, next: {} });
-
-
+  const [adjacentMonthEntries, setAdjacentMonthEntries] =
+    useState<{
+      prev: Record<string, CalendarEntry>;
+      next: Record<string, CalendarEntry>;
+    }>({ prev: {}, next: {} });
 
   useEffect(() => {
     // Initial check after theme is applied
@@ -320,13 +323,13 @@ export function CalendarView({
       try {
         const healthUrl = `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/health`;
         const response = await fetch(healthUrl, {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${anonKey}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${anonKey}`,
           },
         });
-        
+
         if (response.ok) {
           await response.json();
           setServerError(false);
@@ -373,7 +376,7 @@ export function CalendarView({
     const fetchEntries = async () => {
       try {
         const url = `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`;
-        
+
         const response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${anonKey}`,
@@ -403,35 +406,48 @@ export function CalendarView({
     const fetchAdjacentMonths = async () => {
       const prevMonth = subMonths(currentMonth, 1);
       const nextMonth = addMonths(currentMonth, 1);
-      
+
       const prevMonthKey = format(prevMonth, "yyyy-MM");
       const nextMonthKey = format(nextMonth, "yyyy-MM");
-      
+
       try {
         const [prevResponse, nextResponse] = await Promise.all([
-          fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${prevMonthKey}`, {
-            headers: {
-              Authorization: `Bearer ${anonKey}`,
-              "X-User-Token": accessToken,
+          fetch(
+            `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${prevMonthKey}`,
+            {
+              headers: {
+                Authorization: `Bearer ${anonKey}`,
+                "X-User-Token": accessToken,
+              },
             },
-          }),
-          fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${nextMonthKey}`, {
-            headers: {
-              Authorization: `Bearer ${anonKey}`,
-              "X-User-Token": accessToken,
+          ),
+          fetch(
+            `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${nextMonthKey}`,
+            {
+              headers: {
+                Authorization: `Bearer ${anonKey}`,
+                "X-User-Token": accessToken,
+              },
             },
-          }),
+          ),
         ]);
 
-        const prevData = prevResponse.ok ? await prevResponse.json() : { entries: {} };
-        const nextData = nextResponse.ok ? await nextResponse.json() : { entries: {} };
+        const prevData = prevResponse.ok
+          ? await prevResponse.json()
+          : { entries: {} };
+        const nextData = nextResponse.ok
+          ? await nextResponse.json()
+          : { entries: {} };
 
         setAdjacentMonthEntries({
           prev: prevData.entries || {},
           next: nextData.entries || {},
         });
       } catch (error) {
-        console.error("Error preloading adjacent months:", error);
+        console.error(
+          "Error preloading adjacent months:",
+          error,
+        );
       }
     };
 
@@ -605,7 +621,7 @@ export function CalendarView({
   // Swipe handlers for calendar month navigation
   const handleCalendarSwipe = (
     event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
+    info: PanInfo,
   ) => {
     const swipeThreshold = 50;
     if (Math.abs(info.offset.x) > swipeThreshold) {
@@ -655,7 +671,7 @@ export function CalendarView({
   // Swipe handlers for day modal navigation
   const handleDayModalSwipe = (
     event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
+    info: PanInfo,
   ) => {
     const swipeThreshold = 50;
     if (Math.abs(info.offset.x) > swipeThreshold) {
@@ -854,9 +870,12 @@ export function CalendarView({
       {/* Server Error Banner */}
       {serverError && (
         <div className="fixed top-0 left-0 right-0 bg-red-600 text-white px-4 py-3 z-50 text-center text-sm">
-          <p className="font-medium">⚠️ Server Connection Error</p>
+          <p className="font-medium">
+            ⚠️ Server Connection Error
+          </p>
           <p className="text-xs mt-1 opacity-90">
-            Unable to connect to the backend server. Check console for details.
+            Unable to connect to the backend server. Check
+            console for details.
           </p>
         </div>
       )}
@@ -917,7 +936,11 @@ export function CalendarView({
                 dragElastic={0.2}
                 onDragEnd={handleCalendarSwipe}
               >
-                <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                <AnimatePresence
+                  mode="wait"
+                  initial={false}
+                  custom={swipeDirectionRef.current}
+                >
                   <motion.h2
                     key={format(currentMonth, "yyyy-MM")}
                     custom={swipeDirectionRef.current}
@@ -925,7 +948,10 @@ export function CalendarView({
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    transition={{
+                      duration: 0.3,
+                      ease: "easeInOut",
+                    }}
                     className="text-lg font-semibold text-foreground text-[14px] text-center"
                   >
                     {getMonthName(currentMonth)}{" "}
@@ -983,7 +1009,7 @@ export function CalendarView({
           )}
 
           {/* Calendar Grid */}
-          <motion.div 
+          <motion.div
             className="px-4 sm:px-6 py-4 sm:py-5"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
@@ -1002,305 +1028,313 @@ export function CalendarView({
             </div>
 
             {/* Days Grid */}
-            <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
-              <motion.div 
+            <AnimatePresence
+              mode="wait"
+              initial={false}
+              custom={swipeDirectionRef.current}
+            >
+              <motion.div
                 key={format(currentMonth, "yyyy-MM")}
                 custom={swipeDirectionRef.current}
                 variants={slideVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
                 className="grid grid-cols-7 gap-y-2"
               >
-              {emptyDays.map((_, index) => (
-                <div
-                  key={`empty-${index}`}
-                  className="w-full h-18"
-                />
-              ))}
-              {daysInMonth.map((day, dayIndex) => {
-                const dateStr = format(day, "yyyy-MM-dd");
-                const entry = entries[dateStr] || {};
-                const hasAmount =
-                  entry.amount && entry.amount !== "";
-                const hasNote = entry.note && entry.note !== "";
-                const hasPills =
-                  entry.pills && parseFloat(entry.pills) > 0;
-                const hasColor =
-                  entry.color && entry.color !== "";
-                const isSelected = selectedDates.has(dateStr);
-                const isToday = isSameDay(day, new Date());
+                {emptyDays.map((_, index) => (
+                  <div
+                    key={`empty-${index}`}
+                    className="w-full h-18"
+                  />
+                ))}
+                {daysInMonth.map((day, dayIndex) => {
+                  const dateStr = format(day, "yyyy-MM-dd");
+                  const entry = entries[dateStr] || {};
+                  const hasAmount =
+                    entry.amount && entry.amount !== "";
+                  const hasNote =
+                    entry.note && entry.note !== "";
+                  const hasPills =
+                    entry.pills && parseFloat(entry.pills) > 0;
+                  const hasColor =
+                    entry.color && entry.color !== "";
+                  const isSelected = selectedDates.has(dateStr);
+                  const isToday = isSameDay(day, new Date());
 
-                // Get appropriate color for current theme
-                const displayColor = hasColor
-                  ? getColorForTheme(entry.color, isDarkMode)
-                  : undefined;
+                  // Get appropriate color for current theme
+                  const displayColor = hasColor
+                    ? getColorForTheme(entry.color, isDarkMode)
+                    : undefined;
 
-                // Calculate position in week (0 = first day, 6 = last day based on week start preference)
-                const gridIndex = emptyDays.length + dayIndex;
-                const positionInWeek = gridIndex % 7;
-                const isFirstDayOfWeek = positionInWeek === 0;
-                const isLastDayOfWeek = positionInWeek === 6;
+                  // Calculate position in week (0 = first day, 6 = last day based on week start preference)
+                  const gridIndex = emptyDays.length + dayIndex;
+                  const positionInWeek = gridIndex % 7;
+                  const isFirstDayOfWeek = positionInWeek === 0;
+                  const isLastDayOfWeek = positionInWeek === 6;
 
-                // Check if previous and next days have the same color and tag
-                const prevDay =
-                  dayIndex > 0
-                    ? daysInMonth[dayIndex - 1]
+                  // Check if previous and next days have the same color and tag
+                  const prevDay =
+                    dayIndex > 0
+                      ? daysInMonth[dayIndex - 1]
+                      : null;
+                  const nextDay =
+                    dayIndex < daysInMonth.length - 1
+                      ? daysInMonth[dayIndex + 1]
+                      : null;
+
+                  const prevDateStr = prevDay
+                    ? format(prevDay, "yyyy-MM-dd")
                     : null;
-                const nextDay =
-                  dayIndex < daysInMonth.length - 1
-                    ? daysInMonth[dayIndex + 1]
+                  const nextDateStr = nextDay
+                    ? format(nextDay, "yyyy-MM-dd")
                     : null;
 
-                const prevDateStr = prevDay
-                  ? format(prevDay, "yyyy-MM-dd")
-                  : null;
-                const nextDateStr = nextDay
-                  ? format(nextDay, "yyyy-MM-dd")
-                  : null;
+                  const prevEntry = prevDateStr
+                    ? entries[prevDateStr]
+                    : null;
+                  const nextEntry = nextDateStr
+                    ? entries[nextDateStr]
+                    : null;
 
-                const prevEntry = prevDateStr
-                  ? entries[prevDateStr]
-                  : null;
-                const nextEntry = nextDateStr
-                  ? entries[nextDateStr]
-                  : null;
+                  const hasSameColorTagAsPrev =
+                    !isFirstDayOfWeek &&
+                    prevEntry &&
+                    hasColor &&
+                    prevEntry.color === entry.color &&
+                    prevEntry.tag === entry.tag;
 
-                const hasSameColorTagAsPrev =
-                  !isFirstDayOfWeek &&
-                  prevEntry &&
-                  hasColor &&
-                  prevEntry.color === entry.color &&
-                  prevEntry.tag === entry.tag;
+                  const hasSameColorTagAsNext =
+                    !isLastDayOfWeek &&
+                    nextEntry &&
+                    hasColor &&
+                    nextEntry.color === entry.color &&
+                    nextEntry.tag === entry.tag;
 
-                const hasSameColorTagAsNext =
-                  !isLastDayOfWeek &&
-                  nextEntry &&
-                  hasColor &&
-                  nextEntry.color === entry.color &&
-                  nextEntry.tag === entry.tag;
+                  // Check if this day is part of a tagged group (for margin-top)
+                  const isPartOfTaggedGroup =
+                    hasColor &&
+                    entry.tag &&
+                    (hasSameColorTagAsPrev ||
+                      hasSameColorTagAsNext ||
+                      (!hasSameColorTagAsPrev &&
+                        !hasSameColorTagAsNext));
 
-                // Check if this day is part of a tagged group (for margin-top)
-                const isPartOfTaggedGroup =
-                  hasColor &&
-                  entry.tag &&
-                  (hasSameColorTagAsPrev ||
-                    hasSameColorTagAsNext ||
-                    (!hasSameColorTagAsPrev &&
-                      !hasSameColorTagAsNext));
+                  // Count consecutive days with same color and tag (for tag width calculation)
+                  let consecutiveDaysCount = 1;
+                  if (
+                    hasColor &&
+                    entry.tag &&
+                    !hasSameColorTagAsPrev
+                  ) {
+                    let checkIndex = dayIndex + 1;
+                    while (checkIndex < daysInMonth.length) {
+                      const checkDay = daysInMonth[checkIndex];
+                      const checkDateStr = format(
+                        checkDay,
+                        "yyyy-MM-dd",
+                      );
+                      const checkEntry = entries[checkDateStr];
+                      const checkGridIndex =
+                        emptyDays.length + checkIndex;
+                      const checkPositionInWeek =
+                        checkGridIndex % 7;
+                      const isCheckLastDayOfWeek =
+                        checkPositionInWeek === 6;
 
-                // Count consecutive days with same color and tag (for tag width calculation)
-                let consecutiveDaysCount = 1;
-                if (
-                  hasColor &&
-                  entry.tag &&
-                  !hasSameColorTagAsPrev
-                ) {
-                  let checkIndex = dayIndex + 1;
-                  while (checkIndex < daysInMonth.length) {
-                    const checkDay = daysInMonth[checkIndex];
-                    const checkDateStr = format(
-                      checkDay,
-                      "yyyy-MM-dd",
-                    );
-                    const checkEntry = entries[checkDateStr];
-                    const checkGridIndex =
-                      emptyDays.length + checkIndex;
-                    const checkPositionInWeek =
-                      checkGridIndex % 7;
-                    const isCheckLastDayOfWeek =
-                      checkPositionInWeek === 6;
-
-                    // Check if same color/tag and not crossing week boundary
-                    if (
-                      checkEntry?.color === entry.color &&
-                      checkEntry?.tag === entry.tag
-                    ) {
-                      consecutiveDaysCount++;
-                      // Stop if the day we just counted is the last day of the week
-                      if (isCheckLastDayOfWeek) {
+                      // Check if same color/tag and not crossing week boundary
+                      if (
+                        checkEntry?.color === entry.color &&
+                        checkEntry?.tag === entry.tag
+                      ) {
+                        consecutiveDaysCount++;
+                        // Stop if the day we just counted is the last day of the week
+                        if (isCheckLastDayOfWeek) {
+                          break;
+                        }
+                        checkIndex++;
+                      } else {
                         break;
                       }
-                      checkIndex++;
-                    } else {
-                      break;
                     }
                   }
-                }
 
-                // Determine border radius based on grouping
-                let roundedClass = "rounded-xl";
-                if (
-                  hasColor &&
-                  (hasSameColorTagAsPrev ||
-                    hasSameColorTagAsNext)
-                ) {
+                  // Determine border radius based on grouping
+                  let roundedClass = "rounded-xl";
                   if (
-                    hasSameColorTagAsPrev &&
-                    hasSameColorTagAsNext
+                    hasColor &&
+                    (hasSameColorTagAsPrev ||
+                      hasSameColorTagAsNext)
                   ) {
-                    // Middle of a group
-                    roundedClass = "rounded-none";
-                  } else if (
-                    hasSameColorTagAsPrev &&
-                    !hasSameColorTagAsNext
-                  ) {
-                    // End of a group
-                    roundedClass =
-                      "rounded-r-xl rounded-l-none";
-                  } else if (
-                    !hasSameColorTagAsPrev &&
-                    hasSameColorTagAsNext
-                  ) {
-                    // Start of a group
-                    roundedClass =
-                      "rounded-l-xl rounded-r-none";
-                  }
-                }
-
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => handleDayClick(day)}
-                    className={cn(
-                      "w-full min-h-18 relative transition-all duration-200",
-                      roundedClass,
-                      "flex flex-col items-center justify-center p-2",
-                      "focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:ring-offset-1",
-                      isToday &&
-                        !hasColor &&
-                        "bg-blue-50 dark:bg-blue-950 border-2 border-blue-500 dark:border-blue-600",
-                      !isToday &&
-                        !hasColor &&
-                        "hover:bg-gray-200 dark:hover:bg-accent border-2 border-transparent",
-                      hasColor &&
-                        "hover:opacity-80 border-2 border-transparent",
-                      isSelected &&
-                        "ring-2 ring-blue-600 ring-offset-2",
-                      // Add z-index for first day of tagged group to keep tag on top
-                      hasColor &&
-                        entry.tag &&
-                        !hasSameColorTagAsPrev &&
-                        "z-40",
-                    )}
-                    style={
-                      displayColor
-                        ? {
-                            backgroundColor: displayColor,
-                          }
-                        : undefined
+                    if (
+                      hasSameColorTagAsPrev &&
+                      hasSameColorTagAsNext
+                    ) {
+                      // Middle of a group
+                      roundedClass = "rounded-none";
+                    } else if (
+                      hasSameColorTagAsPrev &&
+                      !hasSameColorTagAsNext
+                    ) {
+                      // End of a group
+                      roundedClass =
+                        "rounded-r-xl rounded-l-none";
+                    } else if (
+                      !hasSameColorTagAsPrev &&
+                      hasSameColorTagAsNext
+                    ) {
+                      // Start of a group
+                      roundedClass =
+                        "rounded-l-xl rounded-r-none";
                     }
-                  >
-                    <div
+                  }
+
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => handleDayClick(day)}
                       className={cn(
-                        "flex flex-col items-center justify-center gap-1",
-                        isPartOfTaggedGroup && "mt-5",
+                        "w-full min-h-18 relative transition-all duration-200",
+                        roundedClass,
+                        "flex flex-col items-center justify-center p-2",
+                        "focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:ring-offset-1",
+                        isToday &&
+                          !hasColor &&
+                          "bg-blue-50 dark:bg-blue-950 border-2 border-blue-500 dark:border-blue-600",
+                        !isToday &&
+                          !hasColor &&
+                          "hover:bg-gray-200 dark:hover:bg-accent border-2 border-transparent",
+                        hasColor &&
+                          "hover:opacity-80 border-2 border-transparent",
+                        isSelected &&
+                          "ring-2 ring-blue-600 ring-offset-2",
+                        // Add z-index for first day of tagged group to keep tag on top
+                        hasColor &&
+                          entry.tag &&
+                          !hasSameColorTagAsPrev &&
+                          "z-40",
                       )}
+                      style={
+                        displayColor
+                          ? {
+                              backgroundColor: displayColor,
+                            }
+                          : undefined
+                      }
                     >
-                      {/* Tag Display - Show only once per consecutive group at the top center of first day */}
-                      {hasColor &&
-                        entry.tag &&
-                        !hasSameColorTagAsPrev && (
+                      <div
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1",
+                          isPartOfTaggedGroup && "mt-5",
+                        )}
+                      >
+                        {/* Tag Display - Show only once per consecutive group at the top center of first day */}
+                        {hasColor &&
+                          entry.tag &&
+                          !hasSameColorTagAsPrev && (
+                            <div
+                              className={cn(
+                                "absolute top-0 left-0 text-[10px] font-semibold py-0.5 rounded-t-xl truncate z-50 text-left pl-2",
+                                hasColor && !isDarkMode
+                                  ? "bg-black/20 text-gray-900"
+                                  : hasColor && isDarkMode
+                                    ? "bg-white/20 text-gray-300"
+                                    : "",
+                              )}
+                              style={{
+                                width:
+                                  consecutiveDaysCount > 1
+                                    ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 3}px)`
+                                    : "100%",
+                              }}
+                              title={entry.tag}
+                            >
+                              {entry.tag}
+                            </div>
+                          )}
+
+                        {/* Amount Display */}
+                        {hasAmount && (
                           <div
                             className={cn(
-                              "absolute top-0 left-0 text-[10px] font-semibold py-0.5 rounded-t-xl truncate z-50 text-left pl-2",
+                              "text-[10px] font-semibold px-1 py-0.5 rounded whitespace-nowrap",
                               hasColor && !isDarkMode
                                 ? "bg-black/20 text-gray-900"
                                 : hasColor && isDarkMode
                                   ? "bg-white/20 text-gray-300"
-                                  : "",
+                                  : !isDarkMode
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-green-900 text-green-100",
                             )}
-                            style={{
-                              width:
-                                consecutiveDaysCount > 1
-                                  ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 3}px)`
-                                  : "100%",
-                            }}
-                            title={entry.tag}
                           >
-                            {entry.tag}
+                            INR:
+                            {parseFloat(
+                              entry.amount,
+                            ).toLocaleString("en-IN", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}
                           </div>
                         )}
 
-                      {/* Amount Display */}
-                      {hasAmount && (
-                        <div
+                        {/* Day Number */}
+                        <span
                           className={cn(
-                            "text-[10px] font-semibold px-1 py-0.5 rounded whitespace-nowrap",
-                            hasColor && !isDarkMode
-                              ? "bg-black/20 text-gray-900"
-                              : hasColor && isDarkMode
-                                ? "bg-white/20 text-gray-300"
-                                : !isDarkMode
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-green-900 text-green-100",
+                            "text-sm font-semibold leading-none",
+                            isToday &&
+                              !hasColor &&
+                              "text-blue-600 dark:text-blue-400",
+                            !isToday &&
+                              !hasColor &&
+                              "text-gray-700 dark:text-gray-300",
+                            hasColor &&
+                              "text-gray-900 dark:text-gray-300",
                           )}
                         >
-                          INR:
-                          {parseFloat(
-                            entry.amount,
-                          ).toLocaleString("en-IN", {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 2,
-                          })}
-                        </div>
-                      )}
+                          {format(day, "d")}
+                          {/* Note Indicator - Show next to day number when note exists */}
+                          {hasNote && (
+                            <span
+                              className={cn(
+                                "inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle",
+                                hasColor && !isDarkMode
+                                  ? "bg-gray-900/80"
+                                  : hasColor && isDarkMode
+                                    ? "bg-gray-300"
+                                    : !isDarkMode
+                                      ? "bg-blue-500"
+                                      : "bg-blue-400",
+                              )}
+                            />
+                          )}
+                        </span>
 
-                      {/* Day Number */}
-                      <span
-                        className={cn(
-                          "text-sm font-semibold leading-none",
-                          isToday &&
-                            !hasColor &&
-                            "text-blue-600 dark:text-blue-400",
-                          !isToday &&
-                            !hasColor &&
-                            "text-gray-700 dark:text-gray-300",
-                          hasColor &&
-                            "text-gray-900 dark:text-gray-300",
-                        )}
-                      >
-                        {format(day, "d")}
-                        {/* Note Indicator - Show next to day number when note exists */}
-                        {hasNote && (
-                          <span
+                        {/* Pills Counter */}
+                        {hasPills && (
+                          <div
                             className={cn(
-                              "inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle",
+                              "flex items-center gap-2 text-[10px] font-semibold px-1 py-0.5 rounded",
                               hasColor && !isDarkMode
-                                ? "bg-gray-900/80"
+                                ? "bg-black/20 text-gray-900"
                                 : hasColor && isDarkMode
-                                  ? "bg-gray-300"
+                                  ? "bg-white/20 text-gray-300"
                                   : !isDarkMode
-                                    ? "bg-blue-500"
-                                    : "bg-blue-400",
+                                    ? "bg-purple-100 text-purple-700"
+                                    : "bg-purple-900 text-purple-100",
                             )}
-                          />
+                          >
+                            <Pill className="h-2.5 w-2.5" />
+                            <span>{entry.pills}</span>
+                          </div>
                         )}
-                      </span>
-
-                      {/* Pills Counter */}
-                      {hasPills && (
-                        <div
-                          className={cn(
-                            "flex items-center gap-2 text-[10px] font-semibold px-1 py-0.5 rounded",
-                            hasColor && !isDarkMode
-                              ? "bg-black/20 text-gray-900"
-                              : hasColor && isDarkMode
-                                ? "bg-white/20 text-gray-300"
-                                : !isDarkMode
-                                  ? "bg-purple-100 text-purple-700"
-                                  : "bg-purple-900 text-purple-100",
-                          )}
-                        >
-                          <Pill className="h-2.5 w-2.5" />
-                          <span>{entry.pills}</span>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+                      </div>
+                    </button>
+                  );
+                })}
               </motion.div>
             </AnimatePresence>
           </motion.div>
@@ -1352,15 +1386,26 @@ export function CalendarView({
                   dragElastic={0.2}
                   onDragEnd={handleDayModalSwipe}
                 >
-                  <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                  <AnimatePresence
+                    mode="wait"
+                    initial={false}
+                    custom={swipeDirectionRef.current}
+                  >
                     <motion.div
-                      key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
+                      key={
+                        selectedDate
+                          ? format(selectedDate, "yyyy-MM-dd")
+                          : "none"
+                      }
                       custom={swipeDirectionRef.current}
                       variants={headerSlideVariants}
                       initial="enter"
                       animate="center"
                       exit="exit"
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
                       className="text-l font-bold text-foreground text-[14px] text-center flex-1 font-normal"
                     >
                       {selectedDate &&
@@ -1381,360 +1426,392 @@ export function CalendarView({
           </div>
 
           {/* Content */}
-          <motion.div 
+          <motion.div
             className="px-6 py-5 space-y-5 bg-card"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
             onDragEnd={handleDayModalSwipe}
           >
-            <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+            <AnimatePresence
+              mode="wait"
+              initial={false}
+              custom={swipeDirectionRef.current}
+            >
               <motion.div
-                key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
+                key={
+                  selectedDate
+                    ? format(selectedDate, "yyyy-MM-dd")
+                    : "none"
+                }
                 custom={swipeDirectionRef.current}
                 variants={slideVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
               >
-            {/* Color/Tag Section - Show if day has a color */}
-            {selectedDate &&
-              entries[format(selectedDate, "yyyy-MM-dd")]
-                ?.color && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                        <Palette className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-                      </div>
-                      <Label>{t("calendar.colorTag")}</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemoveColorTag}
-                        className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex-1"
-                      >
-                        <X className="h-2 w-2" />
-                        {t("calendar.removeTag")}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {!editingTag ? (
-                    <>
-                      {/* Tag Display */}
-                      <div
-                        className="h-12 rounded-lg border flex items-center px-4 relative group"
-                        style={{
-                          backgroundColor: entries[
-                            format(selectedDate, "yyyy-MM-dd")
-                          ]?.color
-                            ? getColorForTheme(
-                                entries[
-                                  format(
-                                    selectedDate,
-                                    "yyyy-MM-dd",
-                                  )
-                                ].color,
-                                isDarkMode,
-                              )
-                            : undefined,
-                          borderColor: entries[
-                            format(selectedDate, "yyyy-MM-dd")
-                          ]?.color
-                            ? getColorForTheme(
-                                entries[
-                                  format(
-                                    selectedDate,
-                                    "yyyy-MM-dd",
-                                  )
-                                ].color,
-                                isDarkMode,
-                              )
-                            : undefined,
-                        }}
-                      >
-                        <span
-                          className="text-sm font-semibold"
-                          style={{
-                            color:
-                              entries[
-                                format(
-                                  selectedDate,
-                                  "yyyy-MM-dd",
-                                )
-                              ]?.color &&
-                              isLightColor(
-                                getColorForTheme(
-                                  entries[
-                                    format(
-                                      selectedDate,
-                                      "yyyy-MM-dd",
-                                    )
-                                  ].color,
-                                  isDarkMode,
-                                ),
-                              )
-                                ? "#111827"
-                                : "#f3f4f6",
-                          }}
-                        >
-                          {entries[
-                            format(selectedDate, "yyyy-MM-dd")
-                          ]?.tag || t("calendar.noTag")}
-                        </span>
-
-                        {/* Edit Icon Button */}
-                        <button
-                          onClick={startEditingTag}
-                          className="absolute right-2 h-8 w-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
-                          style={{
-                            color:
-                              entries[
-                                format(
-                                  selectedDate,
-                                  "yyyy-MM-dd",
-                                )
-                              ]?.color &&
-                              isLightColor(
-                                getColorForTheme(
-                                  entries[
-                                    format(
-                                      selectedDate,
-                                      "yyyy-MM-dd",
-                                    )
-                                  ].color,
-                                  isDarkMode,
-                                ),
-                              )
-                                ? "#111827"
-                                : "#f3f4f6",
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      {/* Grouped Days List */}
-                      {(() => {
-                        const currentEntry =
-                          entries[
-                            format(selectedDate, "yyyy-MM-dd")
-                          ];
-                        if (
-                          !currentEntry?.color ||
-                          !currentEntry?.tag
-                        )
-                          return null;
-
-                        const groupedDays = findGroupedDays(
-                          currentEntry.color,
-                          currentEntry.tag,
-                        );
-                        const dayRanges =
-                          formatDayRanges(groupedDays);
-
-                        if (groupedDays.length <= 1)
-                          return null;
-
-                        return (
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span className="font-medium">
-                              Marked days:
-                            </span>
-                            {dayRanges.map((range, idx) => (
-                              <Badge
-                                key={idx}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {range}
-                              </Badge>
-                            ))}
+                {/* Color/Tag Section - Show if day has a color */}
+                {selectedDate &&
+                  entries[format(selectedDate, "yyyy-MM-dd")]
+                    ?.color && (
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <Palette className="h-4 w-4 text-orange-700 dark:text-orange-400" />
                           </div>
-                        );
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      {/* Tag Edit Mode */}
-                      <div className="space-y-3 flex flex-col gap-2 p-4 rounded-lg bg-accent">
-                        <Label
-                          htmlFor="days-selection"
-                          className="text-foreground"
-                        >
-                          {t("multiSelect.tagLabel")}
-                        </Label>
-                        <Input
-                          id="days-selection"
-                          value={tempTagText}
-                          onChange={(e) =>
-                            setTempTagText(e.target.value)
-                          }
-                          placeholder="Tag"
-                          maxLength={50}
-                        />
+                          <Label>
+                            {t("calendar.colorTag")}
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveColorTag}
+                            className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex-1"
+                          >
+                            <X className="h-2 w-2" />
+                            {t("calendar.removeTag")}
+                          </Button>
+                        </div>
+                      </div>
 
-                        {/* Color Picker */}
-                        <div className="grid grid-cols-4 gap-2">
-                          {COLORS.map((color) => (
-                            <Button
-                              key={color.name}
-                              onClick={() =>
-                                setTempTagColor(color)
-                              }
-                              className={cn(
-                                "h-10 rounded-lg border-2 transition-all",
-                                tempTagColor.name ===
-                                  color.name &&
-                                  "ring-2 ring-blue-600 dark:ring-blue-500 ring-offset-2 dark:ring-offset-card",
-                              )}
+                      {!editingTag ? (
+                        <>
+                          {/* Tag Display */}
+                          <div
+                            className="h-12 rounded-lg border flex items-center px-4 relative group"
+                            style={{
+                              backgroundColor: entries[
+                                format(
+                                  selectedDate,
+                                  "yyyy-MM-dd",
+                                )
+                              ]?.color
+                                ? getColorForTheme(
+                                    entries[
+                                      format(
+                                        selectedDate,
+                                        "yyyy-MM-dd",
+                                      )
+                                    ].color,
+                                    isDarkMode,
+                                  )
+                                : undefined,
+                              borderColor: entries[
+                                format(
+                                  selectedDate,
+                                  "yyyy-MM-dd",
+                                )
+                              ]?.color
+                                ? getColorForTheme(
+                                    entries[
+                                      format(
+                                        selectedDate,
+                                        "yyyy-MM-dd",
+                                      )
+                                    ].color,
+                                    isDarkMode,
+                                  )
+                                : undefined,
+                            }}
+                          >
+                            <span
+                              className="text-sm font-semibold"
                               style={{
-                                backgroundColor: isDarkMode
-                                  ? color.dark
-                                  : color.hex,
-                                borderColor: isDarkMode
-                                  ? color.dark
-                                  : color.hex,
+                                color:
+                                  entries[
+                                    format(
+                                      selectedDate,
+                                      "yyyy-MM-dd",
+                                    )
+                                  ]?.color &&
+                                  isLightColor(
+                                    getColorForTheme(
+                                      entries[
+                                        format(
+                                          selectedDate,
+                                          "yyyy-MM-dd",
+                                        )
+                                      ].color,
+                                      isDarkMode,
+                                    ),
+                                  )
+                                    ? "#111827"
+                                    : "#f3f4f6",
                               }}
                             >
-                              {tempTagColor.name ===
-                                color.name && (
-                                <Check
-                                  className="h-4 w-4 mx-auto"
-                                  style={{
-                                    color: isLightColor(
-                                      isDarkMode
-                                        ? color.dark
-                                        : color.hex,
+                              {entries[
+                                format(
+                                  selectedDate,
+                                  "yyyy-MM-dd",
+                                )
+                              ]?.tag || t("calendar.noTag")}
+                            </span>
+
+                            {/* Edit Icon Button */}
+                            <button
+                              onClick={startEditingTag}
+                              className="absolute right-2 h-8 w-8 rounded-lg flex items-center justify-center group-hover:opacity-100 transition-opacity hover:bg-white/20"
+                              style={{
+                                color:
+                                  entries[
+                                    format(
+                                      selectedDate,
+                                      "yyyy-MM-dd",
                                     )
-                                      ? "#111827"
-                                      : "#f3f4f6",
+                                  ]?.color &&
+                                  isLightColor(
+                                    getColorForTheme(
+                                      entries[
+                                        format(
+                                          selectedDate,
+                                          "yyyy-MM-dd",
+                                        )
+                                      ].color,
+                                      isDarkMode,
+                                    ),
+                                  )
+                                    ? "#111827"
+                                    : "#f3f4f6",
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Grouped Days List */}
+                          {(() => {
+                            const currentEntry =
+                              entries[
+                                format(
+                                  selectedDate,
+                                  "yyyy-MM-dd",
+                                )
+                              ];
+                            if (
+                              !currentEntry?.color ||
+                              !currentEntry?.tag
+                            )
+                              return null;
+
+                            const groupedDays = findGroupedDays(
+                              currentEntry.color,
+                              currentEntry.tag,
+                            );
+                            const dayRanges =
+                              formatDayRanges(groupedDays);
+
+                            if (groupedDays.length <= 1)
+                              return null;
+
+                            return (
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <span className="font-medium">
+                                  Marked days:
+                                </span>
+                                {dayRanges.map((range, idx) => (
+                                  <Badge
+                                    key={idx}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {range}
+                                  </Badge>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <>
+                          {/* Tag Edit Mode */}
+                          <div className="space-y-3 flex flex-col gap-2 p-4 rounded-lg bg-accent">
+                            <Label
+                              htmlFor="days-selection"
+                              className="text-foreground"
+                            >
+                              {t("multiSelect.tagLabel")}
+                            </Label>
+                            <Input
+                              id="days-selection"
+                              value={tempTagText}
+                              onChange={(e) =>
+                                setTempTagText(e.target.value)
+                              }
+                              placeholder="Tag"
+                              maxLength={50}
+                            />
+
+                            {/* Color Picker */}
+                            <div className="grid grid-cols-4 gap-2">
+                              {COLORS.map((color) => (
+                                <Button
+                                  key={color.name}
+                                  onClick={() =>
+                                    setTempTagColor(color)
+                                  }
+                                  className={cn(
+                                    "h-10 rounded-lg border-2 transition-all",
+                                    tempTagColor.name ===
+                                      color.name &&
+                                      "ring-2 ring-blue-600 dark:ring-blue-500 ring-offset-2 dark:ring-offset-card",
+                                  )}
+                                  style={{
+                                    backgroundColor: isDarkMode
+                                      ? color.dark
+                                      : color.hex,
+                                    borderColor: isDarkMode
+                                      ? color.dark
+                                      : color.hex,
                                   }}
-                                />
-                              )}
-                            </Button>
-                          ))}
-                        </div>
+                                >
+                                  {tempTagColor.name ===
+                                    color.name && (
+                                    <Check
+                                      className="h-4 w-4 mx-auto"
+                                      style={{
+                                        color: isLightColor(
+                                          isDarkMode
+                                            ? color.dark
+                                            : color.hex,
+                                        )
+                                          ? "#111827"
+                                          : "#f3f4f6",
+                                      }}
+                                    />
+                                  )}
+                                </Button>
+                              ))}
+                            </div>
 
-                        {/* Edit Actions */}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="secondary"
-                            onClick={() => setEditingTag(false)}
-                            className="flex-1"
-                            size="sm"
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            {t("calendar.cancel")}
-                          </Button>
-                          <Button
-                            onClick={updateGroupedTag}
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Check className="h-2 w-2 mr-1" />
-                            {t("calendar.apply")}
-                          </Button>
-                        </div>
-                      </div>
-                    </>
+                            {/* Edit Actions */}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="secondary"
+                                onClick={() =>
+                                  setEditingTag(false)
+                                }
+                                className="flex-1"
+                                size="sm"
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                {t("calendar.cancel")}
+                              </Button>
+                              <Button
+                                onClick={updateGroupedTag}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                <Check className="h-2 w-2 mr-1" />
+                                {t("calendar.apply")}
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
 
-            <div className="space-y-3 flex w-full h-[auto] flex-row gap-5 m-[0px]">
-              {/* Pills Section */}
-              <div className="flex-1 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <Pill className="h-4 w-4 text-purple-700 dark:text-purple-400" />
-                  </div>
-                  <Label htmlFor="pills">
-                    {t("calendar.pills")}
-                  </Label>
-                </div>
-                <Input
-                  id="pills"
-                  type="number"
-                  step="0.5"
-                  placeholder="0"
-                  value={pills}
-                  onChange={(e) => setPills(e.target.value)}
-                />
-              </div>
-
-              {/* Amount Section */}
-              <div className="flex-1 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <IndianRupee className="h-4 w-4 text-green-700 dark:text-green-400" />
-                  </div>
-                  <Label htmlFor="amount">INR</Label>
-                </div>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Note Section */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <svg
-                    className="h-4 w-4 text-blue-700 dark:text-blue-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                <div className="space-y-3 flex w-full h-[auto] flex-row gap-5">
+                  {/* Pills Section */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                        <Pill className="h-4 w-4 text-purple-700 dark:text-purple-400" />
+                      </div>
+                      <Label htmlFor="pills">
+                        {t("calendar.pills")}
+                      </Label>
+                    </div>
+                    <Input
+                      id="pills"
+                      type="number"
+                      step="0.5"
+                      placeholder="0"
+                      value={pills}
+                      onChange={(e) => setPills(e.target.value)}
                     />
-                  </svg>
+                  </div>
+
+                  {/* Amount Section */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <IndianRupee className="h-4 w-4 text-green-700 dark:text-green-400" />
+                      </div>
+                      <Label htmlFor="amount">INR</Label>
+                    </div>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) =>
+                        setAmount(e.target.value)
+                      }
+                    />
+                  </div>
                 </div>
-                <Label htmlFor="note">
-                  {t("calendar.note")}
-                </Label>
-              </div>
-              <Textarea
-                id="note"
-                placeholder={t("day.notePlaceholder")}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-              />
-            </div>
-            {/* Footer Actions */}
-            <div className="flex gap-3">
-              {entries[
-                selectedDate
-                  ? format(selectedDate, "yyyy-MM-dd")
-                  : ""
-              ] && (
-                <Button
-                  onClick={handleRemoveColorTag}
-                  variant="destructive"
-                  className="flex-0"
-                >
-                  {t("day.delete")}
-                </Button>
-              )}
-              <Button onClick={handleSave} className="flex-1">
-                {t("day.saveChanges")}
-              </Button>
-            </div>
+
+                {/* Note Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <svg
+                        className="h-4 w-4 text-blue-700 dark:text-blue-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </div>
+                    <Label htmlFor="note">
+                      {t("calendar.note")}
+                    </Label>
+                  </div>
+                  <Textarea
+                    id="note"
+                    placeholder={t("day.notePlaceholder")}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                {/* Footer Actions */}
+                <div className="flex gap-3 mt-4">
+                  {entries[
+                    selectedDate
+                      ? format(selectedDate, "yyyy-MM-dd")
+                      : ""
+                  ] && (
+                    <Button
+                      onClick={handleRemoveColorTag}
+                      variant="destructive"
+                      className="flex-0"
+                    >
+                      {t("day.delete")}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSave}
+                    className="flex-1"
+                  >
+                    {t("day.saveChanges")}
+                  </Button>
+                </div>
               </motion.div>
             </AnimatePresence>
           </motion.div>
