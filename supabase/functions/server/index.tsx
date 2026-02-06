@@ -48,23 +48,37 @@ app.use('*', cors({
 
 // Helper function to get user from token (supports both OAuth and email/password)
 async function getUserFromToken(accessToken: string): Promise<{ id: string; email: string; name: string } | null> {
+  console.log('[getUserFromToken] Starting validation for token:', accessToken?.substring(0, 20) + '...');
+  
   // First, try to validate as Supabase OAuth token using the SERVICE ROLE to verify the JWT
   try {
+    console.log('[getUserFromToken] Attempting OAuth validation...');
     const { data, error } = await supabase.auth.getUser(accessToken);
     
+    console.log('[getUserFromToken] OAuth result:', {
+      hasData: !!data,
+      hasUser: !!data?.user,
+      hasError: !!error,
+      errorMessage: error?.message
+    });
+    
     if (error) {
+      console.log('[getUserFromToken] OAuth validation failed:', error.message);
       // OAuth token validation failed, continue to email/password check
     } else if (data?.user) {
+      console.log('[getUserFromToken] OAuth user found:', data.user.id, data.user.email);
       // IMPORTANT: Check if this email already exists as an email/password account
       // If so, use that account's ID to maintain data continuity
       const email = data.user.email || '';
       const existingUser = await findUserByEmail(email);
       
       if (existingUser) {
+        console.log('[getUserFromToken] Found existing email/password account for OAuth user');
         return existingUser;
       }
       
       // Otherwise, use the OAuth user ID
+      console.log('[getUserFromToken] Using OAuth user directly');
       return {
         id: data.user.id,
         email: email,
@@ -72,23 +86,32 @@ async function getUserFromToken(accessToken: string): Promise<{ id: string; emai
       };
     }
   } catch (oauthError: any) {
+    console.log('[getUserFromToken] OAuth validation exception:', oauthError.message);
     // OAuth validation exception, continue to email/password check
   }
   
+  console.log('[getUserFromToken] Trying email/password token lookup...');
   // If not OAuth, try email/password token (user ID)
   let user = users.get(accessToken);
   if (!user) {
+    console.log('[getUserFromToken] Not in memory, checking KV store...');
     const userData = await kvGet(`user:${accessToken}`);
     if (userData) {
+      console.log('[getUserFromToken] Found in KV store:', userData.email);
       user = userData;
       users.set(accessToken, userData);
+    } else {
+      console.log('[getUserFromToken] Not found in KV store');
     }
+  } else {
+    console.log('[getUserFromToken] Found in memory:', user.email);
   }
   
   if (user) {
     return { id: user.id, email: user.email, name: user.name };
   }
   
+  console.log('[getUserFromToken] No user found for token');
   return null;
 }
 
@@ -117,12 +140,193 @@ async function findUserByEmail(email: string): Promise<{ id: string; email: stri
 // Simple in-memory user store for demo (you can replace with real auth later)
 const users = new Map<string, { email: string; password: string; name: string; id: string }>();
 
+// ====== STRIPE WEBHOOK - MUST BE FIRST (before any middleware) ======
+// This endpoint needs to be public and accept requests from Stripe without authentication
+app.post('/make-server-c7e1f966/subscription/webhook', async (c) => {
+  console.log('=== WEBHOOK RECEIVED ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Headers:', Object.fromEntries(c.req.raw.headers));
+  
+  try {
+    const body = await c.req.text();
+    console.log('Webhook body length:', body.length);
+    console.log('First 200 chars of body:', body.substring(0, 200));
+    
+    const signature = c.req.header('stripe-signature');
+    console.log('Webhook signature present:', !!signature);
+    
+    const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    console.log('Webhook secret configured:', !!STRIPE_WEBHOOK_SECRET);
+    
+    let event;
+    try {
+      event = JSON.parse(body);
+      console.log('Webhook event parsed:', event.type);
+      console.log('Event ID:', event.id);
+    } catch (parseError: any) {
+      console.log('ERROR: Failed to parse webhook body:', parseError.message);
+      return c.json({ error: 'Invalid JSON' }, 400);
+    }
+    
+    // Handle different event types
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        console.log('=== HANDLING CHECKOUT.SESSION.COMPLETED ===');
+        const session = event.data.object;
+        const userId = session.metadata?.userId;
+        
+        console.log('Checkout data:', {
+          userId,
+          customer: session.customer,
+          subscription: session.subscription
+        });
+        
+        if (userId) {
+          try {
+            const subData = await kvGet(`subscription:${userId}`) || {};
+            subData.stripeCustomerId = session.customer;
+            subData.stripeSubscriptionId = session.subscription;
+            await kvSet(`subscription:${userId}`, subData);
+            console.log(`✅ Checkout completed for user ${userId}`);
+          } catch (kvError: any) {
+            console.log('ERROR: Failed to save checkout data:', kvError.message);
+          }
+        } else {
+          console.log('WARNING: No userId in checkout session metadata');
+        }
+        break;
+      }
+      
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        console.log('=== HANDLING SUBSCRIPTION EVENT ===');
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        console.log('Subscription data:', {
+          type: event.type,
+          customer: customerId,
+          status: subscription.status,
+          subscriptionId: subscription.id
+        });
+        
+        try {
+          // Find user by customer ID - search through all subscription keys
+          const { data: allKeys, error: selectError } = await supabase
+            .from('kv_store_c7e1f966')
+            .select('key, value')
+            .like('key', 'subscription:%');
+          
+          if (selectError) {
+            console.log('ERROR: Failed to query subscriptions:', selectError.message);
+            break;
+          }
+          
+          console.log(`Found ${allKeys?.length || 0} subscription records`);
+          
+          if (allKeys) {
+            let userFound = false;
+            for (const row of allKeys) {
+              const subData = row.value;
+              console.log('Checking subscription record:', {
+                key: row.key,
+                stripeCustomerId: subData.stripeCustomerId
+              });
+              
+              if (subData.stripeCustomerId === customerId) {
+                const userId = row.key.replace('subscription:', '');
+                console.log(`Found matching user: ${userId}`);
+                
+                // Update subscription data
+                subData.status = subscription.status;
+                subData.currentPeriodEnd = subscription.current_period_end * 1000;
+                subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+                subData.stripeSubscriptionId = subscription.id;
+                
+                await kvSet(`subscription:${userId}`, subData);
+                console.log(`✅ Subscription updated for user ${userId}: ${subscription.status}`);
+                userFound = true;
+                break;
+              }
+            }
+            
+            if (!userFound) {
+              console.log('WARNING: No user found for customer:', customerId);
+            }
+          }
+        } catch (dbError: any) {
+          console.log('ERROR: Database error in subscription update:', dbError.message);
+        }
+        break;
+      }
+      
+      case 'customer.subscription.deleted': {
+        console.log('=== HANDLING SUBSCRIPTION DELETED ===');
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        console.log('Subscription deleted - customer:', customerId);
+        
+        try {
+          // Find user by customer ID and mark subscription as cancelled
+          const { data: allKeys, error: selectError } = await supabase
+            .from('kv_store_c7e1f966')
+            .select('key, value')
+            .like('key', 'subscription:%');
+          
+          if (selectError) {
+            console.log('ERROR: Failed to query subscriptions:', selectError.message);
+            break;
+          }
+          
+          if (allKeys) {
+            for (const row of allKeys) {
+              const subData = row.value;
+              if (subData.stripeCustomerId === customerId) {
+                const userId = row.key.replace('subscription:', '');
+                
+                subData.status = 'cancelled';
+                subData.currentPeriodEnd = null;
+                
+                await kvSet(`subscription:${userId}`, subData);
+                console.log(`✅ Subscription cancelled for user ${userId}`);
+                break;
+              }
+            }
+          }
+        } catch (dbError: any) {
+          console.log('ERROR: Database error in subscription deletion:', dbError.message);
+        }
+        break;
+      }
+      
+      default:
+        console.log('Unhandled webhook event type:', event.type);
+    }
+    
+    console.log('=== WEBHOOK COMPLETED SUCCESSFULLY ===');
+    return c.json({ received: true });
+  } catch (error: any) {
+    console.log('=== WEBHOOK ERROR ===');
+    console.log('Error message:', error.message);
+    console.log('Error stack:', error.stack);
+    return c.json({ error: 'Webhook failed', details: error.message }, 400);
+  }
+});
+
 // Health check
 app.get('/make-server-c7e1f966/health', (c) => {
   return c.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    message: 'Fresh calendar server is running!'
+    version: '1.0.10-debug',
+    message: 'Fresh calendar server is running with enhanced logging!',
+    env: {
+      hasStripeSecretKey: !!Deno.env.get('STRIPE_SECRET_KEY'),
+      hasStripePublishableKey: !!Deno.env.get('STRIPE_PUBLISHABLE_KEY'),
+      hasStripeWebhookSecret: !!Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+      stripeSecretKeyPrefix: Deno.env.get('STRIPE_SECRET_KEY')?.substring(0, 10),
+    }
   });
 });
 
@@ -494,6 +698,468 @@ app.delete('/make-server-c7e1f966/account', async (c) => {
     return c.json({ success: true });
   } catch (error) {
     return c.json({ error: 'Failed to delete account' }, 500);
+  }
+});
+
+// ====== SUBSCRIPTION ROUTES ======
+
+// Get subscription status
+app.get('/make-server-c7e1f966/subscription/status', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    // Get subscription data from KV store
+    const subData = await kvGet(`subscription:${user.id}`) || {};
+    
+    const now = Date.now();
+    const trialEnd = subData.trialEnd || (subData.signupDate ? subData.signupDate + (3 * 24 * 60 * 60 * 1000) : now + (3 * 24 * 60 * 60 * 1000));
+    
+    // Check if trial is active
+    const isTrialActive = now < trialEnd;
+    
+    // Check if subscription is active
+    const isSubscriptionActive = subData.status === 'active' && subData.currentPeriodEnd && now < subData.currentPeriodEnd;
+    
+    // If first time, set signup date
+    if (!subData.signupDate) {
+      subData.signupDate = now;
+      subData.trialEnd = trialEnd;
+      await kvSet(`subscription:${user.id}`, subData);
+    }
+    
+    return c.json({
+      hasAccess: isTrialActive || isSubscriptionActive,
+      isTrialActive,
+      trialEndsAt: trialEnd,
+      trialDaysLeft: Math.max(0, Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000))),
+      subscription: {
+        status: subData.status || 'none',
+        currentPeriodEnd: subData.currentPeriodEnd,
+        cancelAtPeriodEnd: subData.cancelAtPeriodEnd || false,
+        stripeCustomerId: subData.stripeCustomerId,
+        stripeSubscriptionId: subData.stripeSubscriptionId,
+      }
+    });
+  } catch (error: any) {
+    console.log('Error getting subscription status:', error.message);
+    return c.json({ error: 'Failed to get subscription status' }, 500);
+  }
+});
+
+// Create Stripe checkout session
+app.post('/make-server-c7e1f966/subscription/create-checkout', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];;
+    
+    console.log('Create checkout - accessToken present:', !!accessToken);
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    console.log('Create checkout - user found:', !!user);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    console.log('Create checkout - Stripe key present:', !!STRIPE_SECRET_KEY);
+    
+    if (!STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    // Get subscription data
+    let subData = await kvGet(`subscription:${user.id}`) || {};
+    
+    console.log('Create checkout - existing subscription:', {
+      hasCustomerId: !!subData.stripeCustomerId,
+      hasSubscriptionId: !!subData.stripeSubscriptionId,
+      status: subData.status
+    });
+    
+    // Check if user already has an active subscription
+    if (subData.stripeSubscriptionId) {
+      console.log('Checking existing subscription status...');
+      
+      // Fetch current subscription from Stripe
+      const stripeResponse = await fetch(
+        `https://api.stripe.com/v1/subscriptions/${subData.stripeSubscriptionId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+          },
+        }
+      );
+      
+      if (stripeResponse.ok) {
+        const subscription = await stripeResponse.json();
+        console.log('Existing subscription status:', subscription.status);
+        
+        // If subscription is active or trialing, don't create a new one
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
+          return c.json({ 
+            error: 'You already have an active subscription',
+            existingSubscription: true,
+            status: subscription.status
+          }, 400);
+        }
+      }
+    }
+    
+    // Get or create Stripe customer
+    let customerId = subData.stripeCustomerId;
+    
+    console.log('Create checkout - existing customerId:', customerId);
+    
+    if (!customerId) {
+      // Create Stripe customer
+      console.log('Creating new Stripe customer for:', user.email);
+      const customerResponse = await fetch('https://api.stripe.com/v1/customers', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          email: user.email,
+          'metadata[userId]': user.id
+        })
+      });
+      
+      if (!customerResponse.ok) {
+        const errorData = await customerResponse.text();
+        console.log('Error creating Stripe customer:', errorData);
+        return c.json({ error: 'Failed to create customer', details: errorData }, 500);
+      }
+      
+      const customer = await customerResponse.json();
+      customerId = customer.id;
+      
+      console.log('Created Stripe customer:', customerId);
+      
+      subData.stripeCustomerId = customerId;
+      await kvSet(`subscription:${user.id}`, subData);
+    }
+    
+    // Create checkout session
+    const { returnUrl } = await c.req.json();
+    
+    console.log('Creating checkout session with returnUrl:', returnUrl);
+    
+    const checkoutResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        customer: customerId,
+        'line_items[0][price_data][currency]': 'eur',
+        'line_items[0][price_data][product_data][name]': 'Pilliox Premium',
+        'line_items[0][price_data][product_data][description]': 'Monthly subscription for INR tracking',
+        'line_items[0][price_data][recurring][interval]': 'month',
+        'line_items[0][price_data][unit_amount]': '299', // €2.99 in cents
+        'line_items[0][quantity]': '1',
+        mode: 'subscription',
+        success_url: `${returnUrl || 'https://pilliox.com'}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: returnUrl || 'https://pilliox.com',
+        'metadata[userId]': user.id,
+      })
+    });
+    
+    if (!checkoutResponse.ok) {
+      const errorData = await checkoutResponse.text();
+      console.log('Error creating checkout session:', errorData);
+      return c.json({ error: 'Failed to create checkout session', details: errorData }, 500);
+    }
+    
+    const session = await checkoutResponse.json();
+    
+    return c.json({ 
+      sessionId: session.id,
+      url: session.url 
+    });
+  } catch (error: any) {
+    console.log('Error creating checkout session:', error.message);
+    return c.json({ error: 'Failed to create checkout session' }, 500);
+  }
+});
+
+// Create customer portal session
+app.post('/make-server-c7e1f966/subscription/create-portal', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    if (!STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    const subData = await kvGet(`subscription:${user.id}`);
+    
+    if (!subData || !subData.stripeCustomerId) {
+      return c.json({ error: 'No subscription found' }, 404);
+    }
+    
+    const { returnUrl } = await c.req.json();
+    
+    // Create portal session
+    const portalResponse = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        customer: subData.stripeCustomerId,
+        return_url: returnUrl || 'https://pilliox.com',
+      })
+    });
+    
+    if (!portalResponse.ok) {
+      const errorData = await portalResponse.text();
+      console.log('Error creating portal session:', errorData);
+      return c.json({ error: 'Failed to create portal session' }, 500);
+    }
+    
+    const portal = await portalResponse.json();
+    
+    return c.json({ url: portal.url });
+  } catch (error: any) {
+    console.log('Error creating portal session:', error.message);
+    return c.json({ error: 'Failed to create portal session' }, 500);
+  }
+});
+
+// Manually sync subscription status from Stripe
+app.post('/make-server-c7e1f966/subscription/sync', async (c) => {
+  console.log('[SYNC BACKEND] === Sync endpoint called ===');
+  
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    console.log('[SYNC BACKEND] Headers:', {
+      hasXUserToken: !!c.req.header('X-User-Token'),
+      hasAuthHeader: !!c.req.header('Authorization'),
+      accessTokenLength: accessToken?.length
+    });
+    
+    if (!accessToken) {
+      console.log('[SYNC BACKEND] ERROR: No access token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    console.log('[SYNC BACKEND] User from token:', user ? `${user.id} (${user.email})` : 'null');
+    
+    if (!user) {
+      console.log('[SYNC BACKEND] ERROR: Invalid token');
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    if (!STRIPE_SECRET_KEY) {
+      console.log('[SYNC BACKEND] ERROR: Stripe not configured');
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    const subData = await kvGet(`subscription:${user.id}`);
+    
+    console.log('[SYNC BACKEND] Subscription data:', {
+      hasSubData: !!subData,
+      stripeSubscriptionId: subData?.stripeSubscriptionId
+    });
+    
+    if (!subData || !subData.stripeSubscriptionId) {
+      console.log('[SYNC BACKEND] No subscription to sync - clearing status');
+      // Clear any stale subscription data
+      if (subData) {
+        subData.status = 'none';
+        subData.currentPeriodEnd = null;
+        subData.cancelAtPeriodEnd = false;
+        await kvSet(`subscription:${user.id}`, subData);
+      }
+      return c.json({ success: true, status: 'none', message: 'No active subscription' });
+    }
+    
+    console.log('[SYNC BACKEND] Fetching from Stripe:', subData.stripeSubscriptionId);
+    
+    // Fetch subscription from Stripe
+    const stripeResponse = await fetch(
+      `https://api.stripe.com/v1/subscriptions/${subData.stripeSubscriptionId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        },
+      }
+    );
+    
+    console.log('[SYNC BACKEND] Stripe response status:', stripeResponse.status);
+    
+    if (!stripeResponse.ok) {
+      const errorData = await stripeResponse.text();
+      console.log('[SYNC BACKEND] ERROR from Stripe:', errorData);
+      
+      // If subscription not found in Stripe (404), clear local data
+      if (stripeResponse.status === 404) {
+        console.log('[SYNC BACKEND] Subscription not found in Stripe - clearing local data');
+        subData.status = 'cancelled';
+        subData.currentPeriodEnd = null;
+        subData.cancelAtPeriodEnd = false;
+        subData.stripeSubscriptionId = null;
+        await kvSet(`subscription:${user.id}`, subData);
+        return c.json({ success: true, status: 'cancelled', message: 'Subscription cancelled' });
+      }
+      
+      return c.json({ error: 'Failed to fetch subscription' }, 500);
+    }
+    
+    const subscription = await stripeResponse.json();
+    
+    console.log('[SYNC BACKEND] Stripe subscription:', {
+      id: subscription.id,
+      status: subscription.status,
+      currentPeriodEnd: subscription.current_period_end
+    });
+    
+    // Update subscription data
+    subData.status = subscription.status;
+    subData.currentPeriodEnd = subscription.current_period_end * 1000;
+    subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+    
+    await kvSet(`subscription:${user.id}`, subData);
+    
+    console.log(`[SYNC BACKEND] ✅ Subscription synced for user ${user.id}: ${subscription.status}`);
+    
+    return c.json({ success: true, status: subscription.status });
+  } catch (error: any) {
+    console.log('[SYNC BACKEND] ERROR Exception:', error.message, error.stack);
+    return c.json({ error: 'Failed to sync subscription' }, 500);
+  }
+});
+
+// Complete checkout - fetch session details from Stripe after successful payment
+app.post('/make-server-c7e1f966/subscription/complete-checkout', async (c) => {
+  console.log('[COMPLETE CHECKOUT] === Complete checkout endpoint called ===');
+  
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[COMPLETE CHECKOUT] ERROR: No access token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[COMPLETE CHECKOUT] ERROR: Invalid token');
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const { sessionId } = await c.req.json();
+    
+    console.log('[COMPLETE CHECKOUT] Session ID:', sessionId);
+    
+    if (!sessionId) {
+      return c.json({ error: 'sessionId is required' }, 400);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    if (!STRIPE_SECRET_KEY) {
+      console.log('[COMPLETE CHECKOUT] ERROR: Stripe not configured');
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    // Fetch checkout session from Stripe
+    console.log('[COMPLETE CHECKOUT] Fetching session from Stripe...');
+    const sessionResponse = await fetch(
+      `https://api.stripe.com/v1/checkout/sessions/${sessionId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        },
+      }
+    );
+    
+    if (!sessionResponse.ok) {
+      const errorData = await sessionResponse.text();
+      console.log('[COMPLETE CHECKOUT] ERROR from Stripe:', errorData);
+      return c.json({ error: 'Failed to fetch checkout session' }, 500);
+    }
+    
+    const session = await sessionResponse.json();
+    
+    console.log('[COMPLETE CHECKOUT] Checkout session:', {
+      customer: session.customer,
+      subscription: session.subscription,
+      status: session.status
+    });
+    
+    // Update subscription data
+    const subData = await kvGet(`subscription:${user.id}`) || {};
+    subData.stripeCustomerId = session.customer;
+    subData.stripeSubscriptionId = session.subscription;
+    
+    await kvSet(`subscription:${user.id}`, subData);
+    
+    console.log(`[COMPLETE CHECKOUT] ✅ Subscription IDs saved for user ${user.id}`);
+    
+    // Now fetch and update subscription status
+    if (session.subscription) {
+      const subResponse = await fetch(
+        `https://api.stripe.com/v1/subscriptions/${session.subscription}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+          },
+        }
+      );
+      
+      if (subResponse.ok) {
+        const subscription = await subResponse.json();
+        subData.status = subscription.status;
+        subData.currentPeriodEnd = subscription.current_period_end * 1000;
+        subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+        await kvSet(`subscription:${user.id}`, subData);
+        
+        console.log(`[COMPLETE CHECKOUT] ✅ Subscription status updated: ${subscription.status}`);
+      }
+    }
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.log('[COMPLETE CHECKOUT] ERROR Exception:', error.message);
+    return c.json({ error: 'Failed to complete checkout' }, 500);
   }
 });
 

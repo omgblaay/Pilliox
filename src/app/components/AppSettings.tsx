@@ -1,19 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Sun, Moon, Monitor } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from "react";
+import {
+  Settings as SettingsIcon,
+  Sun,
+  Moon,
+  Monitor,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/app/components/ui/dialog';
-import { Label } from '@/app/components/ui/label';
-import { Button } from '@/app/components/ui/button';
-import { Switch } from '@/app/components/ui/switch';
-import { LanguageSelector } from '@/app/components/LanguageSelector';
-import { type Theme } from '@/app/hooks/useTheme';
-import { cn } from '@/app/components/ui/utils';
+} from "@/app/components/ui/dialog";
+import { Label } from "@/app/components/ui/label";
+import { Button } from "@/app/components/ui/button";
+import { Switch } from "@/app/components/ui/switch";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { type Theme } from "@/app/hooks/useTheme";
+import { cn } from "@/app/components/ui/utils";
+import packageJson from "../../../package.json";
 
 interface AppSettingsProps {
   open: boolean;
@@ -39,7 +45,8 @@ export function AppSettings({
   onWeekStartChange,
 }: AppSettingsProps) {
   const { t } = useTranslation();
-  const [localWeekStartsOnMonday, setLocalWeekStartsOnMonday] = useState(weekStartsOnMonday);
+  const [localWeekStartsOnMonday, setLocalWeekStartsOnMonday] =
+    useState(weekStartsOnMonday);
 
   useEffect(() => {
     if (open) {
@@ -58,7 +65,7 @@ export function AppSettings({
         {
           headers: {
             Authorization: `Bearer ${anonKey}`,
-            'X-User-Token': accessToken,
+            "X-User-Token": accessToken,
           },
         },
       );
@@ -66,7 +73,9 @@ export function AppSettings({
       if (response.ok) {
         const data = await response.json();
         if (data.settings) {
-          setLocalWeekStartsOnMonday(data.settings.weekStartsOnMonday ?? true);
+          setLocalWeekStartsOnMonday(
+            data.settings.weekStartsOnMonday ?? true,
+          );
         }
       } else {
         // Failed to load settings
@@ -84,14 +93,14 @@ export function AppSettings({
       await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${anonKey}`,
-            'X-User-Token': accessToken,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
           },
           body: JSON.stringify({ weekStartsOnMonday: checked }),
-        }
+        },
       );
     } catch (error) {
       // Failed to save week start preference
@@ -107,14 +116,14 @@ export function AppSettings({
       await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${anonKey}`,
-            'X-User-Token': accessToken,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
           },
           body: JSON.stringify({ theme: newTheme }),
-        }
+        },
       );
     } catch (error) {
       // Failed to save theme preference
@@ -127,10 +136,10 @@ export function AppSettings({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
             <SettingsIcon className="h-6 w-6 text-muted-foreground" />
-            {t('settings.title')}
+            {t("settings.title")}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            {t('settings.description')}
+            {t("settings.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,44 +148,61 @@ export function AppSettings({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-foreground">
               <Sun className="h-5 w-5 text-muted-foreground" />
-              <h3 className="font-semibold">{t('settings.theme')}</h3>
+              <h3 className="font-semibold">
+                {t("settings.theme")}
+              </h3>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <Button
-                variant={theme === 'light' ? 'default' : 'outline'}
+                variant={
+                  theme === "light" ? "default" : "outline"
+                }
                 className={cn(
-                  'flex flex-col items-center gap-2 h-auto py-3',
-                  theme === 'light' && 'bg-blue-600 hover:bg-blue-700 text-white'
+                  "flex flex-col items-center gap-2 h-auto py-3",
+                  theme === "light" &&
+                    "bg-blue-600 hover:bg-blue-700 text-white",
                 )}
-                onClick={() => handleThemeChange('light')}
+                onClick={() => handleThemeChange("light")}
               >
                 <Sun className="h-5 w-5" />
-                <span className="text-xs">{t('settings.light')}</span>
+                <span className="text-xs">
+                  {t("settings.light")}
+                </span>
               </Button>
 
               <Button
-                variant={theme === 'dark' ? 'default' : 'outline'}
+                variant={
+                  theme === "dark" ? "default" : "outline"
+                }
                 className={cn(
-                  'flex flex-col items-center gap-2 h-auto py-3',
-                  theme === 'dark' && 'bg-blue-600 hover:bg-blue-700 text-white'
+                  "flex flex-col items-center gap-2 h-auto py-3",
+                  theme === "dark" &&
+                    "bg-blue-600 hover:bg-blue-700 text-white",
                 )}
-                onClick={() => handleThemeChange('dark')}
+                onClick={() => handleThemeChange("dark")}
               >
                 <Moon className="h-5 w-5" />
-                <span className="text-xs">{t('settings.dark')}</span>
+                <span className="text-xs">
+                  {t("settings.dark")}
+                </span>
               </Button>
 
               <Button
-                variant={theme === 'system' ? 'default' : 'outline'}
+                variant={
+                  theme === "system" ? "default" : "outline"
+                }
                 className={cn(
-                  'flex flex-col items-center gap-2 h-auto py-3',
-                  theme === 'system' && 'bg-blue-600 hover:bg-blue-700 text-white'
+                  "flex flex-col items-center gap-2 h-auto py-3",
+                  theme === "system" &&
+                    "bg-blue-600 hover:bg-blue-700 text-white",
                 )}
-                onClick={() => handleThemeChange('system')}
+                onClick={() => handleThemeChange("system")}
               >
                 <Monitor className="h-5 w-5" />
-                <span className="text-xs">{t('settings.system')}</span>
+                <span className="text-xs">
+                  {t("settings.system")}
+                </span>
               </Button>
             </div>
           </div>
@@ -197,7 +223,9 @@ export function AppSettings({
                   d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
                 />
               </svg>
-              <h3 className="font-semibold">{t('settings.language')}</h3>
+              <h3 className="font-semibold">
+                {t("settings.language")}
+              </h3>
             </div>
 
             <LanguageSelector />
@@ -219,16 +247,23 @@ export function AppSettings({
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-              <h3 className="font-semibold">{t('settings.calendar')}</h3>
+              <h3 className="font-semibold">
+                {t("settings.calendar")}
+              </h3>
             </div>
 
             <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-muted/50">
               <div className="space-y-0.5">
-                <Label htmlFor="week-start" className="text-sm font-medium text-foreground cursor-pointer">
-                  {t('settings.weekStartsOnMonday')}
+                <Label
+                  htmlFor="week-start"
+                  className="text-sm font-medium text-foreground cursor-pointer"
+                >
+                  {t("settings.weekStartsOnMonday")}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  {localWeekStartsOnMonday ? t('settings.mondayFirst') : t('settings.sundayFirst')}
+                  {localWeekStartsOnMonday
+                    ? t("settings.mondayFirst")
+                    : t("settings.sundayFirst")}
                 </p>
               </div>
               <Switch
@@ -237,6 +272,13 @@ export function AppSettings({
                 onCheckedChange={handleWeekStartToggle}
               />
             </div>
+          </div>
+
+          {/* App Version */}
+          <div className="text-center mt-3 pb-1">
+            <p className="text-[10px] text-muted-foreground/60">
+              Pilliox v{packageJson.version}
+            </p>
           </div>
         </div>
       </DialogContent>

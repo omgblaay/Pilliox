@@ -1,7 +1,7 @@
 {
-  "name": "Pilliox - Calendar & Medication Tracker",
+  "name": "Pilliox - INR Blood Test & Medication Tracker",
   "short_name": "Pilliox",
-  "description": "Track your calendar, finances, and medications with Pilliox",
+  "description": "Track your INR blood test values, medication, and medical notes with Pilliox",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

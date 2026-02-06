@@ -1,14 +1,22 @@
 import { useState, useEffect } from "react";
 import { AuthForm } from "@/app/components/AuthForm";
 import { CalendarView } from "@/app/components/CalendarView";
+import { TermsOfService } from "@/app/pages/TermsOfService";
+import { PrivacyPolicy } from "@/app/pages/PrivacyPolicy";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { getSupabaseClient } from "@/utils/supabase/client";
 import { useTheme } from "@/app/hooks/useTheme";
+import { SubscriptionProvider } from "@/app/hooks/useSubscription";
+import { SubscriptionBanner } from "@/app/components/SubscriptionBanner";
+import { SubscriptionPaywall } from "@/app/components/SubscriptionPaywall";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
+import { Toaster } from "sonner";
 import "@/i18n/config"; // Initialize i18n
 
-export default function App() {
+type Page = "auth" | "calendar" | "terms" | "privacy";
+
+function AppContent() {
   // Initialize theme system to detect browser preference
   useTheme("system");
 
@@ -18,12 +26,38 @@ export default function App() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<Page>("auth");
 
   // Log platform info for debugging
   useEffect(() => {
-    console.log("Capacitor Platform:", Capacitor.getPlatform());
-    console.log("Is Native:", Capacitor.isNativePlatform());
+    // Platform info available via Capacitor.getPlatform() and Capacitor.isNativePlatform()
   }, []);
+
+  // Handle path-based routing for legal pages
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const path = window.location.pathname;
+      if (path === "/docs/terms") {
+        setCurrentPage("terms");
+      } else if (path === "/docs/privacy") {
+        setCurrentPage("privacy");
+      } else if (path === "/" || path === "") {
+        // Reset to appropriate page based on login status
+        if (accessToken) {
+          setCurrentPage("calendar");
+        } else {
+          setCurrentPage("auth");
+        }
+      }
+    };
+
+    // Check initial path on mount
+    handleRouteChange();
+
+    // Listen for popstate events (browser back/forward)
+    window.addEventListener("popstate", handleRouteChange);
+    return () => window.removeEventListener("popstate", handleRouteChange);
+  }, [accessToken]);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -31,6 +65,10 @@ export default function App() {
 
     const initAuth = async () => {
       try {
+        // Check if this is a legal page access first
+        const path = window.location.pathname;
+        const isLegalPage = path === "/docs/terms" || path === "/docs/privacy";
+
         // CRITICAL: Handle OAuth callback from URL hash
         const hashParams = new URLSearchParams(
           window.location.hash.substring(1),
@@ -67,6 +105,9 @@ export default function App() {
                 "userEmail",
                 session.user.email,
               );
+
+              // Emit custom event to notify subscription hook
+              window.dispatchEvent(new Event('userLoggedIn'));
 
               // Clear URL hash after successful auth
               if (window.location.hash) {
@@ -157,6 +198,9 @@ export default function App() {
     setUserEmail(email);
     localStorage.setItem("accessToken", token);
     localStorage.setItem("userEmail", email);
+    
+    // Emit custom event to notify subscription hook
+    window.dispatchEvent(new Event('userLoggedIn'));
   };
 
   const handleLogout = async () => {
@@ -176,10 +220,43 @@ export default function App() {
     localStorage.removeItem("pilliox-auth-token"); // Clear Supabase session storage
   };
 
+  // Show legal pages (accessible without login)
+  if (currentPage === "terms") {
+    return <TermsOfService onBack={() => {
+      window.history.pushState(null, "", "/");
+      if (accessToken) {
+        setCurrentPage("calendar");
+      } else {
+        setCurrentPage("auth");
+      }
+    }} />;
+  }
+
+  if (currentPage === "privacy") {
+    return <PrivacyPolicy onBack={() => {
+      window.history.pushState(null, "", "/");
+      if (accessToken) {
+        setCurrentPage("calendar");
+      } else {
+        setCurrentPage("auth");
+      }
+    }} />;
+  }
+
   if (!accessToken) {
     return (
       <>
-        <AuthForm onAuthSuccess={handleAuthSuccess} />
+        <AuthForm
+          onAuthSuccess={handleAuthSuccess}
+          onNavigateToTerms={() => {
+            window.history.pushState(null, "", "/docs/terms");
+            setCurrentPage("terms");
+          }}
+          onNavigateToPrivacy={() => {
+            window.history.pushState(null, "", "/docs/privacy");
+            setCurrentPage("privacy");
+          }}
+        />
         {/* Loading Overlay */}
         {isLoading && (
           <div className="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
@@ -196,11 +273,32 @@ export default function App() {
   }
 
   return (
-    <CalendarView
-      accessToken={accessToken}
-      onLogout={handleLogout}
-      projectId={projectId}
-      anonKey={publicAnonKey}
-    />
+    <>
+      <CalendarView
+        accessToken={accessToken}
+        onLogout={handleLogout}
+        projectId={projectId}
+        anonKey={publicAnonKey}
+        onNavigateToTerms={() => {
+          window.history.pushState(null, "", "/docs/terms");
+          setCurrentPage("terms");
+        }}
+        onNavigateToPrivacy={() => {
+          window.history.pushState(null, "", "/docs/privacy");
+          setCurrentPage("privacy");
+        }}
+      />
+      <SubscriptionBanner />
+      <SubscriptionPaywall />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <SubscriptionProvider>
+      <AppContent />
+      <Toaster position="top-center" richColors />
+    </SubscriptionProvider>
   );
 }

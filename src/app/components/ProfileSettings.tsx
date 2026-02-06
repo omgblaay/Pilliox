@@ -1,44 +1,56 @@
 import { useState, useEffect } from "react";
-import { User, Lock, Trash2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
+  DialogTitle,
+  DialogHeader,
 } from "@/app/components/ui/dialog";
+import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Button } from "@/app/components/ui/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
 import {
   Alert,
   AlertDescription,
 } from "@/app/components/ui/alert";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/app/components/ui/tabs";
-import { cn } from "@/app/components/ui/utils";
+  Trash2,
+  User,
+  Lock,
+  FileText,
+  Crown,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { SubscriptionSettings } from "@/app/components/SubscriptionSettings";
+
+// App version - update this whenever significant changes are made
+const APP_VERSION = "1.0.7";
 
 interface ProfileSettingsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accessToken: string;
-  projectId: string;
   anonKey: string;
   onLogout: () => void;
+  onNavigateToTerms?: () => void;
+  onNavigateToPrivacy?: () => void;
 }
 
 export function ProfileSettings({
   open,
   onOpenChange,
   accessToken,
-  projectId,
   anonKey,
   onLogout,
+  onNavigateToTerms,
+  onNavigateToPrivacy,
 }: ProfileSettingsProps) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -52,6 +64,43 @@ export function ProfileSettings({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [copiedTerms, setCopiedTerms] = useState(false);
+  const [copiedPrivacy, setCopiedPrivacy] = useState(false);
+
+  const termsUrl = `${window.location.origin}${window.location.pathname}#/terms`;
+  const privacyUrl = `${window.location.origin}${window.location.pathname}#/privacy`;
+
+  const copyToClipboard = async (
+    text: string,
+    type: "terms" | "privacy",
+  ) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === "terms") {
+        setCopiedTerms(true);
+        setTimeout(() => setCopiedTerms(false), 2000);
+      } else {
+        setCopiedPrivacy(true);
+        setTimeout(() => setCopiedPrivacy(false), 2000);
+      }
+    } catch (err) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      if (type === "terms") {
+        setCopiedTerms(true);
+        setTimeout(() => setCopiedTerms(false), 2000);
+      } else {
+        setCopiedPrivacy(true);
+        setTimeout(() => setCopiedPrivacy(false), 2000);
+      }
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -228,12 +277,18 @@ export function ProfileSettings({
             defaultValue="profile"
             className="w-full mt-4 m-[0px]"
           >
-            <TabsList className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0 w-full h-auto grid-cols-2">
+            <TabsList className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0 w-full h-auto grid-cols-3">
               <TabsTrigger
                 value="profile"
                 className="flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]"
               >
                 {t("profile.tabs.profile")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="subscription"
+                className="flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]"
+              >
+                {t("subscription.title")}
               </TabsTrigger>
               <TabsTrigger
                 value="security"
@@ -314,6 +369,13 @@ export function ProfileSettings({
             </TabsContent>
 
             <TabsContent
+              value="subscription"
+              className="space-y-4 mt-4"
+            >
+              <SubscriptionSettings />
+            </TabsContent>
+
+            <TabsContent
               value="security"
               className="space-y-4 mt-4"
             >
@@ -384,7 +446,10 @@ export function ProfileSettings({
                     </Button>
                   ) : (
                     <div className="space-y-4">
-                      <Alert variant="destructive" className="bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800">
+                      <Alert
+                        variant="destructive"
+                        className="bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800"
+                      >
                         <AlertDescription className="text-red-800 dark:text-red-300">
                           {t("profile.deleteWarning")}
                         </AlertDescription>
@@ -433,6 +498,41 @@ export function ProfileSettings({
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Legal Links */}
+          <div className="text-center text-gray-500 flex items-center justify-center flex-column gap-4 dark:text-[#888] text-sm mt-2 pt-4 border-t border-border">
+            {onNavigateToTerms && (
+              <>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onNavigateToTerms();
+                  }}
+                  className="w-auto h-auto"
+                >
+                  {t("docs.termsOfService.title")}
+                </Button>
+                <span> • </span>
+              </>
+            )}
+            {onNavigateToPrivacy && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  onNavigateToPrivacy();
+                }}
+                className="w-auto h-auto"
+              >
+                {t("docs.privacyPolicy.title")}
+              </Button>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -18,7 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  IndianRupee,
+  Droplet,
   Pill,
   Check,
   X,
@@ -64,6 +64,8 @@ interface CalendarViewProps {
   onLogout: () => void;
   projectId: string;
   anonKey: string;
+  onNavigateToTerms?: () => void;
+  onNavigateToPrivacy?: () => void;
 }
 
 const COLORS = [
@@ -151,6 +153,8 @@ export function CalendarView({
   onLogout,
   projectId,
   anonKey,
+  onNavigateToTerms,
+  onNavigateToPrivacy,
 }: CalendarViewProps) {
   const { t, i18n } = useTranslation();
 
@@ -1743,7 +1747,7 @@ export function CalendarView({
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <IndianRupee className="h-4 w-4 text-green-700 dark:text-green-400" />
+                        <Droplet className="h-4 w-4 text-green-700 dark:text-green-400" />
                       </div>
                       <Label htmlFor="amount">INR</Label>
                     </div>
@@ -1933,6 +1937,8 @@ export function CalendarView({
         projectId={projectId}
         anonKey={anonKey}
         onLogout={onLogout}
+        onNavigateToTerms={onNavigateToTerms}
+        onNavigateToPrivacy={onNavigateToPrivacy}
       />
 
       {/* App Settings Modal */}

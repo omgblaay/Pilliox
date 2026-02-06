@@ -19,9 +19,15 @@ interface AuthFormProps {
     accessToken: string,
     userEmail: string,
   ) => void;
+  onNavigateToTerms?: () => void;
+  onNavigateToPrivacy?: () => void;
 }
 
-export function AuthForm({ onAuthSuccess }: AuthFormProps) {
+export function AuthForm({
+  onAuthSuccess,
+  onNavigateToTerms,
+  onNavigateToPrivacy,
+}: AuthFormProps) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -558,6 +564,32 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               </div>
               Facebook
             </Button>
+          </div>
+
+          {/* Legal Links */}
+          <div className="text-center text-gray-500 dark:text-[#888] text-sm mt-2">
+            <span>{t("auth.bySigningUp")} </span>
+            {onNavigateToTerms && (
+              <>
+                <button
+                  type="button"
+                  onClick={onNavigateToTerms}
+                  className="text-blue-600 cursor-pointer !text-sm dark:text-blue-400 hover:underline"
+                >
+                  {t("docs.termsOfService.title")}
+                </button>
+                <span> {t("auth.and")} </span>
+              </>
+            )}
+            {onNavigateToPrivacy && (
+              <button
+                type="button"
+                onClick={onNavigateToPrivacy}
+                className="text-blue-600 cursor-pointer !text-sm dark:text-blue-400 hover:underline"
+              >
+                {t("docs.privacyPolicy.title")}
+              </button>
+            )}
           </div>
         </div>
       </div>
