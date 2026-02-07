@@ -1,34 +1,14 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogHeader,
-} from "@/app/components/ui/dialog";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/components/ui/tabs";
-import {
-  Alert,
-  AlertDescription,
-} from "@/app/components/ui/alert";
-import {
-  Trash2,
-  User,
-  Lock,
-  FileText,
-  Crown,
-} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-import { SubscriptionSettings } from "@/app/components/SubscriptionSettings";
+import { projectId, publicAnonKey } from "../../../utils/supabase/info";
+import { SubscriptionSettings } from "./SubscriptionSettings";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
+import { Alert, AlertDescription } from "./ui/alert";
+import { User, Lock, Trash2 } from "lucide-react";
 
 // App version - update this whenever significant changes are made
 const APP_VERSION = "1.0.7";

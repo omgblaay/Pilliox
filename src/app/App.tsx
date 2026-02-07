@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
-import { AuthForm } from "@/app/components/AuthForm";
-import { CalendarView } from "@/app/components/CalendarView";
-import { TermsOfService } from "@/app/pages/TermsOfService";
-import { PrivacyPolicy } from "@/app/pages/PrivacyPolicy";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-import { getSupabaseClient } from "@/utils/supabase/client";
-import { useTheme } from "@/app/hooks/useTheme";
-import { SubscriptionProvider } from "@/app/hooks/useSubscription";
-import { SubscriptionBanner } from "@/app/components/SubscriptionBanner";
-import { SubscriptionPaywall } from "@/app/components/SubscriptionPaywall";
+import { I18nextProvider } from "react-i18next";
+import i18n from "../i18n/config";
+import { AuthForm } from "./components/AuthForm";
+import { CalendarView } from "./components/CalendarView";
+import { TermsOfService } from "./pages/TermsOfService";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { projectId, publicAnonKey } from "../../utils/supabase/info";
+import { getSupabaseClient } from "../../utils/supabase/client";
+import { useTheme } from "./hooks/useTheme";
+import { SubscriptionProvider } from "./hooks/useSubscription";
+import { SubscriptionBanner } from "./components/SubscriptionBanner";
+import { SubscriptionPaywall } from "./components/SubscriptionPaywall";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { Toaster } from "sonner";
-import "@/i18n/config"; // Initialize i18n
+
+// Debug: Check if SubscriptionProvider is defined
+console.log('SubscriptionProvider:', SubscriptionProvider);
 
 type Page = "auth" | "calendar" | "terms" | "privacy";
 
@@ -296,9 +300,11 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SubscriptionProvider>
-      <AppContent />
-      <Toaster position="top-center" richColors />
-    </SubscriptionProvider>
+    <I18nextProvider i18n={i18n}>
+      <SubscriptionProvider>
+        <AppContent />
+        <Toaster position="top-center" richColors />
+      </SubscriptionProvider>
+    </I18nextProvider>
   );
 }

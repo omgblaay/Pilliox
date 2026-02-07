@@ -21,6 +21,7 @@ import { pl } from "date-fns/locale/pl";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Droplet,
   Pill,
@@ -38,28 +39,28 @@ import {
   AnimatePresence,
   type PanInfo,
 } from "motion/react";
-import { Button } from "@/app/components/ui/button";
+import { Button } from "./ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/app/components/ui/dialog";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Textarea } from "@/app/components/ui/textarea";
-import { Badge } from "@/app/components/ui/badge";
-import { ProfileSettings } from "@/app/components/ProfileSettings";
-import { AppSettings } from "@/app/components/AppSettings";
+} from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Badge } from "./ui/badge";
+import { ProfileSettings } from "./ProfileSettings";
+import { AppSettings } from "./AppSettings";
 import {
   PillsSettings,
   type PillSetting,
-} from "@/app/components/PillsSettings";
-import { cn } from "@/app/components/ui/utils";
-import { useTheme, type Theme } from "@/app/hooks/useTheme";
+} from "./PillsSettings";
+import { cn } from "./ui/utils";
+import { useTheme, type Theme } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import Vector from "@/imports/Vector";
+import Vector from "../../imports/Vector";
 
 interface PillDosage {
   pillId: string;
@@ -180,7 +181,7 @@ export function CalendarView({
     pl: pl,
   };
   // Extract language code (first 2 chars) to handle cases like 'pl-PL'
-  const languageCode = i18n.language
+  const languageCode = (i18n.language || "en")
     .split("-")[0]
     .toLowerCase();
   const dateLocale =
@@ -1136,71 +1137,88 @@ export function CalendarView({
           {/* Month/Week Navigation */}
           <div className="p-[12px] border-b border-border px-[12px] py-[8px]">
             <div className="flex items-center justify-between gap-2">
+              {/* Left: Mark Days Button */}
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePreviousMonth}
-                className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
+                onClick={handleMultiSelectStart}
+                variant="outline"
+                size="sm"
+                disabled={multiSelectMode}
+                className="shrink-0 flex-0"
               >
-                <ChevronLeft className="h-5 w-5 text-foreground" />
+                <Palette className="h-3 w-3" />
+                {t("calendar.markDays")}
               </Button>
-              <motion.div
-                className="flex-1 overflow-hidden relative"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.2}
-                onDragEnd={handleCalendarSwipe}
-              >
-                <AnimatePresence
-                  mode="wait"
-                  initial={false}
-                  custom={swipeDirectionRef.current}
+
+              {/* Center: Date Navigation */}
+              <div className="flex items-center gap-2 flex-1 justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePreviousMonth}
+                  className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
                 >
-                  <motion.h2
-                    key={format(currentMonth, "yyyy-MM-ww")}
+                  <ChevronLeft className="h-5 w-5 text-foreground" />
+                </Button>
+                <motion.div
+                  className="overflow-hidden relative"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={handleCalendarSwipe}
+                >
+                  <AnimatePresence
+                    mode="wait"
+                    initial={false}
                     custom={swipeDirectionRef.current}
-                    variants={headerSlideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{
-                      duration: 0.3,
-                      ease: "easeInOut",
-                    }}
-                    className="text-lg font-semibold text-foreground text-[14px] text-center"
                   >
-                    {formatHeaderTitle(currentMonth)}
-                  </motion.h2>
-                </AnimatePresence>
-              </motion.div>
+                    <motion.h2
+                      key={format(currentMonth, "yyyy-MM-ww")}
+                      custom={swipeDirectionRef.current}
+                      variants={headerSlideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeInOut",
+                      }}
+                      className="text-lg font-semibold text-foreground text-[14px] text-center whitespace-nowrap"
+                    >
+                      {formatHeaderTitle(currentMonth)}
+                    </motion.h2>
+                  </AnimatePresence>
+                </motion.div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNextMonth}
+                  className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
+                >
+                  <ChevronRight className="h-5 w-5 text-foreground" />
+                </Button>
+              </div>
+
+              {/* Right: Weekly/Monthly Preview Dropdown */}
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() =>
                   setViewMode(
                     viewMode === "month" ? "week" : "month",
                   )
                 }
-                className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
+                className="h-10 px-3 flex-0 rounded-full hover:bg-accent shrink-0 flex items-center gap-1.5"
                 title={
                   viewMode === "month"
                     ? t("calendar.weekView")
                     : t("calendar.monthView")
                 }
               >
-                {viewMode === "month" ? (
-                  <CalendarDays className="h-5 w-5 text-foreground" />
-                ) : (
-                  <Calendar className="h-5 w-5 text-foreground" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNextMonth}
-                className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
-              >
-                <ChevronRight className="h-5 w-5 text-foreground" />
+                <span className="text-sm font-medium text-foreground">
+                  {viewMode === "month"
+                    ? t("calendar.weeklyPreview")
+                    : t("calendar.monthlyPreview")}
+                </span>
+                <ChevronDown className="h-4 w-4 text-foreground" />
               </Button>
             </div>
           </div>
@@ -1787,19 +1805,6 @@ export function CalendarView({
               </motion.div>
             </AnimatePresence>
           </motion.div>
-
-          {/* Action Buttons */}
-          <div className="px-4 sm:px-6 py-4 border-t flex gap-2">
-            <Button
-              onClick={handleMultiSelectStart}
-              variant="outline"
-              size="sm"
-              disabled={multiSelectMode}
-            >
-              <Palette className="h-3 w-3" />
-              {t("calendar.markDays")}
-            </Button>
-          </div>
         </div>
       </div>
 

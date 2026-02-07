@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
-import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { Button } from "../components/ui/button";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 interface TermsOfServiceProps {
   onBack: () => void;

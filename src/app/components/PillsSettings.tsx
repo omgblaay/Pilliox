@@ -7,12 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/app/components/ui/dialog";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { toast } from "sonner";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
 export interface PillSetting {
   id: string;

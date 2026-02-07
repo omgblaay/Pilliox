@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Button } from "@/app/components/ui/button";
+import { Button } from "./ui/button";
 
 export function SubscriptionSettings() {
   const {

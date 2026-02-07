@@ -1,9 +1,19 @@
+import './styles/index.css';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { Capacitor } from '@capacitor/core';
-import { createClient } from '@supabase/supabase-js';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
+
+// Import i18n config FIRST to initialize before components load
+import i18n from './i18n/config';
+
+// Import App component
+import App from './app/App';
 
 // Log platform info
-// Platform detection available via Capacitor API
+console.log('Platform:', Capacitor.getPlatform());
+console.log('Is native:', Capacitor.isNativePlatform());
+console.log('i18n initialized:', i18n.isInitialized);
 
 // Register service worker for PWA capabilities
 if ('serviceWorker' in navigator) {
@@ -12,4 +22,13 @@ if ('serviceWorker' in navigator) {
       // Service worker registration failed
     });
   });
+}
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
 }

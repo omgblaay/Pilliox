@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-import { getSupabaseClient } from "@/utils/supabase/client";
+import { projectId, publicAnonKey } from "../../../utils/supabase/info";
+import { getSupabaseClient } from "../../../utils/supabase/client";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
-import { LanguageSelector } from "@/app/components/LanguageSelector";
-import { Label } from "@/app/components/ui/label";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import Vector from "@/imports/Vector";
-import svgPaths from "@/imports/svg-hepzwgk5tt";
+import { LanguageSelector } from "./LanguageSelector";
+import { Label } from "./ui/label";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import Vector from "../../imports/Vector";
+import svgPaths from "../../imports/svg-hepzwgk5tt";
 import imgFrame3 from "figma:asset/d4750969fc6e1ecdb0e81241cf229682cfd97a4a.png";
 import imgImage1 from "figma:asset/84229552ad15a973e3ff4d1f571f1de3e034300c.png";
 

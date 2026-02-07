@@ -1,25 +1,16 @@
 import { useState, useEffect } from "react";
-import {
-  Settings as SettingsIcon,
-  Sun,
-  Moon,
-  Monitor,
-} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/app/components/ui/dialog";
-import { Label } from "@/app/components/ui/label";
-import { Button } from "@/app/components/ui/button";
-import { Switch } from "@/app/components/ui/switch";
-import { LanguageSelector } from "@/app/components/LanguageSelector";
-import { type Theme } from "@/app/hooks/useTheme";
-import { cn } from "@/app/components/ui/utils";
-import packageJson from "../../../package.json";
+import { LanguageSelector } from "./LanguageSelector";
+import { type Theme } from "../hooks/useTheme";
+import { cn } from "./ui/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
+import { Sun, Moon, Monitor, Settings as SettingsIcon } from "lucide-react";
+
+// App version
+const APP_VERSION = "1.2.0";
 
 interface AppSettingsProps {
   open: boolean;
@@ -277,7 +268,7 @@ export function AppSettings({
           {/* App Version */}
           <div className="text-center mt-3 pb-1">
             <p className="text-[10px] text-muted-foreground/60">
-              Pilliox v{packageJson.version}
+              Pilliox v{APP_VERSION}
             </p>
           </div>
         </div>

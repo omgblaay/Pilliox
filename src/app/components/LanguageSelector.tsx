@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { Languages } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
+import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+} from "./ui/dropdown-menu";
 
 interface LanguageSelectorProps {
   variant?: "default" | "outline" | "ghost";

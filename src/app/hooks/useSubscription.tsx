@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { toast } from 'sonner';
+
+// Debug logging
+console.log('useSubscription module loading...');
+console.log('projectId:', projectId);
+console.log('publicAnonKey:', publicAnonKey ? 'defined' : 'undefined');
 
 interface SubscriptionStatus {
   hasAccess: boolean;
