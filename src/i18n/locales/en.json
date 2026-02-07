@@ -32,14 +32,18 @@
     "title": "Calendar",
     "markDays": "Mark Days",
     "day": "Edit day",
-    "pills": "Pills",
+    "pills": "Medications",
+    "pillsUnit": "pills",
+    "noPillsConfigured": "No medications configured yet. Configure them in Settings.",
     "note": "Note",
     "cancel": "Cancel",
     "apply": "Apply",
     "loading": "Loading...",
     "colorTag": "Color & Tag",
     "removeTag": "Remove",
-    "noTag": "No tag"
+    "noTag": "No tag",
+    "weekView": "Week view",
+    "monthView": "Month view"
   },
   "day": {
     "description": "Track your INR values, medication, and notes",
@@ -147,6 +151,36 @@
     "red": "Red",
     "purple": "Purple",
     "none": "None"
+  },
+  "pillsSettings": {
+    "title": "Medication Settings",
+    "description": "Configure your medications and default dosages",
+    "noPills": "No medications configured yet",
+    "medicationName": "Medication Name",
+    "medicationPlaceholder": "e.g., Warfarin, Aspirin",
+    "type": "Type",
+    "typePills": "Pills Counter",
+    "typeValue": "Value Input",
+    "defaultDosage": "Default Daily Dosage",
+    "defaultValue": "Default Value",
+    "color": "Color",
+    "addMedication": "Add Medication",
+    "save": "Save Settings",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "loadError": "Failed to load medication settings",
+    "saveSuccess": "Medication settings saved successfully",
+    "saveError": "Failed to save medication settings",
+    "invalidData": "Please fill in all medication fields with valid data"
+  },
+  "deleteConfirm": {
+    "title": "Remove Tag",
+    "description": "Choose how you want to remove this tag:",
+    "thisDay": "This day only",
+    "thisDayDescription": "Remove tag only from the selected day",
+    "allDays": "All marked days",
+    "allDaysDescription": "Remove tag from all days with the same color and label",
+    "cancel": "Cancel"
   },
   "days": {
     "monday": "Monday",

@@ -32,14 +32,18 @@
     "title": "Kalender",
     "day": "Tag",
     "markDays": "Tage markieren",
-    "pills": "Pillen",
+    "pills": "Medikamente",
+    "pillsUnit": "Tabletten",
+    "noPillsConfigured": "Noch keine Medikamente konfiguriert. Konfigurieren Sie sie in den Einstellungen.",
     "note": "Notiz",
     "cancel": "Abbrechen",
     "apply": "Anwenden",
     "loading": "Laden...",
     "colorTag": "Farbe & Tag",
     "removeTag": "Entfernen",
-    "noTag": "Kein Tag"
+    "noTag": "Kein Tag",
+    "weekView": "Wochenansicht",
+    "monthView": "Monatsansicht"
   },
   "day": {
     "description": "Verfolgen Sie Ihre INR-Werte, Medikamente und Notizen",
@@ -147,6 +151,36 @@
     "red": "Rot",
     "purple": "Lila",
     "none": "Keine"
+  },
+  "pillsSettings": {
+    "title": "Medikamenten-Einstellungen",
+    "description": "Konfigurieren Sie Ihre Medikamente und Standarddosierungen",
+    "noPills": "Noch keine Medikamente konfiguriert",
+    "medicationName": "Medikamentenname",
+    "medicationPlaceholder": "z.B. Warfarin, Aspirin",
+    "type": "Typ",
+    "typePills": "Pillen-Zähler",
+    "typeValue": "Werteingabe",
+    "defaultDosage": "Standard-Tagesdosis",
+    "defaultValue": "Standardwert",
+    "color": "Farbe",
+    "addMedication": "Medikament hinzufügen",
+    "save": "Einstellungen speichern",
+    "saving": "Speichern...",
+    "cancel": "Abbrechen",
+    "loadError": "Medikamenten-Einstellungen konnten nicht geladen werden",
+    "saveSuccess": "Medikamenten-Einstellungen erfolgreich gespeichert",
+    "saveError": "Medikamenten-Einstellungen konnten nicht gespeichert werden",
+    "invalidData": "Bitte füllen Sie alle Medikamentenfelder mit gültigen Daten aus"
+  },
+  "deleteConfirm": {
+    "title": "Tag entfernen",
+    "description": "Wählen Sie, wie Sie dieses Tag entfernen möchten:",
+    "thisDay": "Nur dieser Tag",
+    "thisDayDescription": "Tag nur vom ausgewählten Tag entfernen",
+    "allDays": "Alle markierten Tage",
+    "allDaysDescription": "Tag von allen Tagen mit derselben Farbe und Beschriftung entfernen",
+    "cancel": "Abbrechen"
   },
   "days": {
     "monday": "Montag",

@@ -10,6 +10,10 @@ import {
   subMonths,
   addDays,
   subDays,
+  startOfWeek,
+  endOfWeek,
+  addWeeks,
+  subWeeks,
 } from "date-fns";
 import { de } from "date-fns/locale/de";
 import { enUS } from "date-fns/locale/en-US";
@@ -26,6 +30,8 @@ import {
   Settings as SettingsIcon,
   User,
   Pencil,
+  Calendar,
+  CalendarDays,
 } from "lucide-react";
 import {
   motion,
@@ -46,15 +52,24 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Badge } from "@/app/components/ui/badge";
 import { ProfileSettings } from "@/app/components/ProfileSettings";
 import { AppSettings } from "@/app/components/AppSettings";
+import {
+  PillsSettings,
+  type PillSetting,
+} from "@/app/components/PillsSettings";
 import { cn } from "@/app/components/ui/utils";
 import { useTheme, type Theme } from "@/app/hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import Vector from "@/imports/Vector";
 
+interface PillDosage {
+  pillId: string;
+  dosage: number;
+}
+
 interface CalendarEntry {
   amount: string;
   note: string;
-  pills?: string;
+  pills?: string; // JSON string of PillDosage[]
   color?: string;
   tag?: string;
 }
@@ -209,6 +224,28 @@ export function CalendarView({
     });
   };
 
+  // Helper function to format header title based on view mode
+  const formatHeaderTitle = (date: Date): string => {
+    if (viewMode === "week") {
+      const weekStart = startOfWeek(date, {
+        weekStartsOn: weekStartsOnMonday ? 1 : 0,
+      });
+      const weekEnd = endOfWeek(date, {
+        weekStartsOn: weekStartsOnMonday ? 1 : 0,
+      });
+
+      // If start and end are in the same month
+      if (weekStart.getMonth() === weekEnd.getMonth()) {
+        return `${getMonthName(weekStart)} ${format(weekStart, "d", { locale: dateLocale })} - ${format(weekEnd, "d, yyyy", { locale: dateLocale })}`;
+      } else {
+        // Different months
+        return `${getMonthName(weekStart)} ${format(weekStart, "d", { locale: dateLocale })} - ${getMonthName(weekEnd)} ${format(weekEnd, "d, yyyy", { locale: dateLocale })}`;
+      }
+    } else {
+      return `${getMonthName(date)} ${format(date, "yyyy", { locale: dateLocale })}`;
+    }
+  };
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const prevMonthRef = useRef(new Date());
   const [entries, setEntries] = useState<
@@ -221,9 +258,14 @@ export function CalendarView({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const [pills, setPills] = useState("");
+  const [pills, setPills] = useState<PillDosage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
+
+  // Pills settings
+  const [pillsSettings, setPillsSettings] = useState<
+    PillSetting[]
+  >([]);
 
   // Multi-select mode
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -238,11 +280,21 @@ export function CalendarView({
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pillsSettingsOpen, setPillsSettingsOpen] =
+    useState(false);
   const [weekStartsOnMonday, setWeekStartsOnMonday] =
     useState(true);
 
+  // Delete confirmation modal
+  const [deleteConfirmOpen, setDeleteConfirmOpen] =
+    useState(false);
+  const [viewMode, setViewMode] = useState<"month" | "week">(
+    "month",
+  );
+
   // User profile
   const [name, setName] = useState("");
+  const [userId, setUserId] = useState("");
 
   // Tag editing
   const [editingTag, setEditingTag] = useState(false);
@@ -365,6 +417,7 @@ export function CalendarView({
         if (response.ok) {
           const data = await response.json();
           setName(data.user.name || "");
+          setUserId(data.user.id || "");
         }
       } catch (error) {
         // Error loading user profile
@@ -373,6 +426,40 @@ export function CalendarView({
 
     loadUserProfile();
   }, [accessToken, projectId, anonKey]);
+
+  // Load pills settings
+  useEffect(() => {
+    const loadPillsSettings = async () => {
+      if (!userId) return;
+
+      try {
+        const response = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${anonKey}`,
+              "X-User-Token": accessToken,
+            },
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setPillsSettings(data.pills || []);
+        }
+      } catch (error) {
+        console.error("Error loading pills settings:", error);
+      }
+    };
+
+    loadPillsSettings();
+  }, [
+    userId,
+    accessToken,
+    projectId,
+    anonKey,
+    pillsSettingsOpen,
+  ]); // Reload when settings modal closes
 
   // Load entries for current month
   useEffect(() => {
@@ -504,7 +591,18 @@ export function CalendarView({
     const entry = entries[dateKey];
     setAmount(entry?.amount || "");
     setNote(entry?.note || "");
-    setPills(entry?.pills || "");
+
+    // Parse pills JSON
+    try {
+      const pillsData = entry?.pills
+        ? JSON.parse(entry.pills)
+        : [];
+      setPills(Array.isArray(pillsData) ? pillsData : []);
+    } catch (error) {
+      console.error("Error parsing pills data:", error);
+      setPills([]);
+    }
+
     setDialogOpen(true);
   };
 
@@ -514,12 +612,16 @@ export function CalendarView({
     const dateKey = format(selectedDate, "yyyy-MM-dd");
     const newEntries = { ...entries };
 
-    if (amount || note || pills) {
+    // Serialize pills data
+    const pillsJson =
+      pills.length > 0 ? JSON.stringify(pills) : "";
+
+    if (amount || note || pillsJson) {
       newEntries[dateKey] = {
         ...newEntries[dateKey],
         amount,
         note,
-        pills,
+        pills: pillsJson,
       };
     } else if (
       !newEntries[dateKey]?.color &&
@@ -540,7 +642,7 @@ export function CalendarView({
     setDialogOpen(false);
     setAmount("");
     setNote("");
-    setPills("");
+    setPills([]);
   };
 
   const handleRemoveColorTag = () => {
@@ -560,6 +662,40 @@ export function CalendarView({
 
     setEntries(newEntries);
     saveEntries(newEntries);
+    setDeleteConfirmOpen(false);
+  };
+
+  const handleRemoveColorTagFromAll = () => {
+    if (!selectedDate) return;
+
+    const dateKey = format(selectedDate, "yyyy-MM-dd");
+    const currentEntry = entries[dateKey];
+
+    if (!currentEntry?.color) return;
+
+    const colorToRemove = currentEntry.color;
+    const tagToRemove = currentEntry.tag;
+    const newEntries = { ...entries };
+
+    // Remove color and tag from all days that have the same color and tag
+    Object.keys(newEntries).forEach((key) => {
+      const entry = newEntries[key];
+      if (
+        entry.color === colorToRemove &&
+        entry.tag === tagToRemove
+      ) {
+        const { color, tag, ...rest } = entry;
+        if (!rest.amount && !rest.note && !rest.pills) {
+          delete newEntries[key];
+        } else {
+          newEntries[key] = rest;
+        }
+      }
+    });
+
+    setEntries(newEntries);
+    saveEntries(newEntries);
+    setDeleteConfirmOpen(false);
   };
 
   const toggleMultiSelectMode = () => {
@@ -611,15 +747,27 @@ export function CalendarView({
   };
 
   const previousMonth = () => {
-    const newMonth = subMonths(currentMonth, 1);
-    swipeDirectionRef.current = -1; // Moving backward in time
-    setCurrentMonth(newMonth);
+    if (viewMode === "week") {
+      const newWeek = subWeeks(currentMonth, 1);
+      swipeDirectionRef.current = -1;
+      setCurrentMonth(newWeek);
+    } else {
+      const newMonth = subMonths(currentMonth, 1);
+      swipeDirectionRef.current = -1;
+      setCurrentMonth(newMonth);
+    }
   };
 
   const nextMonth = () => {
-    const newMonth = addMonths(currentMonth, 1);
-    swipeDirectionRef.current = 1; // Moving forward in time
-    setCurrentMonth(newMonth);
+    if (viewMode === "week") {
+      const newWeek = addWeeks(currentMonth, 1);
+      swipeDirectionRef.current = 1;
+      setCurrentMonth(newWeek);
+    } else {
+      const newMonth = addMonths(currentMonth, 1);
+      swipeDirectionRef.current = 1;
+      setCurrentMonth(newMonth);
+    }
   };
 
   // Swipe handlers for calendar month navigation
@@ -649,7 +797,18 @@ export function CalendarView({
     const entry = entries[dateKey];
     setAmount(entry?.amount || "");
     setNote(entry?.note || "");
-    setPills(entry?.pills || "");
+
+    // Parse pills JSON
+    try {
+      const pillsData = entry?.pills
+        ? JSON.parse(entry.pills)
+        : [];
+      setPills(Array.isArray(pillsData) ? pillsData : []);
+    } catch (error) {
+      console.error("Error parsing pills data:", error);
+      setPills([]);
+    }
+
     // Update month if we crossed month boundary
     if (!isSameMonth(previousDay, currentMonth)) {
       setCurrentMonth(previousDay);
@@ -665,7 +824,18 @@ export function CalendarView({
     const entry = entries[dateKey];
     setAmount(entry?.amount || "");
     setNote(entry?.note || "");
-    setPills(entry?.pills || "");
+
+    // Parse pills JSON
+    try {
+      const pillsData = entry?.pills
+        ? JSON.parse(entry.pills)
+        : [];
+      setPills(Array.isArray(pillsData) ? pillsData : []);
+    } catch (error) {
+      console.error("Error parsing pills data:", error);
+      setPills([]);
+    }
+
     // Update month if we crossed month boundary
     if (!isSameMonth(nextDay, currentMonth)) {
       setCurrentMonth(nextDay);
@@ -822,19 +992,42 @@ export function CalendarView({
     setEditingTag(true);
   };
 
+  // Calculate days based on view mode
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const daysInMonth = eachDayOfInterval({
-    start: monthStart,
-    end: monthEnd,
-  });
 
-  // Calculate empty days based on week start preference
-  let dayOffset = monthStart.getDay();
-  if (weekStartsOnMonday) {
-    dayOffset = dayOffset === 0 ? 6 : dayOffset - 1;
+  let daysInView: Date[];
+  let emptyDays: null[] = [];
+
+  if (viewMode === "week") {
+    // Week view: show only current week
+    const weekStart = startOfWeek(currentMonth, {
+      weekStartsOn: weekStartsOnMonday ? 1 : 0,
+    });
+    const weekEnd = endOfWeek(currentMonth, {
+      weekStartsOn: weekStartsOnMonday ? 1 : 0,
+    });
+    daysInView = eachDayOfInterval({
+      start: weekStart,
+      end: weekEnd,
+    });
+  } else {
+    // Month view: show all days in month
+    daysInView = eachDayOfInterval({
+      start: monthStart,
+      end: monthEnd,
+    });
+
+    // Calculate empty days based on week start preference
+    let dayOffset = monthStart.getDay();
+    if (weekStartsOnMonday) {
+      dayOffset = dayOffset === 0 ? 6 : dayOffset - 1;
+    }
+    emptyDays = Array(dayOffset).fill(null);
   }
-  const emptyDays = Array(dayOffset).fill(null);
+
+  // Keep backward compatibility
+  const daysInMonth = daysInView;
 
   // Day headers based on week start preference
   const dayHeaders = weekStartsOnMonday
@@ -901,6 +1094,24 @@ export function CalendarView({
                 variant="ghost"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent"
+                onClick={() => {
+                  if (userId) {
+                    setPillsSettingsOpen(true);
+                  } else {
+                    console.error(
+                      "Cannot open pills settings: userId not loaded yet",
+                    );
+                  }
+                }}
+                title="Medication Settings"
+                disabled={!userId}
+              >
+                <Pill className="h-6 w-6 text-muted-foreground" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 rounded-full hover:bg-accent"
                 onClick={() => setProfileOpen(true)}
               >
                 <User className="h-7 w-7 text-muted-foreground" />
@@ -922,14 +1133,14 @@ export function CalendarView({
       <div className="max-w-md lg:max-w-[800px] mx-auto px-4">
         {/* Calendar Card */}
         <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-          {/* Month Navigation */}
+          {/* Month/Week Navigation */}
           <div className="p-[12px] border-b border-border px-[12px] py-[8px]">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handlePreviousMonth}
-                className="h-10 w-10 rounded-full hover:bg-accent"
+                className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
               >
                 <ChevronLeft className="h-5 w-5 text-foreground" />
               </Button>
@@ -946,7 +1157,7 @@ export function CalendarView({
                   custom={swipeDirectionRef.current}
                 >
                   <motion.h2
-                    key={format(currentMonth, "yyyy-MM")}
+                    key={format(currentMonth, "yyyy-MM-ww")}
                     custom={swipeDirectionRef.current}
                     variants={headerSlideVariants}
                     initial="enter"
@@ -958,18 +1169,36 @@ export function CalendarView({
                     }}
                     className="text-lg font-semibold text-foreground text-[14px] text-center"
                   >
-                    {getMonthName(currentMonth)}{" "}
-                    {format(currentMonth, "yyyy", {
-                      locale: dateLocale,
-                    })}
+                    {formatHeaderTitle(currentMonth)}
                   </motion.h2>
                 </AnimatePresence>
               </motion.div>
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() =>
+                  setViewMode(
+                    viewMode === "month" ? "week" : "month",
+                  )
+                }
+                className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
+                title={
+                  viewMode === "month"
+                    ? t("calendar.weekView")
+                    : t("calendar.monthView")
+                }
+              >
+                {viewMode === "month" ? (
+                  <CalendarDays className="h-5 w-5 text-foreground" />
+                ) : (
+                  <Calendar className="h-5 w-5 text-foreground" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleNextMonth}
-                className="h-10 w-10 rounded-full hover:bg-accent"
+                className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
               >
                 <ChevronRight className="h-5 w-5 text-foreground" />
               </Button>
@@ -1020,16 +1249,18 @@ export function CalendarView({
             dragElastic={0.2}
             onDragEnd={handleCalendarSwipe}
           >
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-2.5 mb-4">
-              {dayHeaders.map((day) => (
-                <div key={day} className="text-center">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {day}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {/* Day Headers - Only for Month View */}
+            {viewMode === "month" && (
+              <div className="grid grid-cols-7 gap-2.5 mb-4">
+                {dayHeaders.map((day) => (
+                  <div key={day} className="text-center">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {day}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Days Grid */}
             <AnimatePresence
@@ -1038,7 +1269,11 @@ export function CalendarView({
               custom={swipeDirectionRef.current}
             >
               <motion.div
-                key={format(currentMonth, "yyyy-MM")}
+                key={
+                  viewMode === "week"
+                    ? format(currentMonth, "yyyy-ww")
+                    : format(currentMonth, "yyyy-MM")
+                }
                 custom={swipeDirectionRef.current}
                 variants={slideVariants}
                 initial="enter"
@@ -1048,14 +1283,20 @@ export function CalendarView({
                   duration: 0.3,
                   ease: "easeInOut",
                 }}
-                className="grid grid-cols-7 gap-y-2"
+                className={
+                  viewMode === "week"
+                    ? "flex flex-col gap-2"
+                    : "grid grid-cols-7 gap-y-2"
+                }
               >
-                {emptyDays.map((_, index) => (
-                  <div
-                    key={`empty-${index}`}
-                    className="w-full h-18"
-                  />
-                ))}
+                {/* Empty days for month view only */}
+                {viewMode === "month" &&
+                  emptyDays.map((_, index) => (
+                    <div
+                      key={`empty-${index}`}
+                      className="w-full h-18"
+                    />
+                  ))}
                 {daysInMonth.map((day, dayIndex) => {
                   const dateStr = format(day, "yyyy-MM-dd");
                   const entry = entries[dateStr] || {};
@@ -1064,7 +1305,9 @@ export function CalendarView({
                   const hasNote =
                     entry.note && entry.note !== "";
                   const hasPills =
-                    entry.pills && parseFloat(entry.pills) > 0;
+                    entry.pills &&
+                    entry.pills !== "" &&
+                    entry.pills !== "[]";
                   const hasColor =
                     entry.color && entry.color !== "";
                   const isSelected = selectedDates.has(dateStr);
@@ -1202,9 +1445,17 @@ export function CalendarView({
                       key={dateStr}
                       onClick={() => handleDayClick(day)}
                       className={cn(
-                        "w-full min-h-18 relative transition-all duration-200",
-                        roundedClass,
-                        "flex flex-col items-center justify-center p-2",
+                        viewMode === "week"
+                          ? "w-full min-h-[60px] flex flex-row"
+                          : "w-full min-h-18",
+                        "relative transition-all duration-200",
+                        viewMode === "week"
+                          ? "rounded-xl"
+                          : roundedClass,
+                        viewMode === "month" &&
+                          "flex flex-col items-center justify-center p-2",
+                        viewMode === "week" &&
+                          "items-center justify-start p-3 gap-3",
                         "focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:ring-offset-1",
                         isToday &&
                           !hasColor &&
@@ -1230,112 +1481,306 @@ export function CalendarView({
                           : undefined
                       }
                     >
-                      <div
-                        className={cn(
-                          "flex flex-col items-center justify-center gap-1",
-                          isPartOfTaggedGroup && "mt-5",
-                        )}
-                      >
-                        {/* Tag Display - Show only once per consecutive group at the top center of first day */}
-                        {hasColor &&
-                          entry.tag &&
-                          !hasSameColorTagAsPrev && (
+                      {/* Week view: Inline layout */}
+                      {viewMode === "week" ? (
+                        <div className="flex items-center gap-3 w-full">
+                          {/* Day name and number */}
+                          <div className="flex items-center gap-2 min-w-[80px]">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                              {format(day, "EEE", {
+                                locale: dateLocale,
+                              })}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-lg font-bold leading-none",
+                                isToday &&
+                                  !hasColor &&
+                                  "text-blue-600 dark:text-blue-400",
+                                !isToday &&
+                                  !hasColor &&
+                                  "text-gray-700 dark:text-gray-300",
+                                hasColor &&
+                                  "text-gray-900 dark:text-gray-300",
+                              )}
+                            >
+                              {format(day, "d")}
+                            </span>
+                          </div>
+
+                          {/* Tag Display */}
+                          {hasColor && entry.tag && (
                             <div
                               className={cn(
-                                "absolute top-0 left-0 text-[10px] font-semibold py-0.5 rounded-t-xl truncate z-50 text-left pl-2",
+                                "text-xs font-semibold px-2 py-1 rounded",
                                 hasColor && !isDarkMode
                                   ? "bg-black/20 text-gray-900"
                                   : hasColor && isDarkMode
                                     ? "bg-white/20 text-gray-300"
                                     : "",
                               )}
-                              style={{
-                                width:
-                                  consecutiveDaysCount > 1
-                                    ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 3}px)`
-                                    : "100%",
-                              }}
                               title={entry.tag}
                             >
                               {entry.tag}
                             </div>
                           )}
 
-                        {/* Amount Display */}
-                        {hasAmount && (
-                          <div
-                            className={cn(
-                              "text-[10px] font-semibold px-1 py-0.5 rounded whitespace-nowrap",
-                              hasColor && !isDarkMode
-                                ? "bg-black/20 text-gray-900"
-                                : hasColor && isDarkMode
-                                  ? "bg-white/20 text-gray-300"
-                                  : !isDarkMode
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-green-900 text-green-100",
-                            )}
-                          >
-                            INR:
-                            {parseFloat(
-                              entry.amount,
-                            ).toLocaleString("en-IN", {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 2,
-                            })}
-                          </div>
-                        )}
+                          {/* Data container */}
+                          <div className="flex items-center gap-2 ml-auto flex-wrap">
+                            {/* Individual Medications Display */}
+                            {hasPills &&
+                              (() => {
+                                const pillsData: PillDosage[] =
+                                  JSON.parse(
+                                    entry.pills || "[]",
+                                  );
+                                return pillsData.map((pill) => {
+                                  const pillSetting =
+                                    pillsSettings.find(
+                                      (ps) =>
+                                        ps.id === pill.pillId,
+                                    );
+                                  if (!pillSetting) return null;
 
-                        {/* Day Number */}
-                        <span
+                                  return (
+                                    <div
+                                      key={pill.pillId}
+                                      className={cn(
+                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded whitespace-nowrap",
+                                        hasColor && !isDarkMode
+                                          ? "bg-black/20 text-gray-900"
+                                          : hasColor &&
+                                              isDarkMode
+                                            ? "bg-white/20 text-gray-300"
+                                            : !isDarkMode
+                                              ? "bg-purple-100 text-purple-700"
+                                              : "bg-purple-900 text-purple-100",
+                                      )}
+                                    >
+                                      {pillSetting.color && (
+                                        <div
+                                          className="h-2.5 w-2.5 rounded-full border border-current"
+                                          style={{
+                                            backgroundColor:
+                                              pillSetting.color,
+                                          }}
+                                        />
+                                      )}
+                                      {pillSetting.type ===
+                                      "pills" ? (
+                                        <>
+                                          <Pill className="h-3 w-3" />
+                                          <span>
+                                            {pillSetting.name.substring(
+                                              0,
+                                              3,
+                                            )}
+                                            : {pill.dosage}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Droplet className="h-3 w-3" />
+                                          <span>
+                                            {pillSetting.name.substring(
+                                              0,
+                                              3,
+                                            )}
+                                            : {pill.dosage}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                });
+                              })()}
+
+                            {/* Legacy INR Display - Only show if no pills data */}
+                            {hasAmount && !hasPills && (
+                              <div
+                                className={cn(
+                                  "text-xs font-semibold px-2 py-1 rounded whitespace-nowrap",
+                                  hasColor && !isDarkMode
+                                    ? "bg-black/20 text-gray-900"
+                                    : hasColor && isDarkMode
+                                      ? "bg-white/20 text-gray-300"
+                                      : !isDarkMode
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-green-900 text-green-100",
+                                )}
+                              >
+                                INR:{" "}
+                                {parseFloat(
+                                  entry.amount,
+                                ).toLocaleString("en-IN", {
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </div>
+                            )}
+
+                            {/* Note Indicator */}
+                            {hasNote && (
+                              <span
+                                className={cn(
+                                  "inline-block w-2 h-2 rounded-full",
+                                  hasColor && !isDarkMode
+                                    ? "bg-gray-900/80"
+                                    : hasColor && isDarkMode
+                                      ? "bg-gray-300"
+                                      : !isDarkMode
+                                        ? "bg-blue-500"
+                                        : "bg-blue-400",
+                                )}
+                                title="Has note"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        /* Month view: Column layout */
+                        <div
                           className={cn(
-                            "text-sm font-semibold leading-none",
-                            isToday &&
-                              !hasColor &&
-                              "text-blue-600 dark:text-blue-400",
-                            !isToday &&
-                              !hasColor &&
-                              "text-gray-700 dark:text-gray-300",
-                            hasColor &&
-                              "text-gray-900 dark:text-gray-300",
+                            "flex flex-col items-center justify-center gap-1",
+                            isPartOfTaggedGroup && "mt-5",
                           )}
                         >
-                          {format(day, "d")}
-                          {/* Note Indicator - Show next to day number when note exists */}
-                          {hasNote && (
-                            <span
-                              className={cn(
-                                "inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle",
-                                hasColor && !isDarkMode
-                                  ? "bg-gray-900/80"
-                                  : hasColor && isDarkMode
-                                    ? "bg-gray-300"
-                                    : !isDarkMode
-                                      ? "bg-blue-500"
-                                      : "bg-blue-400",
-                              )}
-                            />
-                          )}
-                        </span>
+                          {/* Tag Display - Show only once per consecutive group at the top center of first day */}
+                          {hasColor &&
+                            entry.tag &&
+                            !hasSameColorTagAsPrev && (
+                              <div
+                                className={cn(
+                                  "absolute top-0 left-0 text-[10px] font-semibold py-0.5 rounded-t-xl truncate z-50 text-left pl-2",
+                                  hasColor && !isDarkMode
+                                    ? "bg-black/20 text-gray-900"
+                                    : hasColor && isDarkMode
+                                      ? "bg-white/20 text-gray-300"
+                                      : "",
+                                )}
+                                style={{
+                                  width:
+                                    consecutiveDaysCount > 1
+                                      ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 3}px)`
+                                      : "100%",
+                                }}
+                                title={entry.tag}
+                              >
+                                {entry.tag}
+                              </div>
+                            )}
 
-                        {/* Pills Counter */}
-                        {hasPills && (
-                          <div
+                          {/* Day Number */}
+                          <span
                             className={cn(
-                              "flex items-center gap-2 text-[10px] font-semibold px-1 py-0.5 rounded",
-                              hasColor && !isDarkMode
-                                ? "bg-black/20 text-gray-900"
-                                : hasColor && isDarkMode
-                                  ? "bg-white/20 text-gray-300"
-                                  : !isDarkMode
-                                    ? "bg-purple-100 text-purple-700"
-                                    : "bg-purple-900 text-purple-100",
+                              "text-sm font-semibold leading-none",
+                              isToday &&
+                                !hasColor &&
+                                "text-blue-600 dark:text-blue-400",
+                              !isToday &&
+                                !hasColor &&
+                                "text-gray-700 dark:text-gray-300",
+                              hasColor &&
+                                "text-gray-900 dark:text-gray-300",
                             )}
                           >
-                            <Pill className="h-2.5 w-2.5" />
-                            <span>{entry.pills}</span>
-                          </div>
-                        )}
-                      </div>
+                            {format(day, "d")}
+                            {/* Note Indicator - Show next to day number when note exists */}
+                            {hasNote && (
+                              <span
+                                className={cn(
+                                  "inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle",
+                                  hasColor && !isDarkMode
+                                    ? "bg-gray-900/80"
+                                    : hasColor && isDarkMode
+                                      ? "bg-gray-300"
+                                      : !isDarkMode
+                                        ? "bg-blue-500"
+                                        : "bg-blue-400",
+                                )}
+                              />
+                            )}
+                          </span>
+
+                          {/* Individual Medications Display */}
+                          {hasPills &&
+                            (() => {
+                              const pillsData: PillDosage[] =
+                                JSON.parse(entry.pills || "[]");
+                              return pillsData.map((pill) => {
+                                const pillSetting =
+                                  pillsSettings.find(
+                                    (ps) =>
+                                      ps.id === pill.pillId,
+                                  );
+                                if (!pillSetting) return null;
+
+                                return (
+                                  <div
+                                    key={pill.pillId}
+                                    className={cn(
+                                      "flex items-center gap-1 text-[10px] font-semibold px-1 py-0.5 rounded",
+                                      hasColor && !isDarkMode
+                                        ? "bg-black/20 text-gray-900"
+                                        : hasColor && isDarkMode
+                                          ? "bg-white/20 text-gray-300"
+                                          : !isDarkMode
+                                            ? "bg-purple-100 text-purple-700"
+                                            : "bg-purple-900 text-purple-100",
+                                    )}
+                                  >
+                                    {pillSetting.color && (
+                                      <div
+                                        className="h-2 w-2 rounded-full border border-current"
+                                        style={{
+                                          backgroundColor:
+                                            pillSetting.color,
+                                        }}
+                                      />
+                                    )}
+                                    {pillSetting.type ===
+                                    "pills" ? (
+                                      <Pill className="h-2.5 w-2.5" />
+                                    ) : (
+                                      <Droplet className="h-2.5 w-2.5" />
+                                    )}
+                                    <span>
+                                      {pillSetting.name.substring(
+                                        0,
+                                        3,
+                                      )}
+                                      : {pill.dosage}
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+
+                          {/* Legacy INR Display - Only show if no pills data */}
+                          {hasAmount && !hasPills && (
+                            <div
+                              className={cn(
+                                "text-[10px] font-semibold px-1 py-0.5 rounded whitespace-nowrap",
+                                hasColor && !isDarkMode
+                                  ? "bg-black/20 text-gray-900"
+                                  : hasColor && isDarkMode
+                                    ? "bg-white/20 text-gray-300"
+                                    : !isDarkMode
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-green-900 text-green-100",
+                              )}
+                            >
+                              INR:
+                              {parseFloat(
+                                entry.amount,
+                              ).toLocaleString("en-IN", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -1476,7 +1921,9 @@ export function CalendarView({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={handleRemoveColorTag}
+                            onClick={() =>
+                              setDeleteConfirmOpen(true)
+                            }
                             className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex-1"
                           >
                             <X className="h-2 w-2" />
@@ -1489,7 +1936,7 @@ export function CalendarView({
                         <>
                           {/* Tag Display */}
                           <div
-                            className="h-12 rounded-lg border flex items-center px-4 relative group"
+                            className="min-h-12 rounded-lg border flex flex-col justify-center px-4 py-2 relative group"
                             style={{
                               backgroundColor: entries[
                                 format(
@@ -1526,7 +1973,7 @@ export function CalendarView({
                             }}
                           >
                             <span
-                              className="text-sm font-semibold"
+                              className="text-sm font-semibold pr-10"
                               style={{
                                 color:
                                   entries[
@@ -1558,10 +2005,82 @@ export function CalendarView({
                               ]?.tag || t("calendar.noTag")}
                             </span>
 
+                            {/* Grouped Days List */}
+                            {(() => {
+                              const currentEntry =
+                                entries[
+                                  format(
+                                    selectedDate,
+                                    "yyyy-MM-dd",
+                                  )
+                                ];
+                              if (
+                                !currentEntry?.color ||
+                                !currentEntry?.tag
+                              )
+                                return null;
+
+                              const groupedDays =
+                                findGroupedDays(
+                                  currentEntry.color,
+                                  currentEntry.tag,
+                                );
+                              const dayRanges =
+                                formatDayRanges(groupedDays);
+
+                              if (groupedDays.length <= 1)
+                                return null;
+
+                              const textColor =
+                                currentEntry.color &&
+                                isLightColor(
+                                  getColorForTheme(
+                                    currentEntry.color,
+                                    isDarkMode,
+                                  ),
+                                )
+                                  ? "#6b7280"
+                                  : "#d1d5db";
+
+                              return (
+                                <div className="flex flex-wrap items-center gap-1.5 text-xs mt-1.5 pr-10">
+                                  <span
+                                    className="font-medium opacity-80"
+                                    style={{ color: textColor }}
+                                  >
+                                    Marked days:
+                                  </span>
+                                  {dayRanges.map(
+                                    (range, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="px-1.5 py-0.5 rounded text-xs font-medium"
+                                        style={{
+                                          backgroundColor:
+                                            currentEntry.color &&
+                                            isLightColor(
+                                              getColorForTheme(
+                                                currentEntry.color,
+                                                isDarkMode,
+                                              ),
+                                            )
+                                              ? "rgba(0,0,0,0.1)"
+                                              : "rgba(255,255,255,0.2)",
+                                          color: textColor,
+                                        }}
+                                      >
+                                        {range}
+                                      </span>
+                                    ),
+                                  )}
+                                </div>
+                              );
+                            })()}
+
                             {/* Edit Icon Button */}
                             <button
                               onClick={startEditingTag}
-                              className="absolute right-2 h-8 w-8 rounded-lg flex items-center justify-center group-hover:opacity-100 transition-opacity hover:bg-white/20"
+                              className="absolute right-2 top-2 h-8 w-8 rounded-lg flex items-center justify-center group-hover:opacity-100 transition-opacity hover:bg-white/20"
                               style={{
                                 color:
                                   entries[
@@ -1588,49 +2107,6 @@ export function CalendarView({
                               <Pencil className="h-4 w-4" />
                             </button>
                           </div>
-
-                          {/* Grouped Days List */}
-                          {(() => {
-                            const currentEntry =
-                              entries[
-                                format(
-                                  selectedDate,
-                                  "yyyy-MM-dd",
-                                )
-                              ];
-                            if (
-                              !currentEntry?.color ||
-                              !currentEntry?.tag
-                            )
-                              return null;
-
-                            const groupedDays = findGroupedDays(
-                              currentEntry.color,
-                              currentEntry.tag,
-                            );
-                            const dayRanges =
-                              formatDayRanges(groupedDays);
-
-                            if (groupedDays.length <= 1)
-                              return null;
-
-                            return (
-                              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                <span className="font-medium">
-                                  Marked days:
-                                </span>
-                                {dayRanges.map((range, idx) => (
-                                  <Badge
-                                    key={idx}
-                                    variant="outline"
-                                    className="text-xs"
-                                  >
-                                    {range}
-                                  </Badge>
-                                ))}
-                              </div>
-                            );
-                          })()}
                         </>
                       ) : (
                         <>
@@ -1722,51 +2198,256 @@ export function CalendarView({
                     </div>
                   )}
 
-                <div className="space-y-3 flex w-full h-[auto] flex-row gap-5">
-                  {/* Pills Section */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                        <Pill className="h-4 w-4 text-purple-700 dark:text-purple-400" />
+                <div className="space-y-5">
+                  {/* Pills Section - Pills Counter Type */}
+                  {pillsSettings.filter(
+                    (ps) => (ps.type || "pills") === "pills",
+                  ).length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                          <Pill className="h-4 w-4 text-purple-700 dark:text-purple-400" />
+                        </div>
+                        <Label>{t("calendar.pills")}</Label>
                       </div>
-                      <Label htmlFor="pills">
-                        {t("calendar.pills")}
-                      </Label>
-                    </div>
-                    <Input
-                      id="pills"
-                      type="number"
-                      step="0.5"
-                      placeholder="0"
-                      value={pills}
-                      onChange={(e) => setPills(e.target.value)}
-                    />
-                  </div>
 
-                  {/* Amount Section */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <Droplet className="h-4 w-4 text-green-700 dark:text-green-400" />
+                      <div className="space-y-2">
+                        {pillsSettings
+                          .filter(
+                            (ps) =>
+                              (ps.type || "pills") === "pills",
+                          )
+                          .map((pillSetting) => {
+                            const pillDosage = pills.find(
+                              (p) =>
+                                p.pillId === pillSetting.id,
+                            );
+                            const isSelected = !!pillDosage;
+                            const currentDosage =
+                              pillDosage?.dosage ||
+                              pillSetting.defaultDosage;
+
+                            return (
+                              <div
+                                key={pillSetting.id}
+                                className="flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+                              >
+                                {/* Checkbox */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      // Remove pill
+                                      setPills(
+                                        pills.filter(
+                                          (p) =>
+                                            p.pillId !==
+                                            pillSetting.id,
+                                        ),
+                                      );
+                                    } else {
+                                      // Add pill with default dosage
+                                      setPills([
+                                        ...pills,
+                                        {
+                                          pillId:
+                                            pillSetting.id,
+                                          dosage:
+                                            pillSetting.defaultDosage,
+                                        },
+                                      ]);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
+                                    isSelected
+                                      ? "bg-purple-600 border-purple-600"
+                                      : "border-gray-300 dark:border-gray-600",
+                                  )}
+                                >
+                                  {isSelected && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </button>
+
+                                {/* Color indicator */}
+                                {pillSetting.color && (
+                                  <div
+                                    className="h-4 w-4 rounded-full border border-gray-300 dark:border-gray-600"
+                                    style={{
+                                      backgroundColor:
+                                        pillSetting.color,
+                                    }}
+                                  />
+                                )}
+
+                                {/* Pill name */}
+                                <span
+                                  className={cn(
+                                    "flex-1 text-sm font-medium",
+                                    !isSelected &&
+                                      "text-muted-foreground",
+                                  )}
+                                >
+                                  {pillSetting.name}
+                                </span>
+
+                                {/* Dosage input */}
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={currentDosage}
+                                    onChange={(e) => {
+                                      const newDosage =
+                                        parseFloat(
+                                          e.target.value,
+                                        ) || 0;
+                                      // If not selected, add the pill first
+                                      if (!isSelected) {
+                                        setPills([
+                                          ...pills,
+                                          {
+                                            pillId:
+                                              pillSetting.id,
+                                            dosage: newDosage,
+                                          },
+                                        ]);
+                                      } else {
+                                        setPills(
+                                          pills.map((p) =>
+                                            p.pillId ===
+                                            pillSetting.id
+                                              ? {
+                                                  ...p,
+                                                  dosage:
+                                                    newDosage,
+                                                }
+                                              : p,
+                                          ),
+                                        );
+                                      }
+                                    }}
+                                    className="w-20 h-8 text-sm"
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    {t("calendar.pillsUnit")}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
                       </div>
-                      <Label htmlFor="amount">INR</Label>
                     </div>
-                    <Input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) =>
-                        setAmount(e.target.value)
-                      }
-                    />
-                  </div>
+                  )}
+
+                  {/* Value Type Medications */}
+                  {pillsSettings
+                    .filter((ps) => ps.type === "value")
+                    .map((valueSetting) => {
+                      const pillDosage = pills.find(
+                        (p) => p.pillId === valueSetting.id,
+                      );
+                      const currentValue =
+                        pillDosage?.dosage?.toString() || "";
+
+                      return (
+                        <div
+                          key={valueSetting.id}
+                          className="flex flex-row items-center justify-center gap-4 space-between"
+                        >
+                          <div className="flex items-center flex-row gap-2 flex-1">
+                            <div
+                              className="h-8 w-8 rounded-full flex items-center justify-center"
+                              style={{
+                                backgroundColor:
+                                  valueSetting.color
+                                    ? `${valueSetting.color}20`
+                                    : "#dcfce7",
+                              }}
+                            >
+                              <Droplet
+                                className="h-4 w-4"
+                                style={{
+                                  color:
+                                    valueSetting.color ||
+                                    "#16a34a",
+                                }}
+                              />
+                            </div>
+                            <Label
+                              htmlFor={`value-${valueSetting.id}`}
+                            >
+                              {valueSetting.name}
+                            </Label>
+                          </div>
+                          <Input
+                            id={`value-${valueSetting.id}`}
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            className="flex-1"
+                            value={currentValue}
+                            onChange={(e) => {
+                              const newValue =
+                                parseFloat(e.target.value) || 0;
+                              const existingPill = pills.find(
+                                (p) =>
+                                  p.pillId === valueSetting.id,
+                              );
+                              if (existingPill) {
+                                setPills(
+                                  pills.map((p) =>
+                                    p.pillId === valueSetting.id
+                                      ? {
+                                          ...p,
+                                          dosage: newValue,
+                                        }
+                                      : p,
+                                  ),
+                                );
+                              } else {
+                                setPills([
+                                  ...pills,
+                                  {
+                                    pillId: valueSetting.id,
+                                    dosage: newValue,
+                                  },
+                                ]);
+                              }
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+
+                  {/* Legacy INR Section - Only show if no medications configured */}
+                  {pillsSettings.length === 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                          <Droplet className="h-4 w-4 text-green-700 dark:text-green-400" />
+                        </div>
+                        <Label htmlFor="amount">INR</Label>
+                      </div>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) =>
+                          setAmount(e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Note Section */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center pt-4 gap-2">
                     <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                       <svg
                         className="h-4 w-4 text-blue-700 dark:text-blue-400"
@@ -1802,7 +2483,7 @@ export function CalendarView({
                       : ""
                   ] && (
                     <Button
-                      onClick={handleRemoveColorTag}
+                      onClick={() => setDeleteConfirmOpen(true)}
                       variant="destructive"
                       className="flex-0"
                     >
@@ -1953,6 +2634,72 @@ export function CalendarView({
         weekStartsOnMonday={weekStartsOnMonday}
         onWeekStartChange={setWeekStartsOnMonday}
       />
+
+      {/* Pills Settings Modal */}
+      <PillsSettings
+        open={pillsSettingsOpen}
+        onOpenChange={setPillsSettingsOpen}
+        userId={userId}
+        accessToken={accessToken}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+      >
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {t("deleteConfirm.title")}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {t("deleteConfirm.description")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            <Button
+              onClick={handleRemoveColorTag}
+              variant="outline"
+              className="w-full justify-start h-auto py-4 px-4"
+            >
+              <div className="flex flex-col items-start gap-1 text-left">
+                <span className="font-semibold">
+                  {t("deleteConfirm.thisDay")}
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  {t("deleteConfirm.thisDayDescription")}
+                </span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={handleRemoveColorTagFromAll}
+              variant="outline"
+              className="w-full justify-start h-auto py-4 px-4"
+            >
+              <div className="flex flex-col items-start gap-1 text-left">
+                <span className="font-semibold">
+                  {t("deleteConfirm.allDays")}
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  {t("deleteConfirm.allDaysDescription")}
+                </span>
+              </div>
+            </Button>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
+              {t("deleteConfirm.cancel")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

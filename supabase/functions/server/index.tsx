@@ -499,36 +499,48 @@ app.post('/make-server-c7e1f966/calendar/:month', async (c) => {
 app.delete('/make-server-c7e1f966/user/data', async (c) => {
   try {
     // Get user token from custom header instead of Authorization
-    const accessToken = c.req.header('X-User-Token');
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
     
     if (!accessToken) {
+      console.log('Clear data error: No access token provided');
       return c.json({ error: 'Unauthorized' }, 401);
     }
     
-    // Verify user exists
-    let user = users.get(accessToken);
-    if (!user) {
-      const userData = await kvGet(`user:${accessToken}`);
-      if (userData) {
-        user = userData;
-        users.set(accessToken, userData);
-      }
-    }
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
     
     if (!user) {
+      console.log('Clear data error: Invalid user token');
       return c.json({ error: 'Invalid token' }, 401);
     }
     
-    // Delete all calendar entries
-    const calendarKeys = await kvGetByPrefix(`calendar:${user.id}:`);
-    for (const entry of calendarKeys) {
-      const month = entry.month || 'unknown';
-      await kvDel(`calendar:${user.id}:${month}`);
+    console.log(`Clearing all calendar data for user: ${user.id}`);
+    
+    // Delete all calendar entries - query keys directly from database
+    const { data: calendarKeys, error } = await supabase
+      .from("kv_store_c7e1f966")
+      .select("key")
+      .like("key", `calendar:${user.id}:%`);
+    
+    if (error) {
+      console.error('Error querying calendar keys:', error);
+      return c.json({ error: 'Failed to query calendar data' }, 500);
     }
     
-    return c.json({ success: true, message: 'All data cleared' });
+    console.log(`Found ${calendarKeys?.length || 0} calendar entries to delete`);
+    
+    if (calendarKeys && calendarKeys.length > 0) {
+      for (const row of calendarKeys) {
+        console.log(`Deleting calendar key: ${row.key}`);
+        await kvDel(row.key);
+      }
+    }
+    
+    console.log('Calendar data cleared successfully');
+    return c.json({ success: true, message: 'All calendar data cleared', deleted: calendarKeys?.length || 0 });
   } catch (error) {
-    return c.json({ error: 'Failed to clear data' }, 500);
+    console.error('Error clearing calendar data:', error);
+    return c.json({ error: 'Failed to clear data', details: String(error) }, 500);
   }
 });
 
@@ -1160,6 +1172,98 @@ app.post('/make-server-c7e1f966/subscription/complete-checkout', async (c) => {
   } catch (error: any) {
     console.log('[COMPLETE CHECKOUT] ERROR Exception:', error.message);
     return c.json({ error: 'Failed to complete checkout' }, 500);
+  }
+});
+
+// Get pills settings
+app.get('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
+  try {
+    // IMPORTANT: Prioritize X-User-Token over Authorization header
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS GET] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    console.log('[PILLS SETTINGS GET] Validating token...');
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS GET] Invalid token - getUserFromToken returned null');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    
+    console.log('[PILLS SETTINGS GET] User from token:', user.id);
+    console.log('[PILLS SETTINGS GET] UserId from URL:', userId);
+    
+    // Verify user can only access their own settings
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS GET] User trying to access another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const settings = await kvGet(`pills_settings:${userId}`);
+    
+    console.log('[PILLS SETTINGS GET] Settings loaded:', settings ? 'found' : 'not found');
+    
+    return c.json({ pills: settings || [] });
+  } catch (error) {
+    console.log('[PILLS SETTINGS GET] ERROR:', error.message);
+    return c.json({ error: 'Failed to get pills settings' }, 500);
+  }
+});
+
+// Update pills settings
+app.put('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
+  try {
+    // IMPORTANT: Prioritize X-User-Token over Authorization header
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS UPDATE] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS UPDATE] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    
+    // Verify user can only update their own settings
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS UPDATE] User trying to update another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const body = await c.req.json();
+    const { pills } = body;
+    
+    if (!Array.isArray(pills)) {
+      return c.json({ error: 'Invalid pills data' }, 400);
+    }
+    
+    // Validate pills data
+    for (const pill of pills) {
+      if (!pill.id || !pill.name || typeof pill.defaultDosage !== 'number') {
+        return c.json({ error: 'Invalid pill data format' }, 400);
+      }
+    }
+    
+    await kvSet(`pills_settings:${userId}`, pills);
+    
+    console.log(`[PILLS SETTINGS UPDATE] Saved settings for user ${userId}:`, pills.length, 'medications');
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.log('[PILLS SETTINGS UPDATE] ERROR:', error.message);
+    return c.json({ error: 'Failed to update pills settings' }, 500);
   }
 });
 

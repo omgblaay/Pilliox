@@ -31,7 +31,9 @@
   "calendar": {
     "title": "Kalendarz",
     "markDays": "Oznacz dni",
-    "pills": "Tabletki",
+    "pills": "Leki",
+    "pillsUnit": "tabletek",
+    "noPillsConfigured": "Nie skonfigurowano jeszcze leków. Skonfiguruj je w Ustawieniach.",
     "day": "Edytuj dzień",
     "note": "Notatka",
     "cancel": "Anuluj",
@@ -39,7 +41,9 @@
     "loading": "Ładowanie...",
     "colorTag": "Kolor i tag",
     "removeTag": "Usuń",
-    "noTag": "Brak tagu"
+    "noTag": "Brak tagu",
+    "weekView": "Widok tygodnia",
+    "monthView": "Widok miesiąca"
   },
   "day": {
     "description": "Śledź swoje wartości INR, leki i notatki",
@@ -147,6 +151,36 @@
     "red": "Czerwony",
     "purple": "Fioletowy",
     "none": "Brak"
+  },
+  "pillsSettings": {
+    "title": "Ustawienia leków",
+    "description": "Skonfiguruj swoje leki i domyślne dawki",
+    "noPills": "Nie skonfigurowano jeszcze żadnych leków",
+    "medicationName": "Nazwa leku",
+    "medicationPlaceholder": "np. Warfaryna, Aspiryna",
+    "type": "Typ",
+    "typePills": "Licznik tabletek",
+    "typeValue": "Wprowadzanie wartości",
+    "defaultDosage": "Domyślna dawka dzienna",
+    "defaultValue": "Wartość domyślna",
+    "color": "Kolor",
+    "addMedication": "Dodaj lek",
+    "save": "Zapisz ustawienia",
+    "saving": "Zapisywanie...",
+    "cancel": "Anuluj",
+    "loadError": "Nie udało się załadować ustawień leków",
+    "saveSuccess": "Ustawienia leków zapisane pomyślnie",
+    "saveError": "Nie udało się zapisać ustawień leków",
+    "invalidData": "Proszę wypełnić wszystkie pola leków prawidłowymi danymi"
+  },
+  "deleteConfirm": {
+    "title": "Usuń tag",
+    "description": "Wybierz, jak chcesz usunąć ten tag:",
+    "thisDay": "Tylko ten dzień",
+    "thisDayDescription": "Usuń tag tylko z wybranego dnia",
+    "allDays": "Wszystkie oznaczone dni",
+    "allDaysDescription": "Usuń tag ze wszystkich dni z tym samym kolorem i etykietą",
+    "cancel": "Anuluj"
   },
   "days": {
     "monday": "Poniedziałek",
