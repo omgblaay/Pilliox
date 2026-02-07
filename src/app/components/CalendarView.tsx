@@ -1261,7 +1261,7 @@ export function CalendarView({
 
           {/* Calendar Grid */}
           <motion.div
-            className="px-4 sm:px-4 py-4 sm:py-5"
+            className="px-4 sm:px-2 py-4 sm:py-5"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
