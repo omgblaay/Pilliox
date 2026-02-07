@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Pilliox",
-    "welcome": "Welcome, {{name}} in your calendar"
+    "welcome": "Welcome, {{name}}"
   },
   "auth": {
     "welcome": "Welcome to Pilliox",

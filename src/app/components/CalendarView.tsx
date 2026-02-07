@@ -1261,7 +1261,7 @@ export function CalendarView({
 
           {/* Calendar Grid */}
           <motion.div
-            className="px-4 sm:px-6 py-4 sm:py-5"
+            className="px-4 sm:px-4 py-4 sm:py-5"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
@@ -1501,9 +1501,9 @@ export function CalendarView({
                     >
                       {/* Week view: Inline layout */}
                       {viewMode === "week" ? (
-                        <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center gap-2 w-full">
                           {/* Day name and number */}
-                          <div className="flex items-center gap-2 min-w-[80px]">
+                          <div className="flex items-center gap-2 min-w-[64px]">
                             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                               {format(day, "EEE", {
                                 locale: dateLocale,
@@ -1544,7 +1544,7 @@ export function CalendarView({
                           )}
 
                           {/* Data container */}
-                          <div className="flex items-center gap-2 ml-auto flex-wrap">
+                          <div className="flex gap-2 flex-1 ml-auto flex-row flex-wrap justify-end">
                             {/* Individual Medications Display */}
                             {hasPills &&
                               (() => {
@@ -1564,7 +1564,7 @@ export function CalendarView({
                                     <div
                                       key={pill.pillId}
                                       className={cn(
-                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded whitespace-nowrap",
+                                        "flex items-center gap-1.5 text-xs flex-col font-semibold px-2 py-1 rounded whitespace-nowrap",
                                         hasColor && !isDarkMode
                                           ? "bg-black/20 text-gray-900"
                                           : hasColor &&

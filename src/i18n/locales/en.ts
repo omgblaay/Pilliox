@@ -1,336 +1,372 @@
 export default {
-  "app": {
-    "name": "Pilliox",
-    "welcome": "Welcome, {{name}} in your calendar"
+  app: {
+    name: "Pilliox",
+    welcome: "Welcome, {{name}}",
   },
-  "auth": {
-    "welcome": "Welcome to Pilliox",
-    "login": "Login",
-    "signup": "Sign Up",
-    "signupButton": "Create account",
-    "email": "Email",
-    "emailPlaceholder": "your@email.com",
-    "password": "Password",
-    "passwordPlaceholder": "Password",
-    "passwordPlaceholderDots": "Password",
-    "name": "Name",
-    "namePlaceholder": "Your name",
-    "loggingIn": "Logging in...",
-    "signingUp": "Creating account...",
-    "orContinueWith": "Or continue with",
-    "bySigningUp": "By continuing, you agree to our",
-    "and": "and",
-    "termsOfService": "Terms of Service",
-    "privacyPolicy": "Privacy Policy",
-    "features": {
-      "title": "Track Your Medical Values & Medications",
-      "medications": "Daily medication tracking with custom dosages",
-      "inrTracking": "Monitor blood test values and results",
-      "colorCoded": "Color-code treatment periods with tags",
-      "notes": "Add medical notes to any day"
-    }
-  },
-  "calendar": {
-    "title": "Calendar",
-    "markDays": "Mark Days",
-    "day": "Edit day",
-    "pills": "Medications",
-    "pillsUnit": "pills",
-    "noPillsConfigured": "No medications configured yet. Configure them in Settings.",
-    "note": "Note",
-    "cancel": "Cancel",
-    "apply": "Apply",
-    "loading": "Loading...",
-    "colorTag": "Color & Tag",
-    "removeTag": "Remove",
-    "noTag": "No tag",
-    "weekView": "Week view",
-    "monthView": "Month view",
-    "weeklyPreview": "Weekly preview",
-    "monthlyPreview": "Monthly preview"
-  },
-  "day": {
-    "description": "Track your INR values, medication, and notes",
-    "notePlaceholder": "Add a note...",
-    "delete": "Clear",
-    "saveChanges": "Ok"
-  },
-  "multiSelect": {
-    "title": "Color {{count}} day",
-    "title_plural": "Color {{count}} days",
-    "description": "Choose a color and optional tag for the selected days",
-    "selectedDays": "Selected Days",
-    "selectColor": "Select Color",
-    "tagLabel": "Tag/Label (optional)",
-    "tagPlaceholder": "e.g., Vacation, Work, etc.",
-    "daysSelected": "{{count}} day selected",
-    "daysSelected_plural": "{{count}} days selected",
-    "apply": "Apply"
-  },
-  "settings": {
-    "title": "App Settings",
-    "description": "Customize your app preferences",
-    "settings": "Settings",
-    "profile": "Profile",
-    "account": "Account",
-    "preferences": "Preferences",
-    "theme": "Theme",
-    "language": "Language",
-    "light": "Light",
-    "dark": "Dark",
-    "system": "System",
-    "calendar": "Calendar",
-    "weekStartsOnMonday": "Week starts on Monday",
-    "mondayFirst": "Monday is the first day",
-    "sundayFirst": "Sunday is the first day",
-    "changePassword": "Change Password",
-    "newPassword": "New Password",
-    "clearAllData": "Clear All Data",
-    "deleteAccount": "Delete Account",
-    "confirmDelete": "Type 'DELETE' to confirm",
-    "saveChanges": "Save Changes",
-    "logoutButton": "Logout"
-  },
-  "subscription": {
-    "title": "Subscription",
-    "manageDescription": "Manage your subscription and billing",
-    "status": "Status",
-    "statusActive": "Active",
-    "statusTrial": "Trial",
-    "statusInactive": "Inactive",
-    "plan": "Plan",
-    "renewsOn": "Renews on",
-    "expiresOn": "Expires on",
-    "trialActive": "{{days}} days left in trial",
-    "trialActiveTitle": "Free Trial Active",
-    "trialDaysRemaining": "You have {{days}} days remaining in your free trial",
-    "trialEndsOn": "Trial ends on",
-    "trialDescription": "Enjoy full access while you explore Pilliox",
-    "trialExpired": "Your trial has ended",
-    "subscribeCTA": "Subscribe - €2.99/mo",
-    "subscribeToAccess": "Subscribe to continue adding entries",
-    "subscribeNow": "Subscribe Now",
-    "upgradeNow": "Upgrade to Premium",
-    "manageSubscription": "Manage Subscription",
-    "paywallTitle": "Trial Ended",
-    "paywallDescription": "Your 3-day trial has ended. Subscribe to continue tracking your health data.",
-    "feature1": "Unlimited INR value tracking",
-    "feature2": "Daily medication counter",
-    "feature3": "Medical notes and reminders",
-    "feature4": "Secure cloud backup",
-    "pricing": "Cancel anytime",
-    "cancelAnytime": "No commitment. Cancel anytime.",
-    "billingInfo": "Billing managed securely by Stripe"
-  },
-  "profile": {
-    "title": "Profile Settings",
-    "description": "Manage your account information and security",
-    "tabs": {
-      "profile": "Profile",
-      "security": "Security"
+  auth: {
+    welcome: "Welcome to Pilliox",
+    login: "Login",
+    signup: "Sign Up",
+    signupButton: "Create account",
+    email: "Email",
+    emailPlaceholder: "your@email.com",
+    password: "Password",
+    passwordPlaceholder: "Password",
+    passwordPlaceholderDots: "Password",
+    name: "Name",
+    namePlaceholder: "Your name",
+    loggingIn: "Logging in...",
+    signingUp: "Creating account...",
+    orContinueWith: "Or continue with",
+    bySigningUp: "By continuing, you agree to our",
+    and: "and",
+    termsOfService: "Terms of Service",
+    privacyPolicy: "Privacy Policy",
+    features: {
+      title: "Track Your Medical Values & Medications",
+      medications:
+        "Daily medication tracking with custom dosages",
+      inrTracking: "Monitor blood test values and results",
+      colorCoded: "Color-code treatment periods with tags",
+      notes: "Add medical notes to any day",
     },
-    "emailNotEditable": "Email cannot be changed",
-    "namePlaceholder": "Your name",
-    "updateProfile": "Update Profile",
-    "updating": "Updating...",
-    "signOut": "Sign Out",
-    "logoutButton": "Logout from Account",
-    "changePassword": "Change Password",
-    "newPassword": "New Password",
-    "newPasswordPlaceholder": "Enter new password",
-    "confirmPassword": "Confirm new password",
-    "changePasswordButton": "Change Password",
-    "changing": "Changing...",
-    "dangerZone": "Danger Zone",
-    "deleteAccount": "Delete Account",
-    "deleteWarning": "This action cannot be undone. All your data will be permanently deleted. Type DELETE to confirm.",
-    "deleteConfirmPlaceholder": "Type DELETE to confirm",
-    "confirmDelete": "Confirm Delete",
-    "deleting": "Deleting..."
   },
-  "colors": {
-    "blue": "Blue",
-    "green": "Green",
-    "yellow": "Yellow",
-    "red": "Red",
-    "purple": "Purple",
-    "none": "None"
+  calendar: {
+    title: "Calendar",
+    markDays: "Mark Days",
+    day: "Edit day",
+    pills: "Medications",
+    pillsUnit: "pills",
+    noPillsConfigured:
+      "No medications configured yet. Configure them in Settings.",
+    note: "Note",
+    cancel: "Cancel",
+    apply: "Apply",
+    loading: "Loading...",
+    colorTag: "Color & Tag",
+    removeTag: "Remove",
+    noTag: "No tag",
+    weekView: "Week view",
+    monthView: "Month view",
+    weeklyPreview: "Weekly preview",
+    monthlyPreview: "Monthly preview",
   },
-  "pillsSettings": {
-    "title": "Medication Settings",
-    "description": "Configure your medications and default dosages",
-    "noPills": "No medications configured yet",
-    "medicationName": "Medication Name",
-    "medicationPlaceholder": "e.g., Warfarin, Aspirin",
-    "type": "Type",
-    "typePills": "Pills Counter",
-    "typeValue": "Value Input",
-    "defaultDosage": "Default Daily Dosage",
-    "defaultValue": "Default Value",
-    "color": "Color",
-    "addMedication": "Add Medication",
-    "save": "Save Settings",
-    "saving": "Saving...",
-    "cancel": "Cancel",
-    "loadError": "Failed to load medication settings",
-    "saveSuccess": "Medication settings saved successfully",
-    "saveError": "Failed to save medication settings",
-    "invalidData": "Please fill in all medication fields with valid data"
+  day: {
+    description: "Track your INR values, medication, and notes",
+    notePlaceholder: "Add a note...",
+    delete: "Clear",
+    saveChanges: "Ok",
   },
-  "deleteConfirm": {
-    "title": "Remove Tag",
-    "description": "Choose how you want to remove this tag:",
-    "thisDay": "This day only",
-    "thisDayDescription": "Remove tag only from the selected day",
-    "allDays": "All marked days",
-    "allDaysDescription": "Remove tag from all days with the same color and label",
-    "cancel": "Cancel"
+  multiSelect: {
+    title: "Color {{count}} day",
+    title_plural: "Color {{count}} days",
+    description:
+      "Choose a color and optional tag for the selected days",
+    selectedDays: "Selected Days",
+    selectColor: "Select Color",
+    tagLabel: "Tag/Label (optional)",
+    tagPlaceholder: "e.g., Vacation, Work, etc.",
+    daysSelected: "{{count}} day selected",
+    daysSelected_plural: "{{count}} days selected",
+    apply: "Apply",
   },
-  "days": {
-    "monday": "Monday",
-    "tuesday": "Tuesday",
-    "wednesday": "Wednesday",
-    "thursday": "Thursday",
-    "friday": "Friday",
-    "saturday": "Saturday",
-    "sunday": "Sunday",
-    "mon": "Mon",
-    "tue": "Tue",
-    "wed": "Wed",
-    "thu": "Thu",
-    "fri": "Fri",
-    "sat": "Sat",
-    "sun": "Sun"
+  settings: {
+    title: "App Settings",
+    description: "Customize your app preferences",
+    settings: "Settings",
+    profile: "Profile",
+    account: "Account",
+    preferences: "Preferences",
+    theme: "Theme",
+    language: "Language",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+    calendar: "Calendar",
+    weekStartsOnMonday: "Week starts on Monday",
+    mondayFirst: "Monday is the first day",
+    sundayFirst: "Sunday is the first day",
+    changePassword: "Change Password",
+    newPassword: "New Password",
+    clearAllData: "Clear All Data",
+    deleteAccount: "Delete Account",
+    confirmDelete: "Type 'DELETE' to confirm",
+    saveChanges: "Save Changes",
+    logoutButton: "Logout",
   },
-  "months": {
-    "january": "January",
-    "february": "February",
-    "march": "March",
-    "april": "April",
-    "may": "May",
-    "june": "June",
-    "july": "July",
-    "august": "August",
-    "september": "September",
-    "october": "October",
-    "november": "November",
-    "december": "December"
+  subscription: {
+    title: "Subscription",
+    manageDescription: "Manage your subscription and billing",
+    status: "Status",
+    statusActive: "Active",
+    statusTrial: "Trial",
+    statusInactive: "Inactive",
+    plan: "Plan",
+    renewsOn: "Renews on",
+    expiresOn: "Expires on",
+    trialActive: "{{days}} days left in trial",
+    trialActiveTitle: "Free Trial Active",
+    trialDaysRemaining:
+      "You have {{days}} days remaining in your free trial",
+    trialEndsOn: "Trial ends on",
+    trialDescription:
+      "Enjoy full access while you explore Pilliox",
+    trialExpired: "Your trial has ended",
+    subscribeCTA: "Subscribe - €2.99/mo",
+    subscribeToAccess: "Subscribe to continue adding entries",
+    subscribeNow: "Subscribe Now",
+    upgradeNow: "Upgrade to Premium",
+    manageSubscription: "Manage Subscription",
+    paywallTitle: "Trial Ended",
+    paywallDescription:
+      "Your 3-day trial has ended. Subscribe to continue tracking your health data.",
+    feature1: "Unlimited INR value tracking",
+    feature2: "Daily medication counter",
+    feature3: "Medical notes and reminders",
+    feature4: "Secure cloud backup",
+    pricing: "Cancel anytime",
+    cancelAnytime: "No commitment. Cancel anytime.",
+    billingInfo: "Billing managed securely by Stripe",
   },
-  "docs": {
-    "back": "Back",
-    "lastUpdated": "Last Updated",
-    "termsOfService": {
-      "title": "Terms of Service",
-      "lastUpdated": "February 6, 2026",
-      "acceptance": {
-        "title": "1. Acceptance of Terms",
-        "content": "By accessing and using Pilliox, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the app."
-      },
-      "description": {
-        "title": "2. Description of Service",
-        "content": "Pilliox is a medical tracking calendar application that helps you monitor:",
-        "features": {
-          "calendar": "Daily events and color-coded day marking",
-          "medications": "Medication intake with pill counter",
-          "expenses": "INR (International Normalized Ratio) blood test values",
-          "notes": "Personal notes and tags for each day"
-        }
-      },
-      "userAccount": {
-        "title": "3. User Accounts",
-        "content": "You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized use of your account. We reserve the right to terminate accounts that violate these terms."
-      },
-      "userData": {
-        "title": "4. User Data",
-        "content": "You retain all rights to the data you enter into Pilliox. We store your data securely and will not share it with third parties without your consent, except as required by law. You can delete your account and all associated data at any time through the app settings."
-      },
-      "disclaimer": {
-        "title": "5. Medical Disclaimer",
-        "content": "Pilliox is not a medical device and should not be used as a substitute for professional medical advice, diagnosis, or treatment. The INR tracking and medication features are for personal record-keeping only. INR values entered are not validated and should not replace regular blood testing by healthcare professionals. Always consult with your healthcare provider for medical decisions and proper anticoagulation management."
-      },
-      "liability": {
-        "title": "6. Limitation of Liability",
-        "content": "Pilliox is provided 'as is' without warranties of any kind. We are not liable for any damages arising from the use or inability to use the app, including but not limited to data loss, missed medication reminders, incorrect INR value entries, or medical complications. Users are solely responsible for their health management and medical decisions."
-      },
-      "changes": {
-        "title": "7. Changes to Terms",
-        "content": "We reserve the right to modify these terms at any time. We will notify users of significant changes via email or in-app notification. Continued use of the app after changes constitutes acceptance of the new terms."
-      },
-      "contact": {
-        "title": "8. Contact Information",
-        "content": "For questions about these Terms of Service, please contact us at support@pilliox.com"
-      }
+  profile: {
+    title: "Profile Settings",
+    description: "Manage your account information and security",
+    tabs: {
+      profile: "Profile",
+      security: "Security",
     },
-    "privacyPolicy": {
-      "title": "Privacy Policy",
-      "lastUpdated": "February 6, 2026",
-      "introduction": {
-        "title": "1. Introduction",
-        "content": "This Privacy Policy explains how Pilliox collects, uses, stores, and protects your personal information. We are committed to ensuring your privacy and protecting your data."
+    emailNotEditable: "Email cannot be changed",
+    namePlaceholder: "Your name",
+    updateProfile: "Update Profile",
+    updating: "Updating...",
+    signOut: "Sign Out",
+    logoutButton: "Logout from Account",
+    changePassword: "Change Password",
+    newPassword: "New Password",
+    newPasswordPlaceholder: "Enter new password",
+    confirmPassword: "Confirm new password",
+    changePasswordButton: "Change Password",
+    changing: "Changing...",
+    dangerZone: "Danger Zone",
+    deleteAccount: "Delete Account",
+    deleteWarning:
+      "This action cannot be undone. All your data will be permanently deleted. Type DELETE to confirm.",
+    deleteConfirmPlaceholder: "Type DELETE to confirm",
+    confirmDelete: "Confirm Delete",
+    deleting: "Deleting...",
+  },
+  colors: {
+    blue: "Blue",
+    green: "Green",
+    yellow: "Yellow",
+    red: "Red",
+    purple: "Purple",
+    none: "None",
+  },
+  pillsSettings: {
+    title: "Medication Settings",
+    description:
+      "Configure your medications and default dosages",
+    noPills: "No medications configured yet",
+    medicationName: "Medication Name",
+    medicationPlaceholder: "e.g., Warfarin, Aspirin",
+    type: "Type",
+    typePills: "Pills Counter",
+    typeValue: "Value Input",
+    defaultDosage: "Default Daily Dosage",
+    defaultValue: "Default Value",
+    color: "Color",
+    addMedication: "Add Medication",
+    save: "Save Settings",
+    saving: "Saving...",
+    cancel: "Cancel",
+    loadError: "Failed to load medication settings",
+    saveSuccess: "Medication settings saved successfully",
+    saveError: "Failed to save medication settings",
+    invalidData:
+      "Please fill in all medication fields with valid data",
+  },
+  deleteConfirm: {
+    title: "Remove Tag",
+    description: "Choose how you want to remove this tag:",
+    thisDay: "This day only",
+    thisDayDescription: "Remove tag only from the selected day",
+    allDays: "All marked days",
+    allDaysDescription:
+      "Remove tag from all days with the same color and label",
+    cancel: "Cancel",
+  },
+  days: {
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+    sunday: "Sunday",
+    mon: "Mon",
+    tue: "Tue",
+    wed: "Wed",
+    thu: "Thu",
+    fri: "Fri",
+    sat: "Sat",
+    sun: "Sun",
+  },
+  months: {
+    january: "January",
+    february: "February",
+    march: "March",
+    april: "April",
+    may: "May",
+    june: "June",
+    july: "July",
+    august: "August",
+    september: "September",
+    october: "October",
+    november: "November",
+    december: "December",
+  },
+  docs: {
+    back: "Back",
+    lastUpdated: "Last Updated",
+    termsOfService: {
+      title: "Terms of Service",
+      lastUpdated: "February 6, 2026",
+      acceptance: {
+        title: "1. Acceptance of Terms",
+        content:
+          "By accessing and using Pilliox, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the app.",
       },
-      "dataCollection": {
-        "title": "2. Information We Collect",
-        "content": "We collect the following types of information:",
-        "items": {
-          "account": "Account Information: Email address, name, and authentication data",
-          "calendar": "Calendar Data: Dates, color codes, and tags you assign to days",
-          "medications": "Medication Data: Pill counts and medication tracking information",
-          "expenses": "Medical Data: INR (International Normalized Ratio) blood test values you enter for tracking",
-          "notes": "Notes: Personal notes you add to calendar days"
-        }
+      description: {
+        title: "2. Description of Service",
+        content:
+          "Pilliox is a medical tracking calendar application that helps you monitor:",
+        features: {
+          calendar: "Daily events and color-coded day marking",
+          medications: "Medication intake with pill counter",
+          expenses:
+            "INR (International Normalized Ratio) blood test values",
+          notes: "Personal notes and tags for each day",
+        },
       },
-      "dataUsage": {
-        "title": "3. How We Use Your Information",
-        "content": "We use your information to:",
-        "items": {
-          "service": "Provide and maintain the Pilliox service",
-          "improve": "Improve and personalize your experience",
-          "support": "Provide customer support",
-          "communicate": "Send important updates about the service"
-        }
+      userAccount: {
+        title: "3. User Accounts",
+        content:
+          "You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized use of your account. We reserve the right to terminate accounts that violate these terms.",
       },
-      "dataStorage": {
-        "title": "4. Data Storage and Security",
-        "content": "Your data is stored securely using Supabase infrastructure with industry-standard encryption. We implement appropriate technical and organizational measures to protect your data against unauthorized access, alteration, disclosure, or destruction."
+      userData: {
+        title: "4. User Data",
+        content:
+          "You retain all rights to the data you enter into Pilliox. We store your data securely and will not share it with third parties without your consent, except as required by law. You can delete your account and all associated data at any time through the app settings.",
       },
-      "dataSharing": {
-        "title": "5. Data Sharing",
-        "content": "We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances: with your explicit consent, to comply with legal obligations, or to protect our rights and safety."
+      disclaimer: {
+        title: "5. Medical Disclaimer",
+        content:
+          "Pilliox is not a medical device and should not be used as a substitute for professional medical advice, diagnosis, or treatment. The INR tracking and medication features are for personal record-keeping only. INR values entered are not validated and should not replace regular blood testing by healthcare professionals. Always consult with your healthcare provider for medical decisions and proper anticoagulation management.",
       },
-      "dataSecurity": {
-        "title": "6. Data Security",
-        "content": "We use secure HTTPS connections, encrypted storage, and authentication tokens to protect your data. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security."
+      liability: {
+        title: "6. Limitation of Liability",
+        content:
+          "Pilliox is provided 'as is' without warranties of any kind. We are not liable for any damages arising from the use or inability to use the app, including but not limited to data loss, missed medication reminders, incorrect INR value entries, or medical complications. Users are solely responsible for their health management and medical decisions.",
       },
-      "userRights": {
-        "title": "7. Your Rights",
-        "content": "You have the right to:",
-        "items": {
-          "access": "Access your personal data",
-          "correction": "Correct inaccurate data",
-          "deletion": "Delete your account and all associated data",
-          "export": "Export your data in a portable format"
-        }
+      changes: {
+        title: "7. Changes to Terms",
+        content:
+          "We reserve the right to modify these terms at any time. We will notify users of significant changes via email or in-app notification. Continued use of the app after changes constitutes acceptance of the new terms.",
       },
-      "cookies": {
-        "title": "8. Cookies and Local Storage",
-        "content": "We use local storage and session tokens to maintain your login state and app preferences. These are essential for the app to function and are not used for tracking purposes."
+      contact: {
+        title: "8. Contact Information",
+        content:
+          "For questions about these Terms of Service, please contact us at support@pilliox.com",
       },
-      "thirdParty": {
-        "title": "9. Third-Party Services",
-        "content": "We use Google OAuth for authentication. When you sign in with Google, you are subject to Google's Privacy Policy. We only receive basic profile information (email and name) with your permission."
+    },
+    privacyPolicy: {
+      title: "Privacy Policy",
+      lastUpdated: "February 6, 2026",
+      introduction: {
+        title: "1. Introduction",
+        content:
+          "This Privacy Policy explains how Pilliox collects, uses, stores, and protects your personal information. We are committed to ensuring your privacy and protecting your data.",
       },
-      "children": {
-        "title": "10. Children's Privacy",
-        "content": "Pilliox is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child, please contact us immediately."
+      dataCollection: {
+        title: "2. Information We Collect",
+        content:
+          "We collect the following types of information:",
+        items: {
+          account:
+            "Account Information: Email address, name, and authentication data",
+          calendar:
+            "Calendar Data: Dates, color codes, and tags you assign to days",
+          medications:
+            "Medication Data: Pill counts and medication tracking information",
+          expenses:
+            "Medical Data: INR (International Normalized Ratio) blood test values you enter for tracking",
+          notes:
+            "Notes: Personal notes you add to calendar days",
+        },
       },
-      "changes": {
-        "title": "11. Changes to Privacy Policy",
-        "content": "We may update this Privacy Policy from time to time. We will notify you of any significant changes by email or through the app. The 'Last Updated' date at the top of this policy indicates when it was last revised."
+      dataUsage: {
+        title: "3. How We Use Your Information",
+        content: "We use your information to:",
+        items: {
+          service: "Provide and maintain the Pilliox service",
+          improve: "Improve and personalize your experience",
+          support: "Provide customer support",
+          communicate:
+            "Send important updates about the service",
+        },
       },
-      "contact": {
-        "title": "12. Contact Us",
-        "content": "If you have questions about this Privacy Policy or how we handle your data, please contact us at privacy@pilliox.com"
-      }
-    }
-  }
+      dataStorage: {
+        title: "4. Data Storage and Security",
+        content:
+          "Your data is stored securely using Supabase infrastructure with industry-standard encryption. We implement appropriate technical and organizational measures to protect your data against unauthorized access, alteration, disclosure, or destruction.",
+      },
+      dataSharing: {
+        title: "5. Data Sharing",
+        content:
+          "We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances: with your explicit consent, to comply with legal obligations, or to protect our rights and safety.",
+      },
+      dataSecurity: {
+        title: "6. Data Security",
+        content:
+          "We use secure HTTPS connections, encrypted storage, and authentication tokens to protect your data. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.",
+      },
+      userRights: {
+        title: "7. Your Rights",
+        content: "You have the right to:",
+        items: {
+          access: "Access your personal data",
+          correction: "Correct inaccurate data",
+          deletion:
+            "Delete your account and all associated data",
+          export: "Export your data in a portable format",
+        },
+      },
+      cookies: {
+        title: "8. Cookies and Local Storage",
+        content:
+          "We use local storage and session tokens to maintain your login state and app preferences. These are essential for the app to function and are not used for tracking purposes.",
+      },
+      thirdParty: {
+        title: "9. Third-Party Services",
+        content:
+          "We use Google OAuth for authentication. When you sign in with Google, you are subject to Google's Privacy Policy. We only receive basic profile information (email and name) with your permission.",
+      },
+      children: {
+        title: "10. Children's Privacy",
+        content:
+          "Pilliox is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child, please contact us immediately.",
+      },
+      changes: {
+        title: "11. Changes to Privacy Policy",
+        content:
+          "We may update this Privacy Policy from time to time. We will notify you of any significant changes by email or through the app. The 'Last Updated' date at the top of this policy indicates when it was last revised.",
+      },
+      contact: {
+        title: "12. Contact Us",
+        content:
+          "If you have questions about this Privacy Policy or how we handle your data, please contact us at privacy@pilliox.com",
+      },
+    },
+  },
 } as const;
