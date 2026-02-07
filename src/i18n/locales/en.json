@@ -20,12 +20,14 @@
     "orContinueWith": "Or continue with",
     "bySigningUp": "By signing up, you agree to our",
     "and": "and",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
     "features": {
-      "title": "Your medical calendar app",
-      "medications": "Track your medications with a daily counter",
-      "expenses": "Monitor INR blood test values",
-      "colorCoded": "Color-code days for easy visualization",
-      "notes": "Add notes to any day"
+      "title": "Track Your INR & Medications",
+      "medications": "Daily medication tracking with custom dosages",
+      "inrTracking": "Monitor INR blood values",
+      "colorCoded": "Color-code treatment periods with tags",
+      "notes": "Add medical notes to any day"
     }
   },
   "calendar": {

@@ -20,12 +20,14 @@
     "orContinueWith": "Lub kontynuuj z",
     "bySigningUp": "Rejestrując się, zgadzasz się z naszym",
     "and": "i",
+    "termsOfService": "Regulaminem",
+    "privacyPolicy": "Polityką Prywatności",
     "features": {
-      "title": "Funkcje",
-      "medications": "Zapisuj swoje leki w kalendarzu",
-      "expenses": "Monitoruj wartości INR badań krwi",
-      "colorCoded": "Koloruj dni dla łatwej wizualizacji",
-      "notes": "Dodaj notatki do każdego dnia"
+      "title": "Śledź INR i leki",
+      "medications": "Codzienne śledzenie leków z indywidualnymi dawkami",
+      "inrTracking": "Monitoruj wartości INR we krwi",
+      "colorCoded": "Koloruj okresy leczenia z tagami",
+      "notes": "Dodaj notatki medyczne do każdego dnia"
     }
   },
   "calendar": {

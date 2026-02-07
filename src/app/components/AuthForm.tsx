@@ -225,7 +225,7 @@ export function AuthForm({
               • {t("auth.features.medications")}
             </li>
             <li className="flex items-start gap-2">
-              • {t("auth.features.expenses")}
+              • {t("auth.features.inrTracking")}
             </li>
             <li className="flex items-start gap-2">
               • {t("auth.features.colorCoded")}
@@ -576,7 +576,7 @@ export function AuthForm({
                   onClick={onNavigateToTerms}
                   className="text-blue-600 cursor-pointer !text-sm dark:text-blue-400 hover:underline"
                 >
-                  {t("docs.termsOfService.title")}
+                  {t("auth.termsOfService")}
                 </button>
                 <span> {t("auth.and")} </span>
               </>
@@ -587,7 +587,7 @@ export function AuthForm({
                 onClick={onNavigateToPrivacy}
                 className="text-blue-600 cursor-pointer !text-sm dark:text-blue-400 hover:underline"
               >
-                {t("docs.privacyPolicy.title")}
+                {t("auth.privacyPolicy")}
               </button>
             )}
           </div>

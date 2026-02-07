@@ -20,12 +20,14 @@
     "orContinueWith": "Oder fortfahren mit",
     "bySigningUp": "Mit der Anmeldung stimmen Sie unseren",
     "and": "und",
+    "termsOfService": "Nutzungsbedingungen",
+    "privacyPolicy": "Datenschutzrichtlinie",
     "features": {
-      "title": "Funktionen",
-      "medications": "Verfolgen Sie Ihre Medikamente mit einem Tageszähler",
-      "expenses": "Überwachen Sie INR-Bluttest werte",
-      "colorCoded": "Färben Sie Tage für einfache Visualisierung",
-      "notes": "Fügen Sie Notizen zu jedem Tag hinzu"
+      "title": "INR & Medikamente tracken",
+      "medications": "Tägliche Medikamentenverfolgung mit individuellen Dosierungen",
+      "inrTracking": "INR-Blutwerte überwachen",
+      "colorCoded": "Behandlungsperioden farblich mit Tags markieren",
+      "notes": "Medizinische Notizen zu jedem Tag hinzufügen"
     }
   },
   "calendar": {
