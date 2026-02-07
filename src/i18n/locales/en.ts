@@ -48,8 +48,8 @@ export default {
     noTag: "No tag",
     weekView: "Week view",
     monthView: "Month view",
-    weeklyPreview: "Weekly preview",
-    monthlyPreview: "Monthly preview",
+    weeklyPreview: "Week",
+    monthlyPreview: "Month",
   },
   day: {
     description: "Track your INR values, medication, and notes",

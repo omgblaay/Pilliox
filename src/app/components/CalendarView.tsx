@@ -1143,7 +1143,7 @@ export function CalendarView({
                 variant="outline"
                 size="sm"
                 disabled={multiSelectMode}
-                className="shrink-0 flex-0"
+                className="flex-0"
               >
                 <Palette className="h-3 w-3" />
                 {t("calendar.markDays")}
@@ -1200,13 +1200,13 @@ export function CalendarView({
 
               {/* Right: Weekly/Monthly Preview Dropdown */}
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() =>
                   setViewMode(
                     viewMode === "month" ? "week" : "month",
                   )
                 }
-                className="h-10 px-3 flex-0 rounded-full hover:bg-accent shrink-0 flex items-center gap-1.5"
+                className="flex-0"
                 title={
                   viewMode === "month"
                     ? t("calendar.weekView")

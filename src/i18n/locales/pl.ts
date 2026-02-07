@@ -48,8 +48,8 @@ export default {
     noTag: "Brak tagu",
     weekView: "Widok tygodnia",
     monthView: "Widok miesiąca",
-    weeklyPreview: "Podgląd tygodnia",
-    monthlyPreview: "Podgląd miesiąca",
+    weeklyPreview: "Tydzień",
+    monthlyPreview: "Miesiąc",
   },
   day: {
     description: "Śledź swoje wartości INR, leki i notatki",
