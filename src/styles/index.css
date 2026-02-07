@@ -17,14 +17,13 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: auto;
 }
 
 #root {
   width: 100%;
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
 }
 
 /* Safe area insets for iOS */

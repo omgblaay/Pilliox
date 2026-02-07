@@ -23,9 +23,9 @@
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy",
     "features": {
-      "title": "Track Your INR & Medications",
+      "title": "Track Your Medical Values & Medications",
       "medications": "Daily medication tracking with custom dosages",
-      "inrTracking": "Monitor INR blood values",
+      "inrTracking": "Monitor blood test values and results",
       "colorCoded": "Color-code treatment periods with tags",
       "notes": "Add medical notes to any day"
     }

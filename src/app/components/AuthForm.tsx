@@ -190,10 +190,10 @@ export function AuthForm({
   };
 
   return (
-    <div className="h-full bg-white dark:bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="flex w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
-        {/* Left Side - Decorative Panel */}
-        <div className="hidden md:flex relative w-[320px] bg-gray-200 dark:bg-gray-800 flex-col gap-2 p-6">
+    <div className="min-h-full bg-white dark:bg-[#0a0a0a] flex md:items-center md:justify-center p-4 py-8 md:py-4">
+      <div className="flex max-h-auto flex-col md:flex-row w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
+        {/* Left Side - Decorative Panel (Desktop sidebar / Mobile top) */}
+        <div className="flex relative w-full md:w-[320px] bg-gray-200 dark:bg-gray-800 flex-col gap-2 p-6 order-first">
           {/* Background Image with Overlay */}
           <div
             aria-hidden="true"
@@ -208,7 +208,7 @@ export function AuthForm({
           </div>
 
           {/* Calendar Preview Image */}
-          <div className="absolute h-[361px] left-[32px] bottom-[-100px] w-[249px] rotate-[5deg]">
+          <div className="absolute h-[361px] left-[32px] bottom-[-100px] w-[249px] rotate-[5deg] hidden md:block">
             <img
               alt="Calendar preview"
               className="absolute inset-0 max-w-none object-cover pointer-events-none size-full rounded-lg"
@@ -237,7 +237,7 @@ export function AuthForm({
         </div>
 
         {/* Right Side - Auth Card */}
-        <div className="flex-1 bg-gray-50 dark:bg-[#1a1a1a] p-4 md:p-8 flex flex-col gap-4">
+        <div className="flex-1 md:h-auto bg-gray-50 dark:bg-[#1a1a1a] p-4 md:p-8 flex flex-col gap-4">
           {/* Logo and Tagline */}
 
           <div className="flex spece-between w-auto">
@@ -251,6 +251,101 @@ export function AuthForm({
             <div className="flex-0 justify-center">
               <LanguageSelector variant="ghost" />
             </div>
+          </div>
+
+          <div className="flex flex-row gap-4">
+            {/* Google Button */}
+            <Button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+              variant="secondary"
+              className="flex-1"
+            >
+              {/* Google Icon */}
+              <div className="relative shrink-0 size-5">
+                <svg
+                  className="block size-full"
+                  fill="none"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 16.8902 17.4926"
+                >
+                  <g>
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p3f20ec00}
+                      fill="#F44336"
+                      fillRule="evenodd"
+                      opacity="0.987"
+                    />
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p15800}
+                      fill="#FFC107"
+                      fillRule="evenodd"
+                      opacity="0.997"
+                    />
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p21d1cc20}
+                      fill="#448AFF"
+                      fillRule="evenodd"
+                      opacity="0.999"
+                    />
+                    <path
+                      clipRule="evenodd"
+                      d={svgPaths.p1af26300}
+                      fill="#43A047"
+                      fillRule="evenodd"
+                      opacity="0.993"
+                    />
+                  </g>
+                </svg>
+              </div>
+              Google
+            </Button>
+
+            {/* Facebook Button */}
+            <Button
+              type="button"
+              onClick={handleFacebookLogin}
+              disabled={isLoading}
+              variant="secondary"
+              className="flex-1"
+            >
+              {/* Facebook Icon */}
+              <div className="relative shrink-0 size-5">
+                <svg
+                  className="block size-full"
+                  fill="none"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 20 20"
+                >
+                  <g clipPath="url(#clip0_35_74)">
+                    <path
+                      d={svgPaths.p3ef31c80}
+                      fill="#1877F2"
+                    />
+                    <path d={svgPaths.p1634fa00} fill="white" />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_35_74">
+                      <rect
+                        fill="white"
+                        height="20"
+                        width="20"
+                      />
+                    </clipPath>
+                  </defs>
+                </svg>
+              </div>
+              Facebook
+            </Button>
+          </div>
+
+          {/* Divider - Removed social login for now */}
+          <div className="text-center text-gray-500 dark:text-[#888] text-sm">
+            {t("auth.orContinueWith")}
           </div>
 
           {/* Tab Buttons */}
@@ -470,101 +565,7 @@ export function AuthForm({
             </form>
           )}
 
-          {/* Divider - Removed social login for now */}
-          <div className="text-center text-gray-500 dark:text-[#888] text-sm">
-            {t("auth.orContinueWith")}
-          </div>
-
           {/* Social Login Buttons */}
-          <div className="flex flex-row gap-4">
-            {/* Google Button */}
-            <Button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              variant="secondary"
-              className="flex-1"
-            >
-              {/* Google Icon */}
-              <div className="relative shrink-0 size-5">
-                <svg
-                  className="block size-full"
-                  fill="none"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 16.8902 17.4926"
-                >
-                  <g>
-                    <path
-                      clipRule="evenodd"
-                      d={svgPaths.p3f20ec00}
-                      fill="#F44336"
-                      fillRule="evenodd"
-                      opacity="0.987"
-                    />
-                    <path
-                      clipRule="evenodd"
-                      d={svgPaths.p15800}
-                      fill="#FFC107"
-                      fillRule="evenodd"
-                      opacity="0.997"
-                    />
-                    <path
-                      clipRule="evenodd"
-                      d={svgPaths.p21d1cc20}
-                      fill="#448AFF"
-                      fillRule="evenodd"
-                      opacity="0.999"
-                    />
-                    <path
-                      clipRule="evenodd"
-                      d={svgPaths.p1af26300}
-                      fill="#43A047"
-                      fillRule="evenodd"
-                      opacity="0.993"
-                    />
-                  </g>
-                </svg>
-              </div>
-              Google
-            </Button>
-
-            {/* Facebook Button */}
-            <Button
-              type="button"
-              onClick={handleFacebookLogin}
-              disabled={isLoading}
-              variant="secondary"
-              className="flex-1"
-            >
-              {/* Facebook Icon */}
-              <div className="relative shrink-0 size-5">
-                <svg
-                  className="block size-full"
-                  fill="none"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 20 20"
-                >
-                  <g clipPath="url(#clip0_35_74)">
-                    <path
-                      d={svgPaths.p3ef31c80}
-                      fill="#1877F2"
-                    />
-                    <path d={svgPaths.p1634fa00} fill="white" />
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_35_74">
-                      <rect
-                        fill="white"
-                        height="20"
-                        width="20"
-                      />
-                    </clipPath>
-                  </defs>
-                </svg>
-              </div>
-              Facebook
-            </Button>
-          </div>
 
           {/* Legal Links */}
           <div className="text-center text-gray-500 dark:text-[#888] text-sm mt-2">

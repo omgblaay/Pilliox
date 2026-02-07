@@ -23,9 +23,9 @@
     "termsOfService": "Regulaminem",
     "privacyPolicy": "Polityką Prywatności",
     "features": {
-      "title": "Śledź INR i leki",
+      "title": "Śledź wartości medyczne i leki",
       "medications": "Codzienne śledzenie leków z indywidualnymi dawkami",
-      "inrTracking": "Monitoruj wartości INR we krwi",
+      "inrTracking": "Monitoruj wartości krwi i wyniki badań",
       "colorCoded": "Koloruj okresy leczenia z tagami",
       "notes": "Dodaj notatki medyczne do każdego dnia"
     }

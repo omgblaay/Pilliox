@@ -23,9 +23,9 @@
     "termsOfService": "Nutzungsbedingungen",
     "privacyPolicy": "Datenschutzrichtlinie",
     "features": {
-      "title": "INR & Medikamente tracken",
+      "title": "Medizinische Werte & Medikamente tracken",
       "medications": "Tägliche Medikamentenverfolgung mit individuellen Dosierungen",
-      "inrTracking": "INR-Blutwerte überwachen",
+      "inrTracking": "Blutwerte und Testergebnisse überwachen",
       "colorCoded": "Behandlungsperioden farblich mit Tags markieren",
       "notes": "Medizinische Notizen zu jedem Tag hinzufügen"
     }
