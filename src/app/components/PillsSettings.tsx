@@ -49,6 +49,18 @@ const PILL_COLORS = [
   { name: "Orange", value: "#f97316" },
 ];
 
+// Helper function to convert hex color to rgba with opacity
+const hexToRgba = (hex: string, opacity: number): string => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return `rgba(0, 0, 0, ${opacity})`;
+  
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+  
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 export function PillsSettings({
   open,
   onOpenChange,
@@ -200,16 +212,14 @@ export function PillsSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="md:max-w-[800px] max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-[#3a3a3a] p-0">
+      <DialogContent size="large" className="max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="px-[17px] pt-[21px] pb-[12px] space-y-0">
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-[19px] font-semibold">
             <Pill
               className="h-5 w-5 text-[#9810FA]"
               strokeWidth={1.67}
             />
-            <span className="text-[18px] font-semibold text-white tracking-[0.45px] leading-[18px]">
-              {t("pillsSettings.title")}
-            </span>
+            {t("pillsSettings.title")}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {t("pillsSettings.description")}
@@ -235,12 +245,15 @@ export function PillsSettings({
                   {pills.map((pill) => (
                     <div
                       key={pill.id}
-                      className="bg-[#1a1a1a] flex flex-col rounded-[10px] border border-[#3a3a3a] gap-4 p-4"
+                      className="flex flex-col rounded-[10px] gap-4 p-6"
+                      style={{
+                        backgroundColor: hexToRgba(pill.color || PILL_COLORS[0].value, 0.1)
+                      }}
                     >
                       <div className="flex flex-col gap-5 md:flex-row">
                         {/* Name */}
                         <div className="space-y-2 flex-1 flex-row">
-                          <Label className="text-[14px] font-medium text-white tracking-[0.35px] leading-[14px]">
+                          <Label>
                             {t("pillsSettings.medicationName")}
                           </Label>
                           <Input
@@ -253,13 +266,12 @@ export function PillsSettings({
                             placeholder={t(
                               "pillsSettings.medicationPlaceholder",
                             )}
-                            className="h-12 bg-transparent border-[#555] border-[0.667px] text-white text-base placeholder:text-[#888] rounded-[10px]"
                           />
                         </div>
 
                         {/* Color */}
                         <div className="space-y-2 flex-1">
-                          <Label className="text-[14px] font-medium text-white tracking-[0.35px] leading-[14px]">
+                          <Label>
                             {t("pillsSettings.color")}
                           </Label>
                           <div className="flex flex-wrap gap-1 w-full">
@@ -272,10 +284,10 @@ export function PillsSettings({
                                     color: color.value,
                                   })
                                 }
-                                className={`flex-1 min-w-0 h-12 rounded-full border-2 transition-all ${
+                                className={`flex-1 min-w-0 h-10 rounded-full border-2 transition-all ${
                                   pill.color === color.value
-                                    ? "border-[#f3f4f6] scale-105"
-                                    : "border-[#364153]"
+                                    ? "border-black-1000 scale-110"
+                                    : "border-none"
                                 }`}
                                 style={{
                                   backgroundColor: color.value,
@@ -286,14 +298,14 @@ export function PillsSettings({
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-4 flex flex-col h-auto gap-5 md:flex-row">
+                      <div className="flex flex-col h-auto gap-5 md:flex-row">
                         {/* Type */}
-                        <div className="space-y-2 flex-1">
-                          <Label className="text-[14px] font-medium text-white tracking-[0.35px] leading-[14px]">
+                        <div className="flex-1">
+                          <Label>
                             {t("pillsSettings.type")}
                           </Label>
 
-                          <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0">
+                          <div className="bg-input-background rounded-2xl p-1 flex gap-0">
                             <Button
                               size="sm"
                               type="button"
@@ -376,7 +388,6 @@ export function PillsSettings({
                                     ) || 0,
                                 })
                               }
-                              className="h-12 bg-transparent border-[#555] border-[0.667px] text-white text-base rounded-[10px]"
                             />
                           </div>
 
@@ -385,7 +396,7 @@ export function PillsSettings({
                             size="icon"
                             variant="destructive"
                             onClick={() => removePill(pill.id)}
-                            className="flex-0"
+                            className="flex-0 m-0"
                           >
                             <Trash2
                               className="h-6 w-6"
@@ -400,10 +411,10 @@ export function PillsSettings({
               )}
 
               {/* Add Medication Button */}
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={addPill}
-                className="w-full h-10 md:h-12 rounded-[14px] border border-[#2a2a2a] bg-[rgba(42,42,42,0.3)] flex items-center justify-center gap-2 text-white hover:bg-[rgba(42,42,42,0.5)] transition-colors"
               >
                 <Plus
                   className="h-5 w-5 md:h-6 md:w-6"
@@ -412,15 +423,16 @@ export function PillsSettings({
                 <span className="text-[14px] md:text-base font-medium tracking-[0.4px] leading-6">
                   {t("pillsSettings.addMedication")}
                 </span>
-              </button>
+              </Button>
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[#3a3a3a] px-[17px] pt-[16.667px] pb-[21px] flex gap-2">
+        <div className="border-t border-borde p-4 flex sm:flex-row flex-col-reverse gap-4">
           <Button
             variant="outline"
+            className="flex-1"
             onClick={() => onOpenChange(false)}
           >
             {t("pillsSettings.cancel")}
@@ -428,6 +440,7 @@ export function PillsSettings({
           <Button
             onClick={savePillsSettings}
             disabled={saving || loading}
+            className="flex-1"
           >
             {saving ? (
               <>
@@ -447,7 +460,6 @@ export function PillsSettings({
             )}
           </Button>
         </div>
-        
       </DialogContent>
     </Dialog>
   );

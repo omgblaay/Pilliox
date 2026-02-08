@@ -222,7 +222,9 @@ export function AuthForm({
           {/* Feature List */}
           <ul className="relative space-y-4 !text-white text-l">
             <li>
-              <h1>{t("auth.features.title")}</h1>
+              <h1 className="font-bold">
+                {t("auth.features.title")}
+              </h1>
             </li>
             <li className="flex items-start gap-2">
               • {t("auth.features.medications")}
@@ -240,7 +242,7 @@ export function AuthForm({
         </div>
 
         {/* Right Side - Auth Card */}
-        <div className="flex-1 md:h-auto bg-gray-50 dark:bg-[#1a1a1a] p-4 md:p-8 flex flex-col gap-4">
+        <div className="flex-1 md:h-auto bg-popover p-4 md:p-8 flex flex-col gap-4">
           {/* Logo and Tagline */}
 
           <div className="flex spece-between w-auto">
@@ -352,29 +354,29 @@ export function AuthForm({
           </div>
 
           {/* Tab Buttons */}
-          <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[14px] p-[3px] flex gap-0">
-            <button
-              type="button"
+          <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+            <Button
+              variant="tabGroup"
+              size="sm"
               onClick={() => setActiveTab("login")}
-              className={`flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all ${
-                activeTab === "login"
-                  ? "bg-white dark:bg-[#404040] text-gray-900 dark:text-white shadow-sm"
-                  : "bg-transparent text-gray-500 dark:text-[#888]"
-              }`}
+              data-state={
+                activeTab === "login" ? "active" : "inactive"
+              }
+              className="flex-1"
             >
               {t("auth.login")}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="tabGroup"
+              size="sm"
               onClick={() => setActiveTab("signup")}
-              className={`flex-1 h-[40px] rounded-[14px] font-medium text-base transition-all ${
-                activeTab === "signup"
-                  ? "bg-white dark:bg-[#404040] text-gray-900 dark:text-white shadow-sm"
-                  : "bg-transparent text-gray-500 dark:text-[#888]"
-              }`}
+              data-state={
+                activeTab === "signup" ? "active" : "inactive"
+              }
+              className="flex-1"
             >
               {t("auth.signup")}
-            </button>
+            </Button>
           </div>
 
           {/* Login Form */}

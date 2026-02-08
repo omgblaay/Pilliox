@@ -1,12 +1,26 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { projectId, publicAnonKey } from "../../../utils/supabase/info";
+import {
+  projectId,
+  publicAnonKey,
+} from "../../../utils/supabase/info";
 import { SubscriptionSettings } from "./SubscriptionSettings";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "./ui/tabs";
 import { Alert, AlertDescription } from "./ui/alert";
 import { User, Lock, Trash2 } from "lucide-react";
 
@@ -228,9 +242,9 @@ export function ProfileSettings({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-card border-border">
+        <DialogContent size="small" className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
+            <DialogTitle className="flex flex-row gap-2 items-center">
               <User className="h-6 w-6 text-muted-foreground" />
               {t("profile.title")}
             </DialogTitle>
@@ -431,7 +445,14 @@ export function ProfileSettings({
                         className="bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800"
                       >
                         <AlertDescription className="text-red-800 dark:text-red-300">
-                          {t("profile.deleteWarning")}
+                          <div className="space-y-2">
+                            <p className="font-semibold">
+                              {t("profile.deleteWarning")}
+                            </p>
+                            <p className="text-sm font-medium">
+                              ⚠️ This action cannot be undone. All your data will be permanently deleted.
+                            </p>
+                          </div>
                         </AlertDescription>
                       </Alert>
 

@@ -1298,7 +1298,7 @@ export function CalendarView({
       {/* Main Content */}
       <div className="w-full lg:max-w-[800px] mx-auto px-4">
         {/* Calendar Card */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="bg-input-background rounded-2xl shadow-sm border border-border overflow-hidden">
           {/* Month/Week Navigation */}
           <div className="p-[12px] border-b border-border px-[12px] py-[8px]">
             <div className="flex items-center justify-between gap-2">
@@ -1668,7 +1668,7 @@ export function CalendarView({
                         <div className="flex items-center gap-2 w-full">
                           {/* Day name and number */}
                           <div className="flex items-center gap-2 min-w-[64px]">
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            <span className="text-xs font-semibold w-[32px] text-muted-foreground uppercase text-left tracking-wide">
                               {format(day, "EEE", {
                                 locale: dateLocale,
                               })}
@@ -1727,27 +1727,14 @@ export function CalendarView({
                                   return (
                                     <div
                                       key={pill.pillId}
+                                      style={{
+                                        backgroundColor:
+                                          pillSetting.color,
+                                      }}
                                       className={cn(
-                                        "flex items-center gap-1.5 text-xs flex-col font-semibold px-2 py-1 rounded whitespace-nowrap",
-                                        hasColor && !isDarkMode
-                                          ? "bg-black/20 text-gray-900"
-                                          : hasColor &&
-                                              isDarkMode
-                                            ? "bg-white/20 text-gray-300"
-                                            : !isDarkMode
-                                              ? "bg-purple-100 text-purple-700"
-                                              : "bg-purple-900 text-purple-100",
+                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded whitespace-nowrap",
                                       )}
                                     >
-                                      {pillSetting.color && (
-                                        <div
-                                          className="h-2.5 w-2.5 rounded-full border border-current"
-                                          style={{
-                                            backgroundColor:
-                                              pillSetting.color,
-                                          }}
-                                        />
-                                      )}
                                       {pillSetting.type ===
                                       "pills" ? (
                                         <>
@@ -1907,20 +1894,11 @@ export function CalendarView({
                                         "#a855f7",
                                     }}
                                   >
-                                    {pillSetting.color && (
-                                      <div
-                                        className="h-2 w-2 rounded-full border border-current"
-                                        style={{
-                                          backgroundColor:
-                                            pillSetting.color,
-                                        }}
-                                      />
-                                    )}
                                     {pillSetting.type ===
                                     "pills" ? (
-                                      <Pill className="h-2.5 w-2.5" />
+                                      <Pill className="h-2.5 w-2.5 sm:block hidden" />
                                     ) : (
-                                      <Droplet className="h-2.5 w-2.5" />
+                                      <Droplet className="h-2.5 w-2.5 sm:block hidden" />
                                     )}
                                     <span>
                                       {pillSetting.name.substring(
@@ -1970,7 +1948,7 @@ export function CalendarView({
 
       {/* Single Day Entry Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden bg-card border-border">
+        <DialogContent size="small" className="p-0 gap-0 overflow-hidden">
           {/* Header */}
           <DialogHeader className="px-6 py-5 to-card">
             <DialogTitle className="text-foreground">
@@ -2039,7 +2017,7 @@ export function CalendarView({
 
           {/* Content */}
           <motion.div
-            className="px-6 py-5 space-y-5 bg-card"
+            className="px-6 py-5 space-y-5"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
@@ -2393,7 +2371,7 @@ export function CalendarView({
                             return (
                               <div
                                 key={pillSetting.id}
-                                className="flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+                                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
                               >
                                 {/* Checkbox */}
                                 <button
@@ -2422,14 +2400,14 @@ export function CalendarView({
                                     }
                                   }}
                                   className={cn(
-                                    "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
+                                    "h-7 w-7 rounded-lg border-2 flex items-center justify-center transition-colors",
                                     isSelected
-                                      ? "bg-purple-600 border-purple-600"
+                                      ? "bg-blue-600"
                                       : "border-gray-300 dark:border-gray-600",
                                   )}
                                 >
                                   {isSelected && (
-                                    <Check className="h-3 w-3 text-white" />
+                                    <Check className="h-4 w-4 text-white" />
                                   )}
                                 </button>
 
@@ -2671,7 +2649,7 @@ export function CalendarView({
         open={multiSelectDialogOpen}
         onOpenChange={setMultiSelectDialogOpen}
       >
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent size="small" className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {t("multiSelect.title", {
@@ -2811,7 +2789,7 @@ export function CalendarView({
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
       >
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent size="small" className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {t("deleteConfirm.title")}

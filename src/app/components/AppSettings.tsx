@@ -3,14 +3,25 @@ import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "./LanguageSelector";
 import { type Theme } from "../hooks/useTheme";
 import { cn } from "./ui/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
-import { Sun, Moon, Monitor, Settings as SettingsIcon } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
 // App version
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.2";
 
 interface AppSettingsProps {
   open: boolean;
@@ -123,7 +134,7 @@ export function AppSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-card border-border">
+      <DialogContent size="small">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
             <SettingsIcon className="h-6 w-6 text-muted-foreground" />
@@ -144,16 +155,13 @@ export function AppSettings({
               </h3>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex gap-1 p-1 rounded-[18px] bg-gray-100 dark:bg-[#2a2a2a]">
               <Button
-                variant={
-                  theme === "light" ? "default" : "outline"
+                variant="tabGroup"
+                data-state={
+                  theme === "light" ? "active" : "inactive"
                 }
-                className={cn(
-                  "flex flex-col items-center gap-2 h-auto py-3",
-                  theme === "light" &&
-                    "bg-blue-600 hover:bg-blue-700 text-white",
-                )}
+                className="flex flex-col items-center gap-1 h-auto py-2"
                 onClick={() => handleThemeChange("light")}
               >
                 <Sun className="h-5 w-5" />
@@ -163,14 +171,11 @@ export function AppSettings({
               </Button>
 
               <Button
-                variant={
-                  theme === "dark" ? "default" : "outline"
+                variant="tabGroup"
+                data-state={
+                  theme === "dark" ? "active" : "inactive"
                 }
-                className={cn(
-                  "flex flex-col items-center gap-2 h-auto py-3",
-                  theme === "dark" &&
-                    "bg-blue-600 hover:bg-blue-700 text-white",
-                )}
+                className="flex flex-col items-center gap-1 h-auto py-2"
                 onClick={() => handleThemeChange("dark")}
               >
                 <Moon className="h-5 w-5" />
@@ -180,14 +185,11 @@ export function AppSettings({
               </Button>
 
               <Button
-                variant={
-                  theme === "system" ? "default" : "outline"
+                variant="tabGroup"
+                data-state={
+                  theme === "system" ? "active" : "inactive"
                 }
-                className={cn(
-                  "flex flex-col items-center gap-2 h-auto py-3",
-                  theme === "system" &&
-                    "bg-blue-600 hover:bg-blue-700 text-white",
-                )}
+                className="flex flex-col items-center gap-1 h-auto py-2"
                 onClick={() => handleThemeChange("system")}
               >
                 <Monitor className="h-5 w-5" />
@@ -244,10 +246,10 @@ export function AppSettings({
             </div>
 
             <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-muted/50">
-              <div className="space-y-0.5">
+              <div>
                 <Label
                   htmlFor="week-start"
-                  className="text-sm font-medium text-foreground cursor-pointer"
+                  className="text-sm font-medium text-foreground m-0 mb-2 cursor-pointer"
                 >
                   {t("settings.weekStartsOnMonday")}
                 </Label>
