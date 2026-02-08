@@ -3,6 +3,73 @@ export default {
     name: "Pilliox",
     welcome: "Welcome, {{name}}",
   },
+  landing: {
+    header: {
+      signIn: "Sign In",
+      getStarted: "Get Started",
+    },
+    hero: {
+      title: "Your Medical Values,",
+      titleHighlight: "Perfectly Tracked",
+      description: "Track INR, blood tests, and medications with a beautiful calendar interface. Designed for simplicity, built for reliability.",
+      startTrial: "Start Free Trial",
+      pricing: "3 days free, then €2.99/month",
+      trustedBadge: "Trusted by thousands",
+    },
+    features: {
+      title: "Everything You Need",
+      description: "Powerful features designed to make medical tracking effortless",
+      calendar: {
+        title: "Smart Calendar View",
+        description: "Track medical values like INR and blood test results with an intuitive calendar interface.",
+      },
+      pillCounter: {
+        title: "Pill Counter",
+        description: "Never miss a dose with our smart pill tracking system that keeps count of your medications.",
+      },
+      colorCoded: {
+        title: "Color-Coded Tracking",
+        description: "Multi-day selection with color coding for treatment periods and tags for easy visual organization.",
+      },
+      secure: {
+        title: "Secure & Private",
+        description: "Your medical data is encrypted and securely stored with enterprise-grade security.",
+      },
+      multiLanguage: {
+        title: "Multi-Language",
+        description: "Available in German, Polish, and English to serve users worldwide.",
+      },
+    },
+    pricing: {
+      title: "Simple, Transparent Pricing",
+      description: "Start with a free trial, continue for less than a cup of coffee per month",
+      plan: "Premium",
+      price: "€2.99",
+      perMonth: "/month",
+      trialIncluded: "3-day free trial included",
+      features: {
+        tracking: "Unlimited medical value tracking",
+        pillCounter: "Smart pill counter",
+        colorCoded: "Multi-day color-coded selections",
+        tags: "Custom tags and labels",
+        backup: "Secure cloud backup",
+        multiLanguage: "Multi-language support",
+        support: "Priority customer support",
+      },
+      cta: "Start Your Free Trial",
+      cancelAnytime: "Cancel anytime. No commitment required.",
+    },
+    cta: {
+      title: "Ready to Take Control?",
+      description: "Join thousands of users who trust Pilliox with their medical tracking",
+      button: "Get Started Now",
+    },
+    footer: {
+      copyright: "© 2026 Pilliox. All rights reserved.",
+      privacy: "Privacy Policy",
+      terms: "Terms of Service",
+    },
+  },
   auth: {
     welcome: "Welcome to Pilliox",
     login: "Login",

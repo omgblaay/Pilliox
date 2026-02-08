@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import {
   projectId,
   publicAnonKey,
@@ -32,6 +33,7 @@ export function AuthForm({
   onNavigateToPrivacy,
 }: AuthFormProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
@@ -193,7 +195,18 @@ export function AuthForm({
   };
 
   return (
-    <div className="min-h-full bg-white dark:bg-[#0a0a0a] flex md:items-center md:justify-center p-4 py-8 md:py-4">
+    <div className="min-h-full bg-input dark:bg-[#0a0a0a] flex md:items-center md:justify-center p-4 py-8 md:py-4 relative">
+      {/* Back to Landing Page Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate("/")}
+        className="absolute top-4 left-4 z-10 flex-0"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="hidden sm:inline">Back to Home</span>
+      </Button>
+
       <div className="flex max-h-auto flex-col md:flex-row w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
         {/* Left Side - Decorative Panel (Desktop sidebar / Mobile top) */}
         <div className="flex relative w-full md:w-[320px] bg-gray-200 dark:bg-gray-800 flex-col gap-2 p-6 order-first">
@@ -242,7 +255,7 @@ export function AuthForm({
         </div>
 
         {/* Right Side - Auth Card */}
-        <div className="flex-1 md:h-auto bg-popover p-4 md:p-8 flex flex-col gap-4">
+        <div className="flex-1 md:h-auto bg-input-background p-4 md:p-8 flex flex-col gap-4">
           {/* Logo and Tagline */}
 
           <div className="flex spece-between w-auto">

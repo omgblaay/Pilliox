@@ -563,7 +563,8 @@ app.get('/make-server-c7e1f966/settings', async (c) => {
     // Get user settings from KV store
     const settings = await kvGet(`settings:${user.id}`) || {
       weekStartsOnMonday: true,
-      theme: 'system'
+      theme: 'system',
+      viewMode: 'month'
     };
     
     return c.json({ 
@@ -626,12 +627,13 @@ app.post('/make-server-c7e1f966/settings', async (c) => {
       return c.json({ error: 'Invalid token' }, 401);
     }
     
-    const { weekStartsOnMonday, theme } = await c.req.json();
+    const { weekStartsOnMonday, theme, viewMode } = await c.req.json();
     
     // Update settings
     const settings = {
       weekStartsOnMonday: weekStartsOnMonday ?? true,
-      theme: theme || 'system'
+      theme: theme || 'system',
+      viewMode: viewMode || 'month'
     };
     
     await kvSet(`settings:${user.id}`, settings);

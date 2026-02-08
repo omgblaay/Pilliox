@@ -33,6 +33,7 @@ interface AppSettingsProps {
   onThemeChange?: (theme: Theme) => void;
   weekStartsOnMonday: boolean;
   onWeekStartChange: (startsOnMonday: boolean) => void;
+  viewMode: "month" | "week";
 }
 
 export function AppSettings({
@@ -45,6 +46,7 @@ export function AppSettings({
   onThemeChange,
   weekStartsOnMonday,
   onWeekStartChange,
+  viewMode,
 }: AppSettingsProps) {
   const { t } = useTranslation();
   const [localWeekStartsOnMonday, setLocalWeekStartsOnMonday] =
@@ -103,7 +105,8 @@ export function AppSettings({
           },
           body: JSON.stringify({ 
             weekStartsOnMonday: checked,
-            theme: theme 
+            theme: theme,
+            viewMode: viewMode
           }),
         },
       );
@@ -129,7 +132,8 @@ export function AppSettings({
           },
           body: JSON.stringify({ 
             theme: newTheme,
-            weekStartsOnMonday: localWeekStartsOnMonday 
+            weekStartsOnMonday: localWeekStartsOnMonday,
+            viewMode: viewMode
           }),
         },
       );

@@ -3,6 +3,73 @@ export default {
     name: "Pilliox",
     welcome: "Willkommen, {{name}}",
   },
+  landing: {
+    header: {
+      signIn: "Anmelden",
+      getStarted: "Jetzt starten",
+    },
+    hero: {
+      title: "Ihre medizinischen Werte,",
+      titleHighlight: "Perfekt erfasst",
+      description: "Verfolgen Sie INR, Bluttests und Medikamente mit einer schönen Kalenderoberfläche. Für Einfachheit entwickelt, für Zuverlässigkeit gebaut.",
+      startTrial: "Kostenlose Testversion starten",
+      pricing: "3 Tage kostenlos, dann 2,99 €/Monat",
+      trustedBadge: "Von Tausenden vertraut",
+    },
+    features: {
+      title: "Alles, was Sie brauchen",
+      description: "Leistungsstarke Funktionen für müheloses medizinisches Tracking",
+      calendar: {
+        title: "Intelligente Kalenderansicht",
+        description: "Verfolgen Sie medizinische Werte wie INR und Bluttestergebnisse mit einer intuitiven Kalenderoberfläche.",
+      },
+      pillCounter: {
+        title: "Tablettenzähler",
+        description: "Verpassen Sie keine Dosis mit unserem intelligenten Tracking-System für Ihre Medikamente.",
+      },
+      colorCoded: {
+        title: "Farbcodierte Verfolgung",
+        description: "Mehrtägige Auswahl mit Farbcodierung für Behandlungsperioden und Tags zur einfachen visuellen Organisation.",
+      },
+      secure: {
+        title: "Sicher & Privat",
+        description: "Ihre medizinischen Daten werden verschlüsselt und sicher mit Unternehmenssicherheit gespeichert.",
+      },
+      multiLanguage: {
+        title: "Mehrsprachig",
+        description: "Verfügbar in Deutsch, Polnisch und Englisch für Benutzer weltweit.",
+      },
+    },
+    pricing: {
+      title: "Einfache, transparente Preise",
+      description: "Beginnen Sie mit einer kostenlosen Testversion, dann weniger als eine Tasse Kaffee pro Monat",
+      plan: "Premium",
+      price: "2,99 €",
+      perMonth: "/Monat",
+      trialIncluded: "3-tägige kostenlose Testversion inklusive",
+      features: {
+        tracking: "Unbegrenzte Verfolgung medizinischer Werte",
+        pillCounter: "Intelligenter Tablettenzähler",
+        colorCoded: "Mehrtägige farbcodierte Auswahl",
+        tags: "Benutzerdefinierte Tags und Labels",
+        backup: "Sichere Cloud-Sicherung",
+        multiLanguage: "Mehrsprachige Unterstützung",
+        support: "Prioritäts-Kundensupport",
+      },
+      cta: "Starten Sie Ihre kostenlose Testversion",
+      cancelAnytime: "Jederzeit kündbar. Keine Verpflichtung erforderlich.",
+    },
+    cta: {
+      title: "Bereit, die Kontrolle zu übernehmen?",
+      description: "Schließen Sie sich Tausenden von Benutzern an, die Pilliox mit ihrem medizinischen Tracking vertrauen",
+      button: "Jetzt loslegen",
+    },
+    footer: {
+      copyright: "© 2026 Pilliox. Alle Rechte vorbehalten.",
+      privacy: "Datenschutzrichtlinie",
+      terms: "Nutzungsbedingungen",
+    },
+  },
   auth: {
     welcome: "Willkommen bei Pilliox",
     login: "Anmelden",

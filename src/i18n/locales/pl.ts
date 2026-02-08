@@ -3,6 +3,73 @@ export default {
     name: "Pilliox",
     welcome: "Witaj, {{name}}",
   },
+  landing: {
+    header: {
+      signIn: "Zaloguj się",
+      getStarted: "Rozpocznij",
+    },
+    hero: {
+      title: "Twoje wartości medyczne,",
+      titleHighlight: "Idealnie śledzone",
+      description: "Śledź INR, badania krwi i leki za pomocą pięknego interfejsu kalendarza. Zaprojektowany dla prostoty, zbudowany dla niezawodności.",
+      startTrial: "Rozpocznij darmowy okres próbny",
+      pricing: "3 dni za darmo, potem 2,99 €/miesiąc",
+      trustedBadge: "Zaufane przez tysiące",
+    },
+    features: {
+      title: "Wszystko, czego potrzebujesz",
+      description: "Potężne funkcje zaprojektowane, aby śledzenie medyczne było bezwysiłkowe",
+      calendar: {
+        title: "Inteligentny widok kalendarza",
+        description: "Śledź wartości medyczne, takie jak INR i wyniki badań krwi za pomocą intuicyjnego interfejsu kalendarza.",
+      },
+      pillCounter: {
+        title: "Licznik tabletek",
+        description: "Nigdy nie przegap dawki dzięki naszemu inteligentnemu systemowi śledzenia leków.",
+      },
+      colorCoded: {
+        title: "Kolorowe śledzenie",
+        description: "Wielodniowy wybór z kodowaniem kolorami dla okresów leczenia i tagami dla łatwej wizualnej organizacji.",
+      },
+      secure: {
+        title: "Bezpieczne i prywatne",
+        description: "Twoje dane medyczne są szyfrowane i bezpiecznie przechowywane z zabezpieczeniami klasy korporacyjnej.",
+      },
+      multiLanguage: {
+        title: "Wielojęzyczne",
+        description: "Dostępne w języku niemieckim, polskim i angielskim, aby obsługiwać użytkowników na całym świecie.",
+      },
+    },
+    pricing: {
+      title: "Proste, przejrzyste ceny",
+      description: "Zacznij od darmowego okresu próbnego, kontynuuj za mniej niż filiżanka kawy miesięcznie",
+      plan: "Premium",
+      price: "2,99 €",
+      perMonth: "/miesiąc",
+      trialIncluded: "3-dniowy darmowy okres próbny wliczony",
+      features: {
+        tracking: "Nieograniczone śledzenie wartości medycznych",
+        pillCounter: "Inteligentny licznik tabletek",
+        colorCoded: "Wielodniowy wybór z kodowaniem kolorami",
+        tags: "Niestandardowe tagi i etykiety",
+        backup: "Bezpieczna kopia zapasowa w chmurze",
+        multiLanguage: "Wsparcie wielojęzyczne",
+        support: "Priorytetowe wsparcie klienta",
+      },
+      cta: "Rozpocznij darmowy okres próbny",
+      cancelAnytime: "Anuluj w dowolnym momencie. Bez zobowiązań.",
+    },
+    cta: {
+      title: "Gotowy, aby przejąć kontrolę?",
+      description: "Dołącz do tysięcy użytkowników, którzy ufają Pilliox w śledzeniu medycznym",
+      button: "Rozpocznij teraz",
+    },
+    footer: {
+      copyright: "© 2026 Pilliox. Wszelkie prawa zastrzeżone.",
+      privacy: "Polityka prywatności",
+      terms: "Regulamin",
+    },
+  },
   auth: {
     welcome: "Witamy w Pilliox",
     login: "Zaloguj się",

@@ -421,14 +421,21 @@ export function CalendarView({
           const data = await response.json();
           setName(data.user.name || "");
           setUserId(data.user.id || "");
-          
-          // Load user settings (theme and week start preference)
+
+          // Load user settings (theme, week start preference, and view mode)
           if (data.settings) {
             if (data.settings.theme) {
               setTheme(data.settings.theme);
             }
-            if (data.settings.weekStartsOnMonday !== undefined) {
-              setWeekStartsOnMonday(data.settings.weekStartsOnMonday);
+            if (
+              data.settings.weekStartsOnMonday !== undefined
+            ) {
+              setWeekStartsOnMonday(
+                data.settings.weekStartsOnMonday,
+              );
+            }
+            if (data.settings.viewMode) {
+              setViewMode(data.settings.viewMode);
             }
           }
         }
@@ -780,6 +787,30 @@ export function CalendarView({
       const newMonth = addMonths(currentMonth, 1);
       swipeDirectionRef.current = 1;
       setCurrentMonth(newMonth);
+    }
+  };
+
+  // Save view mode preference
+  const saveViewMode = async (newViewMode: "month" | "week") => {
+    try {
+      await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
+          },
+          body: JSON.stringify({ 
+            viewMode: newViewMode,
+            weekStartsOnMonday: weekStartsOnMonday,
+            theme: theme
+          }),
+        },
+      );
+    } catch (error) {
+      console.error("Error saving view mode:", error);
     }
   };
 
@@ -1138,6 +1169,7 @@ export function CalendarView({
                   variant="ghost"
                   onClick={() => {
                     setViewMode("week");
+                    saveViewMode("week");
                     setSidebarOpen(false);
                   }}
                   className={cn(
@@ -1157,6 +1189,7 @@ export function CalendarView({
                   variant="ghost"
                   onClick={() => {
                     setViewMode("month");
+                    saveViewMode("month");
                     setSidebarOpen(false);
                   }}
                   className={cn(
@@ -1381,11 +1414,11 @@ export function CalendarView({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setViewMode(
-                    viewMode === "month" ? "week" : "month",
-                  )
-                }
+                onClick={() => {
+                  const newMode = viewMode === "month" ? "week" : "month";
+                  setViewMode(newMode);
+                  saveViewMode(newMode);
+                }}
                 className="flex-1 justify-between hidden sm:flex"
                 title={
                   viewMode === "month"
@@ -1765,7 +1798,7 @@ export function CalendarView({
                                           pillSetting.color,
                                       }}
                                       className={cn(
-                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded whitespace-nowrap",
+                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded whitespace-nowrap",
                                       )}
                                     >
                                       {pillSetting.type ===
@@ -2772,6 +2805,7 @@ export function CalendarView({
         onThemeChange={setTheme}
         weekStartsOnMonday={weekStartsOnMonday}
         onWeekStartChange={setWeekStartsOnMonday}
+        viewMode={viewMode}
       />
 
       {/* Pills Settings Modal */}
