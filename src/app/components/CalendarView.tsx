@@ -1080,7 +1080,7 @@ export function CalendarView({
 
       {/* Header */}
       <div>
-        <div className="max-w-md lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
+        <div className="w-full lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
           <div className="flex items-center gap-8 justify-between mt-[0px] mr-[0px] ml-[0px] m-[0px]">
             <div className="flex items-start flex-col gap-2">
               <div className="h-[28px] w-[120px]">
@@ -1131,7 +1131,7 @@ export function CalendarView({
       </div>
 
       {/* Main Content */}
-      <div className="max-w-md lg:max-w-[800px] mx-auto px-4">
+      <div className="w-full lg:max-w-[800px] mx-auto px-4">
         {/* Calendar Card */}
         <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
           {/* Month/Week Navigation */}
@@ -1736,16 +1736,12 @@ export function CalendarView({
                                 return (
                                   <div
                                     key={pill.pillId}
-                                    className={cn(
-                                      "flex items-center gap-1 text-[10px] font-semibold px-1 py-0.5 rounded",
-                                      hasColor && !isDarkMode
-                                        ? "bg-black/20 text-gray-900"
-                                        : hasColor && isDarkMode
-                                          ? "bg-white/20 text-gray-300"
-                                          : !isDarkMode
-                                            ? "bg-purple-100 text-purple-700"
-                                            : "bg-purple-900 text-purple-100",
-                                    )}
+                                    className="flex items-center gap-1 text-[10px] font-semibold px-1 py-0.5 rounded text-white"
+                                    style={{
+                                      backgroundColor:
+                                        pillSetting.color ||
+                                        "#a855f7",
+                                    }}
                                   >
                                     {pillSetting.color && (
                                       <div
@@ -1829,7 +1825,7 @@ export function CalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={navigateToPreviousDay}
-                  className="h-8 w-8 rounded-full hover:bg-accent flex-shrink-0"
+                  className="h-8 w-8 rounded-full hover:bg-accent flex-0 flex-shrink-0"
                 >
                   <ChevronLeft className="h-4 w-4 text-foreground" />
                 </Button>
@@ -1871,7 +1867,7 @@ export function CalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={navigateToNextDay}
-                  className="h-8 w-8 rounded-full hover:bg-accent flex-shrink-0"
+                  className="h-8 w-8 rounded-full hover:bg-accent flex-0 flex-shrink-0"
                 >
                   <ChevronRight className="h-4 w-4 text-foreground" />
                 </Button>

@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
-import { projectId, publicAnonKey } from "../../../utils/supabase/info";
+import {
+  projectId,
+  publicAnonKey,
+} from "../../../utils/supabase/info";
 import { getSupabaseClient } from "../../../utils/supabase/client";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
@@ -446,14 +449,7 @@ export function AuthForm({
               )}
 
               {/* Login Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                style={{
-                  backgroundColor: "var(--color-brand)",
-                }}
-                className="hover:!bg-[var(--color-brand-dark)]"
-              >
+              <Button type="submit" disabled={isLoading}>
                 {isLoading
                   ? t("auth.loggingIn")
                   : t("auth.login")}

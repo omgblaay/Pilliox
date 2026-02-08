@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Languages } from "lucide-react";
+import { Languages, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -38,11 +38,12 @@ export function LanguageSelector({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="w-[140px]" variant={variant}>
+        <Button variant={variant}>
           <Languages className="h-4 w-4" />
-          <span>
+          <span className="w-full justify-start text-left">
             {currentLanguage.flag} {currentLanguage.name}
           </span>
+          <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
