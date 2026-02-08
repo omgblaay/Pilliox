@@ -29,7 +29,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 pb-4">
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8 overflow-y-auto max-h-[calc(100vh-8rem)]">
+        <div className="bg-popover rounded-2xl shadow-sm border border-border p-8 overflow-y-auto max-h-[calc(100vh-8rem)]">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             {t("docs.privacyPolicy.title")}
           </h1>

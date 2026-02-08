@@ -25,7 +25,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { User, Lock, Trash2 } from "lucide-react";
 
 // App version - update this whenever significant changes are made
-const APP_VERSION = "1.0.7";
+const APP_VERSION = "1.4.3";
 
 interface ProfileSettingsProps {
   open: boolean;

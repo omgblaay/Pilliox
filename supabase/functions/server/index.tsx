@@ -319,7 +319,7 @@ app.get('/make-server-c7e1f966/health', (c) => {
   return c.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    version: '1.0.10-debug',
+    version: '1.4.3',
     message: 'Fresh calendar server is running with enhanced logging!',
     env: {
       hasStripeSecretKey: !!Deno.env.get('STRIPE_SECRET_KEY'),

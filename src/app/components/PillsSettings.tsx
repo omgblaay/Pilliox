@@ -51,13 +51,14 @@ const PILL_COLORS = [
 
 // Helper function to convert hex color to rgba with opacity
 const hexToRgba = (hex: string, opacity: number): string => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const result =
+    /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return `rgba(0, 0, 0, ${opacity})`;
-  
+
   const r = parseInt(result[1], 16);
   const g = parseInt(result[2], 16);
   const b = parseInt(result[3], 16);
-  
+
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
@@ -212,7 +213,10 @@ export function PillsSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="large" className="max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent
+        size="large"
+        className="max-h-[90vh] overflow-y-auto p-0"
+      >
         <DialogHeader className="px-[17px] pt-[21px] pb-[12px] space-y-0">
           <DialogTitle className="flex items-center gap-2 text-[19px] font-semibold">
             <Pill
@@ -247,7 +251,10 @@ export function PillsSettings({
                       key={pill.id}
                       className="flex flex-col rounded-[10px] gap-4 p-6"
                       style={{
-                        backgroundColor: hexToRgba(pill.color || PILL_COLORS[0].value, 0.1)
+                        backgroundColor: hexToRgba(
+                          pill.color || PILL_COLORS[0].value,
+                          0.1,
+                        ),
                       }}
                     >
                       <div className="flex flex-col gap-5 md:flex-row">
@@ -284,7 +291,7 @@ export function PillsSettings({
                                     color: color.value,
                                   })
                                 }
-                                className={`flex-1 min-w-0 h-10 rounded-full border-2 transition-all ${
+                                className={`flex-1 min-w-0 h-10 cursor-pointer rounded-full border-2 transition-all ${
                                   pill.color === color.value
                                     ? "border-black-1000 scale-110"
                                     : "border-none"

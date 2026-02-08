@@ -421,6 +421,16 @@ export function CalendarView({
           const data = await response.json();
           setName(data.user.name || "");
           setUserId(data.user.id || "");
+          
+          // Load user settings (theme and week start preference)
+          if (data.settings) {
+            if (data.settings.theme) {
+              setTheme(data.settings.theme);
+            }
+            if (data.settings.weekStartsOnMonday !== undefined) {
+              setWeekStartsOnMonday(data.settings.weekStartsOnMonday);
+            }
+          }
         }
       } catch (error) {
         // Error loading user profile
@@ -1090,7 +1100,7 @@ export function CalendarView({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 lg:hidden"
+              className="fixed inset-0 bg-black/50 z-50 lg:hidden"
               onClick={() => setSidebarOpen(false)}
             />
 
@@ -1104,10 +1114,10 @@ export function CalendarView({
                 damping: 30,
                 stiffness: 300,
               }}
-              className="fixed top-0 left-0 h-full w-[280px] bg-[#0a0a0a] dark:bg-[#0a0a0a] border-r border-[#3a3a3a] z-50 lg:hidden overflow-y-auto"
+              className="fixed top-0 left-0 h-full w-[280px] bg-card border-r border-border z-50 lg:hidden overflow-y-auto"
             >
               {/* Sidebar Header */}
-              <div className="flex items-center justify-between p-4 border-b border-[#3a3a3a]">
+              <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="h-[28px] w-[120px]">
                   <Vector />
                 </div>
@@ -1124,77 +1134,83 @@ export function CalendarView({
               {/* Menu Items */}
               <div className="p-4 space-y-1">
                 {/* View Mode Section */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     setViewMode("week");
                     setSidebarOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                    "justify-start",
                     viewMode === "week"
                       ? "bg-[#9810FA]/10 text-[#9810FA]"
-                      : "text-white hover:bg-[#2a2a2a]",
+                      : "",
                   )}
                 >
                   <Calendar className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("calendar.weekView")}
                   </span>
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     setViewMode("month");
                     setSidebarOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                    "justify-start",
                     viewMode === "month"
                       ? "bg-[#9810FA]/10 text-[#9810FA]"
-                      : "text-white hover:bg-[#2a2a2a]",
+                      : "",
                   )}
                 >
                   <CalendarDays className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("calendar.monthView")}
                   </span>
-                </button>
+                </Button>
 
                 {/* Separator */}
-                <div className="h-px bg-[#3a3a3a] my-2" />
+                <div className="h-px bg-border my-2" />
 
                 {/* Mark Days */}
-                <button
+                <Button
+                  variant="ghost"
+                  className="justify-start"
                   onClick={() => {
                     setMultiSelectMode(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors"
                 >
                   <Palette className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("calendar.markDays")}
                   </span>
-                </button>
+                </Button>
 
                 {/* Separator */}
-                <div className="h-px bg-[#3a3a3a] my-2" />
+                <div className="h-px bg-border my-2" />
 
                 {/* Settings Section */}
-                <button
+                <Button
+                  variant="ghost"
+                  className="justify-start"
                   onClick={() => {
                     setProfileOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors"
                 >
                   <User className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("profile.title")}
                   </span>
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="ghost"
+                  className="justify-start"
                   onClick={() => {
                     if (userId) {
                       setPillsSettingsOpen(true);
@@ -1206,26 +1222,26 @@ export function CalendarView({
                     }
                   }}
                   disabled={!userId}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Pill className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("pillsSettings.title")}
                   </span>
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="ghost"
+                  className="justify-start"
                   onClick={() => {
                     setSettingsOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors"
                 >
                   <SettingsIcon className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("settings.title")}
                   </span>
-                </button>
+                </Button>
               </div>
             </motion.div>
           </>
@@ -1244,7 +1260,7 @@ export function CalendarView({
                 {t("app.welcome", { name })}
               </p>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
               {/* Menu button - visible only on mobile */}
               <Button
                 variant="ghost"
@@ -1257,7 +1273,7 @@ export function CalendarView({
 
               {/* Desktop icons - hidden on mobile */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
                 onClick={() => {
@@ -1275,7 +1291,7 @@ export function CalendarView({
                 <Pill className="h-6 w-6 text-muted-foreground" />
               </Button>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
                 onClick={() => setProfileOpen(true)}
@@ -1283,7 +1299,7 @@ export function CalendarView({
                 <User className="h-7 w-7 text-muted-foreground" />
               </Button>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
                 onClick={() => setSettingsOpen(true)}
@@ -1690,6 +1706,23 @@ export function CalendarView({
                             </span>
                           </div>
 
+                          {/* Note Indicator */}
+                          {hasNote && (
+                            <span
+                              className={cn(
+                                "inline-block w-2 h-2 rounded-full",
+                                hasColor && !isDarkMode
+                                  ? "bg-gray-900/80"
+                                  : hasColor && isDarkMode
+                                    ? "bg-gray-300"
+                                    : !isDarkMode
+                                      ? "bg-blue-500"
+                                      : "bg-blue-400",
+                              )}
+                              title="Has note"
+                            />
+                          )}
+
                           {/* Tag Display */}
                           {hasColor && entry.tag && (
                             <div
@@ -1708,7 +1741,7 @@ export function CalendarView({
                           )}
 
                           {/* Data container */}
-                          <div className="flex gap-2 flex-1 ml-auto flex-row flex-wrap justify-end">
+                          <div className="flex gap-2 flex-1 ml-auto items-center flex-row flex-wrap justify-end">
                             {/* Individual Medications Display */}
                             {hasPills &&
                               (() => {
@@ -1763,47 +1796,6 @@ export function CalendarView({
                                   );
                                 });
                               })()}
-
-                            {/* Legacy INR Display - Only show if no pills data */}
-                            {hasAmount && !hasPills && (
-                              <div
-                                className={cn(
-                                  "text-xs font-semibold px-2 py-1 rounded whitespace-nowrap",
-                                  hasColor && !isDarkMode
-                                    ? "bg-black/20 text-gray-900"
-                                    : hasColor && isDarkMode
-                                      ? "bg-white/20 text-gray-300"
-                                      : !isDarkMode
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-green-900 text-green-100",
-                                )}
-                              >
-                                INR:{" "}
-                                {parseFloat(
-                                  entry.amount,
-                                ).toLocaleString("en-IN", {
-                                  minimumFractionDigits: 0,
-                                  maximumFractionDigits: 2,
-                                })}
-                              </div>
-                            )}
-
-                            {/* Note Indicator */}
-                            {hasNote && (
-                              <span
-                                className={cn(
-                                  "inline-block w-2 h-2 rounded-full",
-                                  hasColor && !isDarkMode
-                                    ? "bg-gray-900/80"
-                                    : hasColor && isDarkMode
-                                      ? "bg-gray-300"
-                                      : !isDarkMode
-                                        ? "bg-blue-500"
-                                        : "bg-blue-400",
-                                )}
-                                title="Has note"
-                              />
-                            )}
                           </div>
                         </div>
                       ) : (
@@ -1948,7 +1940,10 @@ export function CalendarView({
 
       {/* Single Day Entry Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent size="small" className="p-0 gap-0 overflow-hidden">
+        <DialogContent
+          size="small"
+          className="p-0 gap-0 overflow-hidden"
+        >
           {/* Header */}
           <DialogHeader className="px-6 py-5 to-card">
             <DialogTitle className="text-foreground">
@@ -2649,7 +2644,10 @@ export function CalendarView({
         open={multiSelectDialogOpen}
         onOpenChange={setMultiSelectDialogOpen}
       >
-        <DialogContent size="small" className="bg-card border-border">
+        <DialogContent
+          size="small"
+          className="bg-card border-border"
+        >
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {t("multiSelect.title", {
@@ -2789,7 +2787,10 @@ export function CalendarView({
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
       >
-        <DialogContent size="small" className="bg-card border-border">
+        <DialogContent
+          size="small"
+          className="bg-card border-border"
+        >
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {t("deleteConfirm.title")}

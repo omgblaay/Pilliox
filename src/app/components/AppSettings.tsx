@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 // App version
-const APP_VERSION = "1.2.2";
+const APP_VERSION = "1.4.3";
 
 interface AppSettingsProps {
   open: boolean;
@@ -101,7 +101,10 @@ export function AppSettings({
             Authorization: `Bearer ${anonKey}`,
             "X-User-Token": accessToken,
           },
-          body: JSON.stringify({ weekStartsOnMonday: checked }),
+          body: JSON.stringify({ 
+            weekStartsOnMonday: checked,
+            theme: theme 
+          }),
         },
       );
     } catch (error) {
@@ -124,7 +127,10 @@ export function AppSettings({
             Authorization: `Bearer ${anonKey}`,
             "X-User-Token": accessToken,
           },
-          body: JSON.stringify({ theme: newTheme }),
+          body: JSON.stringify({ 
+            theme: newTheme,
+            weekStartsOnMonday: localWeekStartsOnMonday 
+          }),
         },
       );
     } catch (error) {

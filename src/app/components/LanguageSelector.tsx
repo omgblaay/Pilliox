@@ -38,7 +38,7 @@ export function LanguageSelector({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant}>
+        <Button variant={variant} className="flex-0">
           <Languages className="h-4 w-4" />
           <span className="w-full justify-start text-left">
             {currentLanguage.flag} {currentLanguage.name}
