@@ -299,7 +299,8 @@ export function PillsSettings({
                               type="button"
                               variant="tabGroup"
                               data-state={
-                                (pill.type || "pills") === "pills"
+                                (pill.type || "pills") ===
+                                "pills"
                                   ? "active"
                                   : "inactive"
                               }
@@ -322,7 +323,8 @@ export function PillsSettings({
                               type="button"
                               variant="tabGroup"
                               data-state={
-                                (pill.type || "pills") === "value"
+                                (pill.type || "pills") ===
+                                "value"
                                   ? "active"
                                   : "inactive"
                               }
@@ -420,14 +422,12 @@ export function PillsSettings({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="flex-1 h-12 bg-[rgba(42,42,42,0.3)] border-[#2a2a2a] border-[0.667px] text-white text-base font-medium tracking-[0.4px] leading-6 hover:bg-[rgba(42,42,42,0.5)] rounded-[14px]"
           >
             {t("pillsSettings.cancel")}
           </Button>
           <Button
             onClick={savePillsSettings}
             disabled={saving || loading}
-            className="flex-1 h-12 bg-[#155dfc] hover:bg-[#1250e0] text-white text-base font-medium tracking-[0.4px] leading-6 rounded-[14px] border-0 gap-[10px]"
           >
             {saving ? (
               <>
@@ -447,17 +447,7 @@ export function PillsSettings({
             )}
           </Button>
         </div>
-
-        {/* Close Button */}
-        <button
-          onClick={() => onOpenChange(false)}
-          className="absolute right-[17px] top-[21px] w-4 h-4 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
-        >
-          <X
-            className="h-4 w-4 text-white"
-            strokeWidth={1.33}
-          />
-        </button>
+        
       </DialogContent>
     </Dialog>
   );

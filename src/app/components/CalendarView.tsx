@@ -33,6 +33,7 @@ import {
   Pencil,
   Calendar,
   CalendarDays,
+  Menu,
 } from "lucide-react";
 import {
   motion,
@@ -283,6 +284,7 @@ export function CalendarView({
   const [profileOpen, setProfileOpen] = useState(false);
   const [pillsSettingsOpen, setPillsSettingsOpen] =
     useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [weekStartsOnMonday, setWeekStartsOnMonday] =
     useState(true);
 
@@ -1078,6 +1080,158 @@ export function CalendarView({
         </div>
       )}
 
+      {/* Mobile Sidebar Menu */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+
+            {/* Sidebar */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{
+                type: "spring",
+                damping: 30,
+                stiffness: 300,
+              }}
+              className="fixed top-0 left-0 h-full w-[280px] bg-[#0a0a0a] dark:bg-[#0a0a0a] border-r border-[#3a3a3a] z-50 lg:hidden overflow-y-auto"
+            >
+              {/* Sidebar Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#3a3a3a]">
+                <div className="h-[28px] w-[120px]">
+                  <Vector />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </Button>
+              </div>
+
+              {/* Menu Items */}
+              <div className="p-4 space-y-1">
+                {/* View Mode Section */}
+                <button
+                  onClick={() => {
+                    setViewMode("week");
+                    setSidebarOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                    viewMode === "week"
+                      ? "bg-[#9810FA]/10 text-[#9810FA]"
+                      : "text-white hover:bg-[#2a2a2a]",
+                  )}
+                >
+                  <Calendar className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("calendar.weekView")}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setViewMode("month");
+                    setSidebarOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                    viewMode === "month"
+                      ? "bg-[#9810FA]/10 text-[#9810FA]"
+                      : "text-white hover:bg-[#2a2a2a]",
+                  )}
+                >
+                  <CalendarDays className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("calendar.monthView")}
+                  </span>
+                </button>
+
+                {/* Separator */}
+                <div className="h-px bg-[#3a3a3a] my-2" />
+
+                {/* Mark Days */}
+                <button
+                  onClick={() => {
+                    setMultiSelectMode(true);
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <Palette className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("calendar.markDays")}
+                  </span>
+                </button>
+
+                {/* Separator */}
+                <div className="h-px bg-[#3a3a3a] my-2" />
+
+                {/* Settings Section */}
+                <button
+                  onClick={() => {
+                    setProfileOpen(true);
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <User className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("profile.title")}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (userId) {
+                      setPillsSettingsOpen(true);
+                      setSidebarOpen(false);
+                    } else {
+                      console.error(
+                        "Cannot open pills settings: userId not loaded yet",
+                      );
+                    }
+                  }}
+                  disabled={!userId}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Pill className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("pillsSettings.title")}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSettingsOpen(true);
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-white hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <SettingsIcon className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("settings.title")}
+                  </span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div>
         <div className="w-full lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
@@ -1091,10 +1245,21 @@ export function CalendarView({
               </p>
             </div>
             <div className="flex items-center gap-1">
+              {/* Menu button - visible only on mobile */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent"
+                className="h-12 w-12 rounded-full hover:bg-accent lg:hidden"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-6 w-6 text-muted-foreground" />
+              </Button>
+
+              {/* Desktop icons - hidden on mobile */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
                 onClick={() => {
                   if (userId) {
                     setPillsSettingsOpen(true);
@@ -1112,7 +1277,7 @@ export function CalendarView({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent"
+                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
                 onClick={() => setProfileOpen(true)}
               >
                 <User className="h-7 w-7 text-muted-foreground" />
@@ -1120,7 +1285,7 @@ export function CalendarView({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent"
+                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
                 onClick={() => setSettingsOpen(true)}
               >
                 <SettingsIcon className="h-[42px] w-[42px] text-muted-foreground" />
@@ -1143,24 +1308,23 @@ export function CalendarView({
                 variant="outline"
                 size="sm"
                 disabled={multiSelectMode}
-                className="flex-0"
+                className="flex-1 hidden sm:flex"
               >
                 <Palette className="h-3 w-3" />
                 {t("calendar.markDays")}
               </Button>
 
               {/* Center: Date Navigation */}
-              <div className="flex items-center gap-2 flex-1 justify-center">
+              <div className="flex items-center gap-2 flex-4 justify-center">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handlePreviousMonth}
-                  className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
                 >
                   <ChevronLeft className="h-5 w-5 text-foreground" />
                 </Button>
                 <motion.div
-                  className="overflow-hidden relative"
+                  className="overflow-hidden relative flex-1"
                   drag="x"
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.2}
@@ -1182,7 +1346,7 @@ export function CalendarView({
                         duration: 0.3,
                         ease: "easeInOut",
                       }}
-                      className="text-lg font-semibold text-foreground text-[14px] text-center whitespace-nowrap"
+                      className="text-[14px] text-center whitespace-nowrap"
                     >
                       {formatHeaderTitle(currentMonth)}
                     </motion.h2>
@@ -1192,7 +1356,6 @@ export function CalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={handleNextMonth}
-                  className="h-10 w-10 rounded-full hover:bg-accent shrink-0"
                 >
                   <ChevronRight className="h-5 w-5 text-foreground" />
                 </Button>
@@ -1201,12 +1364,13 @@ export function CalendarView({
               {/* Right: Weekly/Monthly Preview Dropdown */}
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() =>
                   setViewMode(
                     viewMode === "month" ? "week" : "month",
                   )
                 }
-                className="flex-0"
+                className="flex-1 justify-between hidden sm:flex"
                 title={
                   viewMode === "month"
                     ? t("calendar.weekView")
@@ -1825,7 +1989,6 @@ export function CalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={navigateToPreviousDay}
-                  className="h-8 w-8 rounded-full hover:bg-accent flex-0 flex-shrink-0"
                 >
                   <ChevronLeft className="h-4 w-4 text-foreground" />
                 </Button>
@@ -1867,7 +2030,6 @@ export function CalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={navigateToNextDay}
-                  className="h-8 w-8 rounded-full hover:bg-accent flex-0 flex-shrink-0"
                 >
                   <ChevronRight className="h-4 w-4 text-foreground" />
                 </Button>

@@ -10,7 +10,7 @@ import { cn } from "./utils";
 // h-12 bg-[#155dfc] hover:bg-[#1250e0] text-white font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed
 
 const buttonVariants = cva(
-  "inline-flex w-full flex-1 text-foreground cursor-pointer font-medium items-center !text-base justify-center gap-2 whitespace-nowrap rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-6 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex w-full text-foreground cursor-pointer font-medium items-center !text-base justify-center gap-2 whitespace-nowrap rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-6 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
@@ -26,7 +26,7 @@ const buttonVariants = cva(
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "underline-offset-4 hover:underline",
         tabGroup:
-          "h-[40px] rounded-[14px] data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]",
+          "h-[40px] flex-1 rounded-[14px] data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]",
       },
       size: {
         default: "min-h-12 px-4 has-[>svg]:px-3",
