@@ -1317,7 +1317,6 @@ export function CalendarView({
                   {t("app.welcome", { name })}
                 </p>
               </div>
-
             </div>
             <div className="flex items-center gap-3">
               {/* Menu button - visible only on mobile */}
@@ -2002,7 +2001,7 @@ export function CalendarView({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
           size="small"
-          className="p-0 gap-0 overflow-hidden"
+          className="!p-0 gap-0 overflow-hidden"
         >
           {/* Header */}
           <DialogHeader className="px-6 py-5 to-card">
