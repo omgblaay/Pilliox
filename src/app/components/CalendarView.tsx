@@ -34,6 +34,8 @@ import {
   Calendar,
   CalendarDays,
   Menu,
+  Info,
+  Home,
 } from "lucide-react";
 import {
   motion,
@@ -285,6 +287,7 @@ export function CalendarView({
   const [pillsSettingsOpen, setPillsSettingsOpen] =
     useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [weekStartsOnMonday, setWeekStartsOnMonday] =
     useState(true);
 
@@ -791,7 +794,9 @@ export function CalendarView({
   };
 
   // Save view mode preference
-  const saveViewMode = async (newViewMode: "month" | "week") => {
+  const saveViewMode = async (
+    newViewMode: "month" | "week",
+  ) => {
     try {
       await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
@@ -802,10 +807,10 @@ export function CalendarView({
             Authorization: `Bearer ${anonKey}`,
             "X-User-Token": accessToken,
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             viewMode: newViewMode,
             weekStartsOnMonday: weekStartsOnMonday,
-            theme: theme
+            theme: theme,
           }),
         },
       );
@@ -1175,7 +1180,7 @@ export function CalendarView({
                   className={cn(
                     "justify-start",
                     viewMode === "week"
-                      ? "bg-[#9810FA]/10 text-[#9810FA]"
+                      ? "bg-blue-500/10 text-blue-400"
                       : "",
                   )}
                 >
@@ -1195,7 +1200,7 @@ export function CalendarView({
                   className={cn(
                     "justify-start",
                     viewMode === "month"
-                      ? "bg-[#9810FA]/10 text-[#9810FA]"
+                      ? "bg-blue-500/10 text-blue-400"
                       : "",
                   )}
                 >
@@ -1275,6 +1280,24 @@ export function CalendarView({
                     {t("settings.title")}
                   </span>
                 </Button>
+
+                {/* Separator */}
+                <div className="h-px bg-border my-2" />
+
+                {/* About App */}
+                <Button
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={() => {
+                    setAboutOpen(true);
+                    setSidebarOpen(false);
+                  }}
+                >
+                  <Info className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("about.title")}
+                  </span>
+                </Button>
               </div>
             </motion.div>
           </>
@@ -1285,13 +1308,16 @@ export function CalendarView({
       <div>
         <div className="w-full lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
           <div className="flex items-center gap-8 justify-between mt-[0px] mr-[0px] ml-[0px] m-[0px]">
-            <div className="flex items-start flex-col gap-2">
-              <div className="h-[28px] w-[120px]">
-                <Vector />
+            <div className="flex items-center gap-4">
+              <div className="flex items-start flex-col gap-2">
+                <div className="h-[28px] w-[120px]">
+                  <Vector />
+                </div>
+                <p className="text-[14px] text-muted-foreground">
+                  {t("app.welcome", { name })}
+                </p>
               </div>
-              <p className="text-[14px] text-muted-foreground">
-                {t("app.welcome", { name })}
-              </p>
+
             </div>
             <div className="flex items-center gap-3">
               {/* Menu button - visible only on mobile */}
@@ -1415,7 +1441,8 @@ export function CalendarView({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const newMode = viewMode === "month" ? "week" : "month";
+                  const newMode =
+                    viewMode === "month" ? "week" : "month";
                   setViewMode(newMode);
                   saveViewMode(newMode);
                 }}
@@ -2815,6 +2842,69 @@ export function CalendarView({
         userId={userId}
         accessToken={accessToken}
       />
+
+      {/* About App Modal */}
+      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+        <DialogContent
+          size="small"
+          className="bg-card border-border"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {t("about.title")}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-4">
+            <div className="flex flex-col gap-3 pb-2">
+              <div className="h-[40px] w-[160px]">
+                <Vector />
+              </div>
+              <p className="text-sm text-muted-foreground text-left">
+                {t("about.description")}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {t("about.features")}
+              </p>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
+                  <span>{t("about.feature1")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
+                  <span>{t("about.feature2")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
+                  <span>{t("about.feature3")}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
+                  <span>{t("about.feature4")}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-2 space-y-3">
+              <Button variant="secondary" size="sm" href="/">
+                {t("about.visitHomepage")}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                size="sm"
+                onClick={() => setAboutOpen(false)}
+              >
+                {t("about.close")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
       <Dialog

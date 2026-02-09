@@ -215,7 +215,7 @@ export function PillsSettings({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="large"
-        className="max-h-[90vh] overflow-y-auto p-0"
+        className="max-h-[90vh] overflow-y-auto !p-0"
       >
         <DialogHeader className="px-[17px] pt-[21px] pb-[12px] space-y-0">
           <DialogTitle className="flex items-center gap-2 text-[19px] font-semibold">

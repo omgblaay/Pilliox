@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Pilliox",
-    "welcome": "Welcome, {{name}}"
+    "welcome": "Welcome, {{name}}",
+    "homepage": "Homepage"
   },
   "auth": {
     "welcome": "Welcome to Pilliox",

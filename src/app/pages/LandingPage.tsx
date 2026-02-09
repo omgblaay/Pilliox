@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
+import { useState, useEffect } from "react";
 import Lottie from "lottie-react";
 import { useLottie } from "../hooks/useLottie";
 import {
@@ -18,11 +19,55 @@ import { Card } from "../components/ui/card";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { useTheme } from "../hooks/useTheme";
 import Vector from "../../imports/Vector";
+import { getSupabaseClient } from "../../../utils/supabase/client";
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+
+    const checkAuth = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        console.log(
+          "Landing page auth check - session:",
+          session?.user?.email,
+        );
+        setIsLoggedIn(!!session);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setIsLoggedIn(false);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log(
+        "Landing page auth state changed:",
+        session?.user?.email,
+      );
+      setIsLoggedIn(!!session);
+      setIsCheckingAuth(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Load Lottie animations - using working LottieFiles URLs
   const healthAnimation = useLottie(
@@ -109,19 +154,30 @@ export function LandingPage() {
             </Button>
 
             {/* Auth Buttons */}
-            <Button
-              variant="outline"
-              onClick={() => navigate("/auth")}
-              className="flex-0"
-            >
-              {t("landing.header.signIn")}
-            </Button>
-            <Button
-              onClick={() => navigate("/auth")}
-              className="flex-0"
-            >
-              {t("landing.header.getStarted")}
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                onClick={() => navigate("/app")}
+                className="flex-0"
+              >
+                {t("landing.header.goToApp")}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/auth")}
+                  className="flex-0"
+                >
+                  {t("landing.header.signIn")}
+                </Button>
+                <Button
+                  onClick={() => navigate("/auth")}
+                  className="flex-0"
+                >
+                  {t("landing.header.getStarted")}
+                </Button>
+              </>
+            )}
           </motion.div>
         </div>
       </header>

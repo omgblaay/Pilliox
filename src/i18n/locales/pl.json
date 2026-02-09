@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Pilliox",
-    "welcome": "Witaj, {{name}} w twoim kalendarzu"
+    "welcome": "Witaj, {{name}} w twoim kalendarzu",
+    "homepage": "Strona główna"
   },
   "auth": {
     "welcome": "Witamy w Pilliox",

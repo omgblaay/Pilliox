@@ -7,6 +7,7 @@ export default {
     header: {
       signIn: "Sign In",
       getStarted: "Get Started",
+      goToApp: "Go to App",
     },
     hero: {
       title: "Your Medical Values,",
@@ -262,6 +263,18 @@ export default {
     allDaysDescription:
       "Remove tag from all days with the same color and label",
     cancel: "Cancel",
+  },
+  about: {
+    title: "About Pilliox",
+    description: "Your medical tracking companion",
+    tagline: "Track your medical values with ease and precision",
+    features: "Key Features:",
+    feature1: "Track INR values and blood test results",
+    feature2: "Monitor daily medications with pill counter",
+    feature3: "Color-code treatment periods with custom tags",
+    feature4: "Secure cloud backup of your medical data",
+    visitHomepage: "Visit Homepage",
+    close: "Close",
   },
   days: {
     monday: "Monday",

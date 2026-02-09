@@ -7,6 +7,7 @@ export default {
     header: {
       signIn: "Zaloguj się",
       getStarted: "Rozpocznij",
+      goToApp: "Przejdź do aplikacji",
     },
     hero: {
       title: "Twoje wartości medyczne,",
@@ -265,6 +266,18 @@ export default {
     allDaysDescription:
       "Usuń tag ze wszystkich dni z tym samym kolorem i etykietą",
     cancel: "Anuluj",
+  },
+  about: {
+    title: "O Pilliox",
+    description: "Twój kompan do śledzenia danych medycznych",
+    tagline: "Śledź swoje wartości medyczne z łatwością i precyzją",
+    features: "Kluczowe funkcje:",
+    feature1: "Śledź wartości INR i wyniki badań krwi",
+    feature2: "Monitoruj codzienne leki z licznikiem tabletek",
+    feature3: "Oznaczaj okresy leczenia kolorami z własnymi tagami",
+    feature4: "Bezpieczna kopia zapasowa w chmurze Twoich danych medycznych",
+    visitHomepage: "Odwiedź stronę główną",
+    close: "Zamknij",
   },
   days: {
     monday: "Poniedziałek",

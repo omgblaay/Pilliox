@@ -141,7 +141,7 @@ export function AuthForm({
         await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: `${window.location.origin}/`,
+            redirectTo: `${window.location.origin}/app`,
             skipBrowserRedirect: false,
             queryParams: {
               access_type: "offline",
@@ -171,7 +171,7 @@ export function AuthForm({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "facebook",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/app`,
         },
       });
 
@@ -201,7 +201,7 @@ export function AuthForm({
         variant="ghost"
         size="sm"
         onClick={() => navigate("/")}
-        className="absolute top-4 left-4 z-10 flex-0"
+        className="absolute top-4 left-4 z-10 w-80 mx-auto"
       >
         <ArrowLeft className="w-4 h-4" />
         <span className="hidden sm:inline">Back to Home</span>
