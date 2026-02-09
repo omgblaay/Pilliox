@@ -2853,6 +2853,9 @@ export function CalendarView({
             <DialogTitle className="text-foreground">
               {t("about.title")}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("about.description")}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-4">

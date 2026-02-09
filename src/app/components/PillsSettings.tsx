@@ -213,12 +213,9 @@ export function PillsSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        size="large"
-        className="max-h-[90vh] overflow-y-auto !p-0"
-      >
-        <DialogHeader className="px-[17px] pt-[21px] pb-[12px] space-y-0">
-          <DialogTitle className="flex items-center gap-2 text-[19px] font-semibold">
+      <DialogContent size="large">
+        <DialogHeader>
+          <DialogTitle className="flex gap-2">
             <Pill
               className="h-5 w-5 text-[#9810FA]"
               strokeWidth={1.67}
@@ -230,7 +227,7 @@ export function PillsSettings({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-[17px] space-y-3 md:space-y-5">
+        <div>
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-700 border-t-purple-400"></div>
@@ -421,6 +418,7 @@ export function PillsSettings({
               <Button
                 type="button"
                 variant="outline"
+                className="mt-4"
                 onClick={addPill}
               >
                 <Plus
@@ -436,7 +434,7 @@ export function PillsSettings({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-borde p-4 flex sm:flex-row flex-col-reverse gap-4">
+        <div className="border-t border-borde pt-4 flex sm:flex-row flex-col-reverse gap-4">
           <Button
             variant="outline"
             className="flex-1"
