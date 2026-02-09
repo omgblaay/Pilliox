@@ -12,42 +12,51 @@ export default {
     hero: {
       title: "Ihre medizinischen Werte,",
       titleHighlight: "Perfekt erfasst",
-      description: "Verfolgen Sie INR, Bluttests und Medikamente mit einer schönen Kalenderoberfläche. Für Einfachheit entwickelt, für Zuverlässigkeit gebaut.",
+      description:
+        "Verfolgen Sie INR, Bluttests und Medikamente mit einer schönen Kalenderoberfläche. Für Einfachheit entwickelt, für Zuverlässigkeit gebaut.",
       startTrial: "Kostenlose Testversion starten",
       pricing: "3 Tage kostenlos, dann 2,99 €/Monat",
       trustedBadge: "Von Tausenden vertraut",
     },
     features: {
       title: "Alles, was Sie brauchen",
-      description: "Leistungsstarke Funktionen für müheloses medizinisches Tracking",
+      description:
+        "Leistungsstarke Funktionen für müheloses medizinisches Tracking",
       calendar: {
         title: "Intelligente Kalenderansicht",
-        description: "Verfolgen Sie medizinische Werte wie INR und Bluttestergebnisse mit einer intuitiven Kalenderoberfläche.",
+        description:
+          "Verfolgen Sie medizinische Werte wie INR und Bluttestergebnisse mit einer intuitiven Kalenderoberfläche.",
       },
       pillCounter: {
         title: "Tablettenzähler",
-        description: "Verpassen Sie keine Dosis mit unserem intelligenten Tracking-System für Ihre Medikamente.",
+        description:
+          "Verpassen Sie keine Dosis mit unserem intelligenten Tracking-System für Ihre Medikamente.",
       },
       colorCoded: {
         title: "Farbcodierte Verfolgung",
-        description: "Mehrtägige Auswahl mit Farbcodierung für Behandlungsperioden und Tags zur einfachen visuellen Organisation.",
+        description:
+          "Mehrtägige Auswahl mit Farbcodierung für Behandlungsperioden und Tags zur einfachen visuellen Organisation.",
       },
       secure: {
         title: "Sicher & Privat",
-        description: "Ihre medizinischen Daten werden verschlüsselt und sicher mit Unternehmenssicherheit gespeichert.",
+        description:
+          "Ihre medizinischen Daten werden verschlüsselt und sicher mit Unternehmenssicherheit gespeichert.",
       },
       multiLanguage: {
         title: "Mehrsprachig",
-        description: "Verfügbar in Deutsch, Polnisch und Englisch für Benutzer weltweit.",
+        description:
+          "Verfügbar in Deutsch, Polnisch und Englisch für Benutzer weltweit.",
       },
     },
     pricing: {
       title: "Einfache, transparente Preise",
-      description: "Beginnen Sie mit einer kostenlosen Testversion, dann weniger als eine Tasse Kaffee pro Monat",
+      description:
+        "Beginnen Sie mit einer kostenlosen Testversion, dann weniger als eine Tasse Kaffee pro Monat",
       plan: "Premium",
       price: "2,99 €",
       perMonth: "/Monat",
-      trialIncluded: "3-tägige kostenlose Testversion inklusive",
+      trialIncluded:
+        "3-tägige kostenlose Testversion inklusive",
       features: {
         tracking: "Unbegrenzte Verfolgung medizinischer Werte",
         pillCounter: "Intelligenter Tablettenzähler",
@@ -58,11 +67,13 @@ export default {
         support: "Prioritäts-Kundensupport",
       },
       cta: "Starten Sie Ihre kostenlose Testversion",
-      cancelAnytime: "Jederzeit kündbar. Keine Verpflichtung erforderlich.",
+      cancelAnytime:
+        "Jederzeit kündbar. Keine Verpflichtung erforderlich.",
     },
     cta: {
       title: "Bereit, die Kontrolle zu übernehmen?",
-      description: "Schließen Sie sich Tausenden von Benutzern an, die Pilliox mit ihrem medizinischen Tracking vertrauen",
+      description:
+        "Schließen Sie sich Tausenden von Benutzern an, die Pilliox mit ihrem medizinischen Tracking vertrauen",
       button: "Jetzt loslegen",
     },
     footer: {
@@ -245,8 +256,8 @@ export default {
     medicationName: "Medikamentenname",
     medicationPlaceholder: "z.B. Warfarin, Aspirin",
     type: "Typ",
-    typePills: "Pillen-Zähler",
-    typeValue: "Werteingabe",
+    typePills: "Pillen",
+    typeValue: "Werte",
     defaultDosage: "Standard-Tagesdosis",
     defaultValue: "Standardwert",
     color: "Farbe",
@@ -278,12 +289,16 @@ export default {
   about: {
     title: "Über Pilliox",
     description: "Ihr medizinischer Tracking-Begleiter",
-    tagline: "Verfolgen Sie Ihre medizinischen Werte mit Leichtigkeit und Präzision",
+    tagline:
+      "Verfolgen Sie Ihre medizinischen Werte mit Leichtigkeit und Präzision",
     features: "Hauptfunktionen:",
     feature1: "INR-Werte und Bluttestergebnisse verfolgen",
-    feature2: "Tägliche Medikamente mit Tablettenzähler überwachen",
-    feature3: "Behandlungsperioden mit benutzerdefinierten Tags farblich kennzeichnen",
-    feature4: "Sichere Cloud-Sicherung Ihrer medizinischen Daten",
+    feature2:
+      "Tägliche Medikamente mit Tablettenzähler überwachen",
+    feature3:
+      "Behandlungsperioden mit benutzerdefinierten Tags farblich kennzeichnen",
+    feature4:
+      "Sichere Cloud-Sicherung Ihrer medizinischen Daten",
     visitHomepage: "Homepage besuchen",
     close: "Schließen",
   },

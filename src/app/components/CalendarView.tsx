@@ -1317,6 +1317,7 @@ export function CalendarView({
                   {t("app.welcome", { name })}
                 </p>
               </div>
+
             </div>
             <div className="flex items-center gap-3">
               {/* Menu button - visible only on mobile */}

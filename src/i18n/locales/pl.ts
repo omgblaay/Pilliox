@@ -12,44 +12,53 @@ export default {
     hero: {
       title: "Twoje wartości medyczne,",
       titleHighlight: "Idealnie śledzone",
-      description: "Śledź INR, badania krwi i leki za pomocą pięknego interfejsu kalendarza. Zaprojektowany dla prostoty, zbudowany dla niezawodności.",
+      description:
+        "Śledź INR, badania krwi i leki za pomocą pięknego interfejsu kalendarza. Zaprojektowany dla prostoty, zbudowany dla niezawodności.",
       startTrial: "Rozpocznij darmowy okres próbny",
       pricing: "3 dni za darmo, potem 2,99 €/miesiąc",
       trustedBadge: "Zaufane przez tysiące",
     },
     features: {
       title: "Wszystko, czego potrzebujesz",
-      description: "Potężne funkcje zaprojektowane, aby śledzenie medyczne było bezwysiłkowe",
+      description:
+        "Potężne funkcje zaprojektowane, aby śledzenie medyczne było bezwysiłkowe",
       calendar: {
         title: "Inteligentny widok kalendarza",
-        description: "Śledź wartości medyczne, takie jak INR i wyniki badań krwi za pomocą intuicyjnego interfejsu kalendarza.",
+        description:
+          "Śledź wartości medyczne, takie jak INR i wyniki badań krwi za pomocą intuicyjnego interfejsu kalendarza.",
       },
       pillCounter: {
         title: "Licznik tabletek",
-        description: "Nigdy nie przegap dawki dzięki naszemu inteligentnemu systemowi śledzenia leków.",
+        description:
+          "Nigdy nie przegap dawki dzięki naszemu inteligentnemu systemowi śledzenia leków.",
       },
       colorCoded: {
         title: "Kolorowe śledzenie",
-        description: "Wielodniowy wybór z kodowaniem kolorami dla okresów leczenia i tagami dla łatwej wizualnej organizacji.",
+        description:
+          "Wielodniowy wybór z kodowaniem kolorami dla okresów leczenia i tagami dla łatwej wizualnej organizacji.",
       },
       secure: {
         title: "Bezpieczne i prywatne",
-        description: "Twoje dane medyczne są szyfrowane i bezpiecznie przechowywane z zabezpieczeniami klasy korporacyjnej.",
+        description:
+          "Twoje dane medyczne są szyfrowane i bezpiecznie przechowywane z zabezpieczeniami klasy korporacyjnej.",
       },
       multiLanguage: {
         title: "Wielojęzyczne",
-        description: "Dostępne w języku niemieckim, polskim i angielskim, aby obsługiwać użytkowników na całym świecie.",
+        description:
+          "Dostępne w języku niemieckim, polskim i angielskim, aby obsługiwać użytkowników na całym świecie.",
       },
     },
     pricing: {
       title: "Proste, przejrzyste ceny",
-      description: "Zacznij od darmowego okresu próbnego, kontynuuj za mniej niż filiżanka kawy miesięcznie",
+      description:
+        "Zacznij od darmowego okresu próbnego, kontynuuj za mniej niż filiżanka kawy miesięcznie",
       plan: "Premium",
       price: "2,99 €",
       perMonth: "/miesiąc",
       trialIncluded: "3-dniowy darmowy okres próbny wliczony",
       features: {
-        tracking: "Nieograniczone śledzenie wartości medycznych",
+        tracking:
+          "Nieograniczone śledzenie wartości medycznych",
         pillCounter: "Inteligentny licznik tabletek",
         colorCoded: "Wielodniowy wybór z kodowaniem kolorami",
         tags: "Niestandardowe tagi i etykiety",
@@ -58,11 +67,13 @@ export default {
         support: "Priorytetowe wsparcie klienta",
       },
       cta: "Rozpocznij darmowy okres próbny",
-      cancelAnytime: "Anuluj w dowolnym momencie. Bez zobowiązań.",
+      cancelAnytime:
+        "Anuluj w dowolnym momencie. Bez zobowiązań.",
     },
     cta: {
       title: "Gotowy, aby przejąć kontrolę?",
-      description: "Dołącz do tysięcy użytkowników, którzy ufają Pilliox w śledzeniu medycznym",
+      description:
+        "Dołącz do tysięcy użytkowników, którzy ufają Pilliox w śledzeniu medycznym",
       button: "Rozpocznij teraz",
     },
     footer: {
@@ -242,8 +253,8 @@ export default {
     medicationName: "Nazwa leku",
     medicationPlaceholder: "np. Warfaryna, Aspiryna",
     type: "Typ",
-    typePills: "Licznik tabletek",
-    typeValue: "Wprowadzanie wartości",
+    typePills: "Tabletki",
+    typeValue: "Wartość",
     defaultDosage: "Domyślna dawka dzienna",
     defaultValue: "Wartość domyślna",
     color: "Kolor",
@@ -270,12 +281,15 @@ export default {
   about: {
     title: "O Pilliox",
     description: "Twój kompan do śledzenia danych medycznych",
-    tagline: "Śledź swoje wartości medyczne z łatwością i precyzją",
+    tagline:
+      "Śledź swoje wartości medyczne z łatwością i precyzją",
     features: "Kluczowe funkcje:",
     feature1: "Śledź wartości INR i wyniki badań krwi",
     feature2: "Monitoruj codzienne leki z licznikiem tabletek",
-    feature3: "Oznaczaj okresy leczenia kolorami z własnymi tagami",
-    feature4: "Bezpieczna kopia zapasowa w chmurze Twoich danych medycznych",
+    feature3:
+      "Oznaczaj okresy leczenia kolorami z własnymi tagami",
+    feature4:
+      "Bezpieczna kopia zapasowa w chmurze Twoich danych medycznych",
     visitHomepage: "Odwiedź stronę główną",
     close: "Zamknij",
   },

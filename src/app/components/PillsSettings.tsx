@@ -246,7 +246,7 @@ export function PillsSettings({
                   {pills.map((pill) => (
                     <div
                       key={pill.id}
-                      className="flex flex-col rounded-[10px] gap-4 p-6"
+                      className="flex flex-col rounded-[10px] gap-4 sm:p-6 p-4"
                       style={{
                         backgroundColor: hexToRgba(
                           pill.color || PILL_COLORS[0].value,
@@ -314,6 +314,7 @@ export function PillsSettings({
                               size="sm"
                               type="button"
                               variant="tabGroup"
+                              className="px-[8px] py-[0px]"
                               data-state={
                                 (pill.type || "pills") ===
                                 "pills"
@@ -327,10 +328,10 @@ export function PillsSettings({
                               }
                             >
                               <Pill
-                                className="h-4 w-4"
+                                className="h-3 w-3"
                                 strokeWidth={1.33}
                               />
-                              <span className="text-[14px] font-medium tracking-[0.35px] leading-5">
+                              <span>
                                 {t("pillsSettings.typePills")}
                               </span>
                             </Button>
@@ -338,6 +339,7 @@ export function PillsSettings({
                               size="sm"
                               type="button"
                               variant="tabGroup"
+                              className="px-[8px] py-[0px]"
                               data-state={
                                 (pill.type || "pills") ===
                                 "value"
@@ -351,10 +353,10 @@ export function PillsSettings({
                               }
                             >
                               <Droplet
-                                className="h-4 w-4"
+                                className="h-3 w-3"
                                 strokeWidth={1.33}
                               />
-                              <span className="text-[14px] font-medium tracking-[0.35px] leading-5">
+                              <span>
                                 {t("pillsSettings.typeValue")}
                               </span>
                             </Button>
