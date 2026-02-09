@@ -267,6 +267,12 @@ export default {
     saveError: "Nie udało się zapisać ustawień leków",
     invalidData:
       "Proszę wypełnić wszystkie pola leków prawidłowymi danymi",
+    notifications: "Powiadomienia",
+    notificationTime: "Godzina powiadomienia",
+    notificationFrequency: "Częstotliwość",
+    daily: "Codziennie",
+    every2days: "Co 2 dni",
+    every3days: "Co 3 dni",
   },
   deleteConfirm: {
     title: "Usuń tag",

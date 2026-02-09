@@ -273,6 +273,12 @@ export default {
       "Medikamenten-Einstellungen konnten nicht gespeichert werden",
     invalidData:
       "Bitte füllen Sie alle Medikamentenfelder mit gültigen Daten aus",
+    notifications: "Benachrichtigungen",
+    notificationTime: "Benachrichtigungszeit",
+    notificationFrequency: "Häufigkeit",
+    daily: "Täglich",
+    every2days: "Alle 2 Tage",
+    every3days: "Alle 3 Tage",
   },
   deleteConfirm: {
     title: "Tag entfernen",

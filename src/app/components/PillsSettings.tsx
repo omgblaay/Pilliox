@@ -7,6 +7,8 @@ import {
   Save,
   Droplet,
   X,
+  Bell,
+  Clock,
 } from "lucide-react";
 import {
   Dialog,
@@ -18,6 +20,7 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import {
   projectId,
@@ -30,6 +33,9 @@ export interface PillSetting {
   defaultDosage: number;
   color?: string;
   type?: "pills" | "value";
+  notificationsEnabled?: boolean;
+  notificationTime?: string; // HH:mm format
+  notificationFrequency?: "daily" | "every2days" | "every3days";
 }
 
 interface PillsSettingsProps {
@@ -410,6 +416,112 @@ export function PillsSettings({
                             />
                           </Button>
                         </div>
+                      </div>
+
+                      {/* Notification Settings */}
+                      <div className="border-t border-border/30 pt-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Bell className="h-4 w-4 text-muted-foreground" />
+                            <Label className="text-base">
+                              {t("pillsSettings.notifications")}
+                            </Label>
+                          </div>
+                          <Switch
+                            checked={pill.notificationsEnabled || false}
+                            onCheckedChange={(checked) =>
+                              updatePill(pill.id, {
+                                notificationsEnabled: checked,
+                                notificationTime: checked && !pill.notificationTime ? "09:00" : pill.notificationTime,
+                                notificationFrequency: checked && !pill.notificationFrequency ? "daily" : pill.notificationFrequency,
+                              })
+                            }
+                          />
+                        </div>
+
+                        {pill.notificationsEnabled && (
+                          <div className="flex flex-col gap-4 md:flex-row">
+                            {/* Time Picker */}
+                            <div className="flex-1 space-y-2">
+                              <Label className="flex items-center gap-2">
+                                <Clock className="h-3 w-3" />
+                                {t("pillsSettings.notificationTime")}
+                              </Label>
+                              <Input
+                                type="time"
+                                value={pill.notificationTime || "09:00"}
+                                onChange={(e) =>
+                                  updatePill(pill.id, {
+                                    notificationTime: e.target.value,
+                                  })
+                                }
+                              />
+                            </div>
+
+                            {/* Frequency Selector */}
+                            <div className="flex-1 space-y-2">
+                              <Label>
+                                {t("pillsSettings.notificationFrequency")}
+                              </Label>
+                              <div className="bg-input-background rounded-2xl p-1 flex gap-0">
+                                <Button
+                                  size="sm"
+                                  type="button"
+                                  variant="tabGroup"
+                                  className="px-[6px] py-[0px] text-xs"
+                                  data-state={
+                                    (pill.notificationFrequency || "daily") === "daily"
+                                      ? "active"
+                                      : "inactive"
+                                  }
+                                  onClick={() =>
+                                    updatePill(pill.id, {
+                                      notificationFrequency: "daily",
+                                    })
+                                  }
+                                >
+                                  {t("pillsSettings.daily")}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  type="button"
+                                  variant="tabGroup"
+                                  className="px-[6px] py-[0px] text-xs"
+                                  data-state={
+                                    (pill.notificationFrequency || "daily") === "every2days"
+                                      ? "active"
+                                      : "inactive"
+                                  }
+                                  onClick={() =>
+                                    updatePill(pill.id, {
+                                      notificationFrequency: "every2days",
+                                    })
+                                  }
+                                >
+                                  {t("pillsSettings.every2days")}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  type="button"
+                                  variant="tabGroup"
+                                  className="px-[6px] py-[0px] text-xs"
+                                  data-state={
+                                    (pill.notificationFrequency || "daily") === "every3days"
+                                      ? "active"
+                                      : "inactive"
+                                  }
+                                  onClick={() =>
+                                    updatePill(pill.id, {
+                                      notificationFrequency: "every3days",
+                                    })
+                                  }
+                                >
+                                  {t("pillsSettings.every3days")}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

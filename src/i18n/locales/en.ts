@@ -253,6 +253,12 @@ export default {
     saveError: "Failed to save medication settings",
     invalidData:
       "Please fill in all medication fields with valid data",
+    notifications: "Notifications",
+    notificationTime: "Notification Time",
+    notificationFrequency: "Frequency",
+    daily: "Daily",
+    every2days: "Every 2 days",
+    every3days: "Every 3 days",
   },
   deleteConfirm: {
     title: "Remove Tag",
