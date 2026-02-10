@@ -46,39 +46,68 @@ app.use('*', cors({
   credentials: false,
 }));
 
+// Helper function to retry failed requests with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 200
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if error is a connection reset or network error
+      const isNetworkError = 
+        error?.message?.includes('connection reset') ||
+        error?.message?.includes('connection error') ||
+        error?.message?.includes('ECONNRESET') ||
+        error?.message?.includes('fetch failed') ||
+        error?.message?.includes('client error');
+      
+      // If it's the last attempt or not a network error, throw immediately
+      if (attempt === maxRetries - 1 || !isNetworkError) {
+        throw error;
+      }
+      
+      // Wait with exponential backoff before retrying
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
 // Helper function to get user from token (supports both OAuth and email/password)
 async function getUserFromToken(accessToken: string): Promise<{ id: string; email: string; name: string } | null> {
-  console.log('[getUserFromToken] Starting validation for token:', accessToken?.substring(0, 20) + '...');
-  
   // First, try to validate as Supabase OAuth token using the SERVICE ROLE to verify the JWT
   try {
-    console.log('[getUserFromToken] Attempting OAuth validation...');
-    const { data, error } = await supabase.auth.getUser(accessToken);
-    
-    console.log('[getUserFromToken] OAuth result:', {
-      hasData: !!data,
-      hasUser: !!data?.user,
-      hasError: !!error,
-      errorMessage: error?.message
-    });
+    // Wrap the auth call with retry logic for connection errors
+    const { data, error } = await retryWithBackoff(
+      () => supabase.auth.getUser(accessToken),
+      3, // Reduced to 3 retries for faster failure
+      100 // Start with 100ms delay
+    );
     
     if (error) {
-      console.log('[getUserFromToken] OAuth validation failed:', error.message);
+      console.log('OAuth token validation failed:', error.message);
       // OAuth token validation failed, continue to email/password check
     } else if (data?.user) {
-      console.log('[getUserFromToken] OAuth user found:', data.user.id, data.user.email);
       // IMPORTANT: Check if this email already exists as an email/password account
       // If so, use that account's ID to maintain data continuity
       const email = data.user.email || '';
       const existingUser = await findUserByEmail(email);
       
       if (existingUser) {
-        console.log('[getUserFromToken] Found existing email/password account for OAuth user');
         return existingUser;
       }
       
       // Otherwise, use the OAuth user ID
-      console.log('[getUserFromToken] Using OAuth user directly');
       return {
         id: data.user.id,
         email: email,
@@ -86,32 +115,25 @@ async function getUserFromToken(accessToken: string): Promise<{ id: string; emai
       };
     }
   } catch (oauthError: any) {
-    console.log('[getUserFromToken] OAuth validation exception:', oauthError.message);
-    // OAuth validation exception, continue to email/password check
+    // OAuth validation exception - log but don't fail completely
+    // This can happen during transient network issues
+    console.log('OAuth validation exception (will try email/password):', oauthError.message);
   }
   
-  console.log('[getUserFromToken] Trying email/password token lookup...');
   // If not OAuth, try email/password token (user ID)
   let user = users.get(accessToken);
   if (!user) {
-    console.log('[getUserFromToken] Not in memory, checking KV store...');
     const userData = await kvGet(`user:${accessToken}`);
     if (userData) {
-      console.log('[getUserFromToken] Found in KV store:', userData.email);
       user = userData;
       users.set(accessToken, userData);
-    } else {
-      console.log('[getUserFromToken] Not found in KV store');
     }
-  } else {
-    console.log('[getUserFromToken] Found in memory:', user.email);
   }
   
   if (user) {
     return { id: user.id, email: user.email, name: user.name };
   }
   
-  console.log('[getUserFromToken] No user found for token');
   return null;
 }
 
@@ -143,28 +165,15 @@ const users = new Map<string, { email: string; password: string; name: string; i
 // ====== STRIPE WEBHOOK - MUST BE FIRST (before any middleware) ======
 // This endpoint needs to be public and accept requests from Stripe without authentication
 app.post('/make-server-c7e1f966/subscription/webhook', async (c) => {
-  console.log('=== WEBHOOK RECEIVED ===');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Headers:', Object.fromEntries(c.req.raw.headers));
-  
   try {
     const body = await c.req.text();
-    console.log('Webhook body length:', body.length);
-    console.log('First 200 chars of body:', body.substring(0, 200));
-    
     const signature = c.req.header('stripe-signature');
-    console.log('Webhook signature present:', !!signature);
-    
     const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    console.log('Webhook secret configured:', !!STRIPE_WEBHOOK_SECRET);
     
     let event;
     try {
       event = JSON.parse(body);
-      console.log('Webhook event parsed:', event.type);
-      console.log('Event ID:', event.id);
     } catch (parseError: any) {
-      console.log('ERROR: Failed to parse webhook body:', parseError.message);
       return c.json({ error: 'Invalid JSON' }, 400);
     }
     
@@ -183,11 +192,52 @@ app.post('/make-server-c7e1f966/subscription/webhook', async (c) => {
         
         if (userId) {
           try {
-            const subData = await kvGet(`subscription:${userId}`) || {};
-            subData.stripeCustomerId = session.customer;
-            subData.stripeSubscriptionId = session.subscription;
-            await kvSet(`subscription:${userId}`, subData);
-            console.log(`✅ Checkout completed for user ${userId}`);
+            // Fetch the subscription details from Stripe immediately
+            const subscriptionId = session.subscription;
+            
+            if (subscriptionId && STRIPE_SECRET_KEY) {
+              console.log('Fetching subscription details from Stripe:', subscriptionId);
+              const subResponse = await fetch(
+                `https://api.stripe.com/v1/subscriptions/${subscriptionId}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+                  },
+                }
+              );
+              
+              if (subResponse.ok) {
+                const subscription = await subResponse.json();
+                console.log('Fetched subscription:', {
+                  id: subscription.id,
+                  status: subscription.status,
+                  currentPeriodEnd: subscription.current_period_end,
+                });
+                
+                // Save complete subscription data
+                const subData = await kvGet(`subscription:${userId}`) || {};
+                subData.stripeCustomerId = session.customer;
+                subData.stripeSubscriptionId = subscriptionId;
+                subData.status = subscription.status;
+                subData.currentPeriodEnd = subscription.current_period_end * 1000;
+                subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+                await kvSet(`subscription:${userId}`, subData);
+                console.log(`✅ Checkout completed with full subscription data for user ${userId}`);
+              } else {
+                console.log('Failed to fetch subscription details, saving basic data');
+                const subData = await kvGet(`subscription:${userId}`) || {};
+                subData.stripeCustomerId = session.customer;
+                subData.stripeSubscriptionId = subscriptionId;
+                await kvSet(`subscription:${userId}`, subData);
+              }
+            } else {
+              // Fallback: save basic data
+              const subData = await kvGet(`subscription:${userId}`) || {};
+              subData.stripeCustomerId = session.customer;
+              subData.stripeSubscriptionId = session.subscription;
+              await kvSet(`subscription:${userId}`, subData);
+              console.log(`✅ Checkout completed for user ${userId} (basic data)`);
+            }
           } catch (kvError: any) {
             console.log('ERROR: Failed to save checkout data:', kvError.message);
           }
@@ -715,10 +765,8 @@ app.delete('/make-server-c7e1f966/account', async (c) => {
   }
 });
 
-// ====== SUBSCRIPTION ROUTES ======
-
-// Get subscription status
-app.get('/make-server-c7e1f966/subscription/status', async (c) => {
+// Clear subscription data (for testing/switching from test to live Stripe)
+app.post('/make-server-c7e1f966/subscription/reset', async (c) => {
   try {
     const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
     
@@ -732,8 +780,65 @@ app.get('/make-server-c7e1f966/subscription/status', async (c) => {
       return c.json({ error: 'Invalid token' }, 401);
     }
     
+    console.log(`[subscription/reset] Clearing subscription data for user: ${user.id}`);
+    
+    // Get current subscription data to log what we're clearing
+    const currentData = await kvGet(`subscription:${user.id}`);
+    console.log(`[subscription/reset] Current data:`, {
+      hasCustomerId: !!currentData?.stripeCustomerId,
+      customerId: currentData?.stripeCustomerId,
+      hasSubscriptionId: !!currentData?.stripeSubscriptionId,
+    });
+    
+    // Delete subscription data completely - this will force creation of new customer
+    await kvDel(`subscription:${user.id}`);
+    
+    console.log(`[subscription/reset] ✅ Subscription data cleared for user: ${user.id}`);
+    
+    return c.json({ 
+      success: true, 
+      message: 'Subscription data cleared. New customer will be created on next checkout.',
+      clearedCustomerId: currentData?.stripeCustomerId,
+    });
+  } catch (error: any) {
+    console.error('[subscription/reset] Error:', error.message);
+    return c.json({ error: 'Failed to reset subscription' }, 500);
+  }
+});
+
+// ====== SUBSCRIPTION ROUTES ======
+
+// Get subscription status
+app.get('/make-server-c7e1f966/subscription/status', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    console.log('[subscription/status] Request received, token present:', !!accessToken);
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    console.log('[subscription/status] User found:', !!user, user?.email);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
     // Get subscription data from KV store
     const subData = await kvGet(`subscription:${user.id}`) || {};
+    
+    console.log('[subscription/status] Subscription data from KV:', {
+      hasData: Object.keys(subData).length > 0,
+      status: subData.status,
+      hasCustomerId: !!subData.stripeCustomerId,
+      hasSubscriptionId: !!subData.stripeSubscriptionId,
+      currentPeriodEnd: subData.currentPeriodEnd,
+      signupDate: subData.signupDate,
+      trialEnd: subData.trialEnd
+    });
     
     const now = Date.now();
     const trialEnd = subData.trialEnd || (subData.signupDate ? subData.signupDate + (3 * 24 * 60 * 60 * 1000) : now + (3 * 24 * 60 * 60 * 1000));
@@ -744,14 +849,23 @@ app.get('/make-server-c7e1f966/subscription/status', async (c) => {
     // Check if subscription is active
     const isSubscriptionActive = subData.status === 'active' && subData.currentPeriodEnd && now < subData.currentPeriodEnd;
     
+    console.log('[subscription/status] Calculated values:', {
+      now: new Date(now).toISOString(),
+      trialEnd: new Date(trialEnd).toISOString(),
+      isTrialActive,
+      isSubscriptionActive,
+      hasAccess: isTrialActive || isSubscriptionActive
+    });
+    
     // If first time, set signup date
     if (!subData.signupDate) {
       subData.signupDate = now;
       subData.trialEnd = trialEnd;
       await kvSet(`subscription:${user.id}`, subData);
+      console.log('[subscription/status] First time user - set signup date and trial end');
     }
     
-    return c.json({
+    const response = {
       hasAccess: isTrialActive || isSubscriptionActive,
       isTrialActive,
       trialEndsAt: trialEnd,
@@ -763,7 +877,11 @@ app.get('/make-server-c7e1f966/subscription/status', async (c) => {
         stripeCustomerId: subData.stripeCustomerId,
         stripeSubscriptionId: subData.stripeSubscriptionId,
       }
-    });
+    };
+    
+    console.log('[subscription/status] Returning response:', response);
+    
+    return c.json(response);
   } catch (error: any) {
     console.log('Error getting subscription status:', error.message);
     return c.json({ error: 'Failed to get subscription status' }, 500);
@@ -792,6 +910,8 @@ app.post('/make-server-c7e1f966/subscription/create-checkout', async (c) => {
     const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
     
     console.log('Create checkout - Stripe key present:', !!STRIPE_SECRET_KEY);
+    console.log('Create checkout - Stripe key prefix:', STRIPE_SECRET_KEY?.substring(0, 7));
+    console.log('Create checkout - Stripe key type:', STRIPE_SECRET_KEY?.includes('_test_') ? 'TEST' : STRIPE_SECRET_KEY?.includes('_live_') ? 'LIVE' : 'UNKNOWN');
     
     if (!STRIPE_SECRET_KEY) {
       return c.json({ error: 'Stripe not configured' }, 500);
@@ -868,6 +988,61 @@ app.post('/make-server-c7e1f966/subscription/create-checkout', async (c) => {
       
       subData.stripeCustomerId = customerId;
       await kvSet(`subscription:${user.id}`, subData);
+    } else {
+      // Verify existing customer is valid in current mode (test vs live)
+      console.log('Verifying existing customer in current Stripe mode...');
+      const verifyResponse = await fetch(`https://api.stripe.com/v1/customers/${customerId}`, {
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        },
+      });
+      
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        
+        // Check if customer exists in wrong mode (test customer with live key or vice versa)
+        if (errorData.error?.code === 'resource_missing' && 
+            errorData.error?.message?.includes('similar object exists in')) {
+          console.log('Customer exists in wrong mode (test vs live). Creating new customer...');
+          
+          // Clear old customer ID and create new one
+          subData.stripeCustomerId = null;
+          subData.stripeSubscriptionId = null;
+          
+          // Create new customer in current mode
+          const newCustomerResponse = await fetch('https://api.stripe.com/v1/customers', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              email: user.email,
+              'metadata[userId]': user.id
+            })
+          });
+          
+          if (!newCustomerResponse.ok) {
+            const newErrorData = await newCustomerResponse.text();
+            console.log('Error creating new customer:', newErrorData);
+            return c.json({ error: 'Failed to create customer', details: newErrorData }, 500);
+          }
+          
+          const newCustomer = await newCustomerResponse.json();
+          customerId = newCustomer.id;
+          
+          console.log('Created new customer in correct mode:', customerId);
+          
+          subData.stripeCustomerId = customerId;
+          await kvSet(`subscription:${user.id}`, subData);
+        } else {
+          // Other error - return it
+          console.log('Error verifying customer:', JSON.stringify(errorData));
+          return c.json({ error: 'Invalid customer', details: JSON.stringify(errorData) }, 400);
+        }
+      } else {
+        console.log('Existing customer is valid in current mode');
+      }
     }
     
     // Create checkout session

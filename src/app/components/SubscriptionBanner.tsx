@@ -8,7 +8,7 @@ export function SubscriptionBanner() {
   const { status, openCheckout } = useSubscription();
   const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(false);
-
+  
   // Don't show banner if user has active subscription or dismissed
   if (!status || status.subscription.status === 'active' || dismissed) {
     return null;
@@ -37,7 +37,13 @@ export function SubscriptionBanner() {
               </div>
             </div>
             <button
-              onClick={() => openCheckout()}
+              onClick={async () => {
+                try {
+                  await openCheckout();
+                } catch (error) {
+                  // Silently handle - error is already shown via toast
+                }
+              }}
               className="flex-shrink-0 bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
             >
               {t('subscription.subscribeCTA')}
@@ -77,7 +83,13 @@ export function SubscriptionBanner() {
             </div>
           </div>
           <button
-            onClick={() => openCheckout()}
+            onClick={async () => {
+              try {
+                await openCheckout();
+              } catch (error) {
+                // Silently handle - error is already shown via toast
+              }
+            }}
             className="flex-shrink-0 bg-white text-red-600 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
           >
             {t('subscription.subscribeNow')}

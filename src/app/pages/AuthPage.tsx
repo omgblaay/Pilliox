@@ -9,8 +9,9 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const navigate = useNavigate();
 
   const handleAuthSuccess = (token: string, email: string) => {
+    // Don't navigate here - let App.tsx handle the navigation
+    // based on onboarding status
     onAuthSuccess(token, email);
-    navigate("/app");
   };
 
   return (

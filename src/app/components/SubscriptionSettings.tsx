@@ -79,9 +79,6 @@ export function SubscriptionSettings() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <div className="size-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-          <Crown className="size-5 text-white" />
-        </div>
         <div>
           <h3 className="text-lg font-semibold">
             {t("subscription.title")}
@@ -197,8 +194,15 @@ export function SubscriptionSettings() {
         ) : (
           <>
             <Button
-              onClick={() => openCheckout()}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2.5 rounded-lg font-semibold transition-all"
+              onClick={async () => {
+                try {
+                  await openCheckout();
+                } catch (error: any) {
+                  // Error already handled by useSubscription
+                }
+              }}
+              disabled={status.subscription.status === "active"}
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2.5 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t("subscription.upgradeNow")}
             </Button>

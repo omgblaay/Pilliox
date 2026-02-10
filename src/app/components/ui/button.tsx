@@ -10,12 +10,12 @@ import { cn } from "./utils";
 // h-12 bg-[#155dfc] hover:bg-[#1250e0] text-white font-medium text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed
 
 const buttonVariants = cva(
-  "inline-flex w-full text-foreground cursor-pointer font-medium items-center !text-base justify-center gap-2 whitespace-nowrap rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-6 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex text-foreground cursor-pointer font-medium items-center !text-base justify-center gap-2 whitespace-nowrap rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-6 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          "bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] !text-white w-full disabled:opacity-50",
+          "bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] !text-white disabled:opacity-50",
         destructive:
           "border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-300 dark:hover:border-red-800",
         outline:

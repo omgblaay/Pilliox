@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 // App version
-const APP_VERSION = "1.4.3";
+const APP_VERSION = "1.5.0";
 
 interface AppSettingsProps {
   open: boolean;

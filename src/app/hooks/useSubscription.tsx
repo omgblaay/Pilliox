@@ -2,11 +2,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { toast } from 'sonner';
 
-// Debug logging
-console.log('useSubscription module loading...');
-console.log('projectId:', projectId);
-console.log('publicAnonKey:', publicAnonKey ? 'defined' : 'undefined');
-
 interface SubscriptionStatus {
   hasAccess: boolean;
   isTrialActive: boolean;
@@ -27,6 +22,7 @@ interface SubscriptionContextType {
   error: string | null;
   refreshStatus: () => Promise<void>;
   syncSubscription: () => Promise<void>;
+  resetSubscription: () => Promise<void>;
   openCheckout: () => Promise<void>;
   openPortal: () => Promise<void>;
 }
@@ -104,6 +100,39 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetSubscription = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${publicAnonKey}`,
+            'X-User-Token': token,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to reset subscription: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Refresh status after reset
+      await refreshStatus();
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
   const openCheckout = async () => {
     try {
       const token = localStorage.getItem('accessToken');
@@ -128,7 +157,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        
+        // Show detailed error message from backend
+        const errorMessage = errorData.details 
+          ? `Failed to create checkout: ${errorData.details}` 
+          : errorData.error || 'Failed to create checkout session';
+        
+        toast.error(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -141,6 +177,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       setError(err.message);
+      
+      // Only show toast for unexpected errors (not auth errors)
+      if (!err.message.includes('Not authenticated') && !err.message.includes('Failed to create checkout')) {
+        toast.error(err.message || 'Failed to open checkout');
+      }
+      
       throw err;
     }
   };
@@ -259,6 +301,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         error,
         refreshStatus,
         syncSubscription,
+        resetSubscription,
         openCheckout,
         openPortal,
       }}

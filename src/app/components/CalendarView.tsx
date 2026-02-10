@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   format,
   startOfMonth,
@@ -27,6 +28,7 @@ import {
   Pill,
   Check,
   X,
+  Plus,
   Palette,
   Settings as SettingsIcon,
   User,
@@ -36,6 +38,10 @@ import {
   Menu,
   Info,
   Home,
+  Crown,
+  Bell,
+  BellOff,
+  Clock,
 } from "lucide-react";
 import {
   motion,
@@ -64,16 +70,32 @@ import { cn } from "./ui/utils";
 import { useTheme, type Theme } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import Vector from "../../imports/Vector";
+import { BottomNavigation } from "./BottomNavigation";
 
 interface PillDosage {
   pillId: string;
   dosage: number;
 }
 
+interface AdHocMedication {
+  id: string;
+  name: string;
+  dosage: number;
+  unit: string;
+  notificationEnabled?: boolean;
+  notificationTime?: string; // HH:mm format
+}
+
+interface DayNotification {
+  enabled: boolean;
+  time: string; // HH:mm format
+}
+
 interface CalendarEntry {
   amount: string;
   note: string;
   pills?: string; // JSON string of PillDosage[]
+  adHocMeds?: string; // JSON string of AdHocMedication[]
   color?: string;
   tag?: string;
 }
@@ -176,6 +198,8 @@ export function CalendarView({
   onNavigateToPrivacy,
 }: CalendarViewProps) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Date-fns locale mapping
   const localeMap = {
@@ -263,6 +287,21 @@ export function CalendarView({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [pills, setPills] = useState<PillDosage[]>([]);
+  const [adHocMeds, setAdHocMeds] = useState<AdHocMedication[]>(
+    [],
+  );
+  const [addAdHocDialogOpen, setAddAdHocDialogOpen] =
+    useState(false);
+  const [editingAdHocId, setEditingAdHocId] = useState<
+    string | null
+  >(null);
+  const [newAdHocName, setNewAdHocName] = useState("");
+  const [newAdHocDosage, setNewAdHocDosage] = useState("");
+  const [newAdHocUnit, setNewAdHocUnit] = useState("mg");
+  const [notificationEnabled, setNotificationEnabled] =
+    useState(false);
+  const [notificationTime, setNotificationTime] =
+    useState("09:00");
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
 
@@ -378,6 +417,13 @@ export function CalendarView({
 
     return () => observer.disconnect();
   }, [theme]);
+
+  // Sync modal state with URL
+  useEffect(() => {
+    if (location.pathname === "/medications") {
+      setPillsSettingsOpen(true);
+    }
+  }, [location.pathname]);
 
   // Health check - test server connectivity
   useEffect(() => {
@@ -626,6 +672,22 @@ export function CalendarView({
       setPills([]);
     }
 
+    // Parse ad-hoc medications JSON
+    try {
+      const adHocMedsData = entry?.adHocMeds
+        ? JSON.parse(entry.adHocMeds)
+        : [];
+      setAdHocMeds(
+        Array.isArray(adHocMedsData) ? adHocMedsData : [],
+      );
+    } catch (error) {
+      console.error(
+        "Error parsing ad-hoc medications data:",
+        error,
+      );
+      setAdHocMeds([]);
+    }
+
     setDialogOpen(true);
   };
 
@@ -639,12 +701,17 @@ export function CalendarView({
     const pillsJson =
       pills.length > 0 ? JSON.stringify(pills) : "";
 
-    if (amount || note || pillsJson) {
+    // Serialize ad-hoc medications data
+    const adHocMedsJson =
+      adHocMeds.length > 0 ? JSON.stringify(adHocMeds) : "";
+
+    if (amount || note || pillsJson || adHocMedsJson) {
       newEntries[dateKey] = {
         ...newEntries[dateKey],
         amount,
         note,
         pills: pillsJson,
+        adHocMeds: adHocMedsJson,
       };
     } else if (
       !newEntries[dateKey]?.color &&
@@ -657,6 +724,7 @@ export function CalendarView({
         amount: "",
         note: "",
         pills: "",
+        adHocMeds: "",
       };
     }
 
@@ -666,6 +734,7 @@ export function CalendarView({
     setAmount("");
     setNote("");
     setPills([]);
+    setAdHocMeds([]);
   };
 
   const handleRemoveColorTag = () => {
@@ -676,7 +745,12 @@ export function CalendarView({
 
     if (newEntries[dateKey]) {
       const { color, tag, ...rest } = newEntries[dateKey];
-      if (!rest.amount && !rest.note && !rest.pills) {
+      if (
+        !rest.amount &&
+        !rest.note &&
+        !rest.pills &&
+        !rest.adHocMeds
+      ) {
         delete newEntries[dateKey];
       } else {
         newEntries[dateKey] = rest;
@@ -708,7 +782,12 @@ export function CalendarView({
         entry.tag === tagToRemove
       ) {
         const { color, tag, ...rest } = entry;
-        if (!rest.amount && !rest.note && !rest.pills) {
+        if (
+          !rest.amount &&
+          !rest.note &&
+          !rest.pills &&
+          !rest.adHocMeds
+        ) {
           delete newEntries[key];
         } else {
           newEntries[key] = rest;
@@ -719,6 +798,61 @@ export function CalendarView({
     setEntries(newEntries);
     saveEntries(newEntries);
     setDeleteConfirmOpen(false);
+  };
+
+  const handleAddAdHocMed = () => {
+    if (!newAdHocName.trim()) return;
+
+    if (editingAdHocId) {
+      // Edit existing medication
+      setAdHocMeds(
+        adHocMeds.map((med) =>
+          med.id === editingAdHocId
+            ? {
+                ...med,
+                name: newAdHocName.trim(),
+                dosage: parseFloat(newAdHocDosage) || 0,
+                unit: newAdHocUnit,
+                notificationEnabled,
+                notificationTime,
+              }
+            : med,
+        ),
+      );
+      setEditingAdHocId(null);
+    } else {
+      // Add new medication
+      const newMed: AdHocMedication = {
+        id: `adhoc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: newAdHocName.trim(),
+        dosage: parseFloat(newAdHocDosage) || 0,
+        unit: newAdHocUnit,
+        notificationEnabled,
+        notificationTime,
+      };
+      setAdHocMeds([...adHocMeds, newMed]);
+    }
+
+    setNewAdHocName("");
+    setNewAdHocDosage("");
+    setNewAdHocUnit("mg");
+    setNotificationEnabled(false);
+    setNotificationTime("09:00");
+    setAddAdHocDialogOpen(false);
+  };
+
+  const handleEditAdHocMed = (med: AdHocMedication) => {
+    setEditingAdHocId(med.id);
+    setNewAdHocName(med.name);
+    setNewAdHocDosage(med.dosage.toString());
+    setNewAdHocUnit(med.unit);
+    setNotificationEnabled(med.notificationEnabled || false);
+    setNotificationTime(med.notificationTime || "09:00");
+    setAddAdHocDialogOpen(true);
+  };
+
+  const handleRemoveAdHocMed = (id: string) => {
+    setAdHocMeds(adHocMeds.filter((med) => med.id !== id));
   };
 
   const toggleMultiSelectMode = () => {
@@ -738,6 +872,7 @@ export function CalendarView({
         amount: newEntries[dateKey]?.amount || "",
         note: newEntries[dateKey]?.note || "",
         pills: newEntries[dateKey]?.pills || "",
+        adHocMeds: newEntries[dateKey]?.adHocMeds || "",
       };
     });
 
@@ -1100,7 +1235,8 @@ export function CalendarView({
       ];
 
   return (
-    <div className="h-full bg-background relative">
+    <div className="h-full bg-background relative pb-20">
+      {/* Added pb-20 for bottom nav space */}
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-50">
@@ -1251,7 +1387,9 @@ export function CalendarView({
                   className="justify-start"
                   onClick={() => {
                     if (userId) {
-                      setPillsSettingsOpen(true);
+                      navigate("/medications", {
+                        replace: true,
+                      });
                       setSidebarOpen(false);
                     } else {
                       console.error(
@@ -1278,6 +1416,20 @@ export function CalendarView({
                   <SettingsIcon className="h-5 w-5" />
                   <span className="text-[15px] font-medium">
                     {t("settings.title")}
+                  </span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    navigate("/app/subscription");
+                  }}
+                >
+                  <Crown className="h-5 w-5" />
+                  <span className="text-[15px] font-medium">
+                    {t("subscription.title") || "Subscription"}
                   </span>
                 </Button>
 
@@ -1317,9 +1469,17 @@ export function CalendarView({
                   {t("app.welcome", { name })}
                 </p>
               </div>
-
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
+                onClick={() => navigate("/app/subscription")}
+                title="Manage Subscription"
+              >
+                <Crown className="h-6 w-6 text-muted-foreground" />
+              </Button>
               {/* Menu button - visible only on mobile */}
               <Button
                 variant="ghost"
@@ -1335,17 +1495,8 @@ export function CalendarView({
                 variant="outline"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
-                onClick={() => {
-                  if (userId) {
-                    setPillsSettingsOpen(true);
-                  } else {
-                    console.error(
-                      "Cannot open pills settings: userId not loaded yet",
-                    );
-                  }
-                }}
+                onClick={() => navigate("/app/medications")}
                 title="Medication Settings"
-                disabled={!userId}
               >
                 <Pill className="h-6 w-6 text-muted-foreground" />
               </Button>
@@ -1353,7 +1504,7 @@ export function CalendarView({
                 variant="outline"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
-                onClick={() => setProfileOpen(true)}
+                onClick={() => navigate("/app/profile")}
               >
                 <User className="h-7 w-7 text-muted-foreground" />
               </Button>
@@ -1361,7 +1512,7 @@ export function CalendarView({
                 variant="outline"
                 size="icon"
                 className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => navigate("/app/settings")}
               >
                 <SettingsIcon className="h-[42px] w-[42px] text-muted-foreground" />
               </Button>
@@ -1566,6 +1717,10 @@ export function CalendarView({
                     entry.pills &&
                     entry.pills !== "" &&
                     entry.pills !== "[]";
+                  const hasAdHocMeds =
+                    entry.adHocMeds &&
+                    entry.adHocMeds !== "" &&
+                    entry.adHocMeds !== "[]";
                   const hasColor =
                     entry.color && entry.color !== "";
                   const isSelected = selectedDates.has(dateStr);
@@ -1825,7 +1980,7 @@ export function CalendarView({
                                           pillSetting.color,
                                       }}
                                       className={cn(
-                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded whitespace-nowrap",
+                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded-md whitespace-nowrap",
                                       )}
                                     >
                                       {pillSetting.type ===
@@ -1855,6 +2010,39 @@ export function CalendarView({
                                     </div>
                                   );
                                 });
+                              })()}
+
+                            {/* Ad-Hoc Medications Display - Week View */}
+                            {hasAdHocMeds &&
+                              (() => {
+                                const adHocMedsData: AdHocMedication[] =
+                                  JSON.parse(
+                                    entry.adHocMeds || "[]",
+                                  );
+                                return adHocMedsData.map(
+                                  (med) => {
+                                    return (
+                                      <div
+                                        key={med.id}
+                                        className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 border-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md whitespace-nowrap bg-transparent"
+                                      >
+                                        {med.notificationEnabled ? (
+                                          <Bell className="h-3 w-3" />
+                                        ) : (
+                                          <BellOff className="h-3 w-3" />
+                                        )}
+                                        <span>
+                                          {med.name.substring(
+                                            0,
+                                            3,
+                                          )}
+                                          : {med.dosage}
+                                          {med.unit}
+                                        </span>
+                                      </div>
+                                    );
+                                  },
+                                );
                               })()}
                           </div>
                         </div>
@@ -1923,46 +2111,62 @@ export function CalendarView({
                             )}
                           </span>
 
-                          {/* Individual Medications Display */}
-                          {hasPills &&
-                            (() => {
-                              const pillsData: PillDosage[] =
-                                JSON.parse(entry.pills || "[]");
-                              return pillsData.map((pill) => {
-                                const pillSetting =
-                                  pillsSettings.find(
-                                    (ps) =>
-                                      ps.id === pill.pillId,
+                          {/* Individual Medications Display - Dots Only */}
+                          <div className="flex gap-1 items-center justify-center flex-wrap">
+                            {hasPills &&
+                              (() => {
+                                const pillsData: PillDosage[] =
+                                  JSON.parse(
+                                    entry.pills || "[]",
                                   );
-                                if (!pillSetting) return null;
+                                return pillsData.map((pill) => {
+                                  const pillSetting =
+                                    pillsSettings.find(
+                                      (ps) =>
+                                        ps.id === pill.pillId,
+                                    );
+                                  if (!pillSetting) return null;
 
-                                return (
-                                  <div
-                                    key={pill.pillId}
-                                    className="flex items-center gap-1 text-[10px] font-semibold px-1 py-0.5 rounded text-white"
-                                    style={{
-                                      backgroundColor:
-                                        pillSetting.color ||
-                                        "#a855f7",
-                                    }}
-                                  >
-                                    {pillSetting.type ===
-                                    "pills" ? (
-                                      <Pill className="h-2.5 w-2.5 sm:block hidden" />
-                                    ) : (
-                                      <Droplet className="h-2.5 w-2.5 sm:block hidden" />
-                                    )}
-                                    <span>
-                                      {pillSetting.name.substring(
-                                        0,
-                                        3,
-                                      )}
-                                      : {pill.dosage}
-                                    </span>
-                                  </div>
+                                  return (
+                                    <div
+                                      key={pill.pillId}
+                                      className="text-[10px] font-semibold px-1 py-0.5 rounded text-white"
+                                      style={{
+                                        backgroundColor:
+                                          pillSetting.color ||
+                                          "#a855f7",
+                                      }}
+                                      title={`${pillSetting.name}: ${pill.dosage}`}
+                                    >
+                                      {pill.dosage}
+                                    </div>
+                                  );
+                                });
+                              })()}
+
+                            {/* Ad-Hoc Medications Display - Colorless with Border */}
+                            {hasAdHocMeds &&
+                              (() => {
+                                const adHocMedsData: AdHocMedication[] =
+                                  JSON.parse(
+                                    entry.adHocMeds || "[]",
+                                  );
+                                return adHocMedsData.map(
+                                  (med) => {
+                                    return (
+                                      <div
+                                        key={med.id}
+                                        className="text-[10px] font-semibold px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-transparent"
+                                        title={`${med.name}: ${med.dosage}${med.unit}`}
+                                      >
+                                        {med.dosage}
+                                        {med.unit}
+                                      </div>
+                                    );
+                                  },
                                 );
-                              });
-                            })()}
+                              })()}
+                          </div>
 
                           {/* Legacy INR Display - Only show if no pills data */}
                           {hasAmount && !hasPills && (
@@ -2618,6 +2822,88 @@ export function CalendarView({
                       );
                     })}
 
+                  {/* Ad-Hoc Medications Section */}
+                  {(pillsSettings.length > 0 ||
+                    adHocMeds.length > 0) && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <Plus className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                          </div>
+                          <Label>
+                            {t("calendar.otherMedications") ||
+                              "Other Medications"}
+                          </Label>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setAddAdHocDialogOpen(true)
+                          }
+                          className="h-8"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          {t("calendar.addMed") || "Add"}
+                        </Button>
+                      </div>
+
+                      {/* Display ad-hoc medications */}
+                      {adHocMeds.length > 0 && (
+                        <div className="space-y-2">
+                          {adHocMeds.map((med) => (
+                            <div
+                              key={med.id}
+                              className="flex items-center gap-3 p-3 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 transition-colors"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="text-sm font-medium text-foreground">
+                                    {med.name}
+                                  </div>
+                                  {med.notificationEnabled && (
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+                                      <Bell className="h-3 w-3 text-indigo-700 dark:text-indigo-400" />
+                                      <span className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">
+                                        {med.notificationTime}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {med.dosage} {med.unit}
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleEditAdHocMed(med)
+                                  }
+                                  className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleRemoveAdHocMed(med.id)
+                                  }
+                                  className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Legacy INR Section - Only show if no medications configured */}
                   {pillsSettings.length === 0 && (
                     <div className="space-y-3">
@@ -2809,6 +3095,208 @@ export function CalendarView({
         </DialogContent>
       </Dialog>
 
+      {/* Add Ad-Hoc Medication Dialog */}
+      <Dialog
+        open={addAdHocDialogOpen}
+        onOpenChange={setAddAdHocDialogOpen}
+      >
+        <DialogContent
+          size="small"
+          className="bg-card border-border"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {editingAdHocId
+                ? t("calendar.editOtherMedication") ||
+                  "Edit Medication"
+                : t("calendar.addOtherMedication") ||
+                  "Add Other Medication"}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {editingAdHocId
+                ? t("calendar.editOtherMedicationDesc") ||
+                  "Update the medication details."
+                : t("calendar.addOtherMedicationDesc") ||
+                  "Add a one-time medication that's not in your regular schedule."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="adhoc-name"
+                className="text-foreground"
+              >
+                {t("calendar.medicationName") ||
+                  "Medication Name"}
+              </Label>
+              <Input
+                id="adhoc-name"
+                placeholder={
+                  t("calendar.medicationNamePlaceholder") ||
+                  "e.g., Aspirin, Ibuprofen"
+                }
+                value={newAdHocName}
+                onChange={(e) =>
+                  setNewAdHocName(e.target.value)
+                }
+                className="bg-input-background border-border text-foreground"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="adhoc-dosage"
+                  className="text-foreground"
+                >
+                  {t("calendar.dosage") || "Dosage"}
+                </Label>
+                <Input
+                  id="adhoc-dosage"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  placeholder="500"
+                  value={newAdHocDosage}
+                  onChange={(e) =>
+                    setNewAdHocDosage(e.target.value)
+                  }
+                  className="bg-input-background border-border text-foreground"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="adhoc-unit"
+                  className="text-foreground"
+                >
+                  {t("calendar.unit") || "Unit"}
+                </Label>
+                <select
+                  id="adhoc-unit"
+                  value={newAdHocUnit}
+                  onChange={(e) =>
+                    setNewAdHocUnit(e.target.value)
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-input-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="mg">mg</option>
+                  <option value="g">g</option>
+                  <option value="ml">ml</option>
+                  <option value="mcg">mcg</option>
+                  <option value="IU">IU</option>
+                  <option value="tablets">
+                    {t("calendar.tablets") || "tablets"}
+                  </option>
+                  <option value="capsules">
+                    {t("calendar.capsules") || "capsules"}
+                  </option>
+                  <option value="drops">
+                    {t("calendar.drops") || "drops"}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Notification Section */}
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
+                  <Label className="text-foreground font-medium">
+                    {t("calendar.enableNotification") ||
+                      "Enable Reminder"}
+                  </Label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNotificationEnabled(!notificationEnabled)
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationEnabled
+                      ? "bg-blue-600"
+                      : "bg-gray-300 dark:bg-gray-600"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notificationEnabled
+                        ? "translate-x-6"
+                        : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {notificationEnabled && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="adhoc-notification-time"
+                    className="text-sm"
+                  >
+                    {t("calendar.notificationTime") ||
+                      "Reminder Time"}
+                  </Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="adhoc-notification-time"
+                      type="time"
+                      value={notificationTime}
+                      onChange={(e) =>
+                        setNotificationTime(e.target.value)
+                      }
+                      className="pl-10 bg-input-background border-border text-foreground"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("calendar.notificationDesc") ||
+                      "You'll receive a reminder at this time to take your medication."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddAdHocDialogOpen(false);
+                setEditingAdHocId(null);
+                setNewAdHocName("");
+                setNewAdHocDosage("");
+                setNewAdHocUnit("mg");
+                setNotificationEnabled(false);
+                setNotificationTime("09:00");
+              }}
+              className="flex-1"
+            >
+              {t("calendar.cancel") || "Cancel"}
+            </Button>
+            <Button
+              onClick={handleAddAdHocMed}
+              disabled={!newAdHocName.trim()}
+              className="flex-1"
+            >
+              {editingAdHocId ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  {t("calendar.update") || "Update"}
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t("calendar.add") || "Add"}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Profile Settings Modal */}
       <ProfileSettings
         open={profileOpen}
@@ -2838,7 +3326,14 @@ export function CalendarView({
       {/* Pills Settings Modal */}
       <PillsSettings
         open={pillsSettingsOpen}
-        onOpenChange={setPillsSettingsOpen}
+        onOpenChange={(open) => {
+          setPillsSettingsOpen(open);
+          if (open) {
+            navigate("/medications", { replace: true });
+          } else {
+            navigate("/app", { replace: true });
+          }
+        }}
         userId={userId}
         accessToken={accessToken}
       />
@@ -2969,6 +3464,9 @@ export function CalendarView({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   );
 }

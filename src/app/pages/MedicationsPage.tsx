@@ -1,56 +1,59 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import {
+  Plus,
+  Pill,
+  Trash2,
+  Edit,
+  Clock,
+  Droplet,
+  Bell,
+  Save,
+  ArrowLeft,
+  ChevronRight,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { BottomNavigation } from "../components/BottomNavigation";
+import {
+  PillsSettings,
+  PillSetting,
+} from "../components/PillsSettings";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Switch } from "./ui/switch";
+} from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Switch } from "../components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import {
-  Pill,
-  Droplet,
-  Trash2,
-  Plus,
-  Save,
-  Bell,
-  Clock,
-  ArrowLeft,
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-  projectId,
-  publicAnonKey,
-} from "../../../utils/supabase/info";
-import { useNotifications } from "../hooks/useNotifications";
+} from "../components/ui/select";
 
-export interface PillSetting {
+interface Medication {
   id: string;
   name: string;
-  defaultDosage: number;
-  color?: string;
-  type?: "pills" | "value";
-  notificationsEnabled?: boolean;
-  notificationTime?: string; // HH:mm format
-  notificationFrequency?: "daily" | "every2days" | "every3days";
+  dosage: string;
+  color: string;
+  frequency?: string;
+  time?: string;
+  notes?: string;
 }
 
-interface PillsSettingsProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  userId: string;
+interface MedicationsPageProps {
   accessToken: string;
+  projectId: string;
+  anonKey: string;
 }
 
 const PILL_COLORS = [
@@ -63,46 +66,87 @@ const PILL_COLORS = [
   { name: "Orange", value: "#f97316" },
 ];
 
-// Helper function to convert hex color to rgba with opacity
-const hexToRgba = (hex: string, opacity: number): string => {
-  const result =
-    /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return `rgba(0, 0, 0, ${opacity})`;
-
-  const r = parseInt(result[1], 16);
-  const g = parseInt(result[2], 16);
-  const b = parseInt(result[3], 16);
-
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
-
-export function PillsSettings({
-  open,
-  onOpenChange,
-  userId,
+export function MedicationsPage({
   accessToken,
-}: PillsSettingsProps) {
+  projectId,
+  anonKey,
+}: MedicationsPageProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [medications, setMedications] = useState<Medication[]>(
+    [],
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [pillsSettingsOpen, setPillsSettingsOpen] =
+    useState(false);
+  const [userId, setUserId] = useState<string>("");
+
+  // State for inline pills list
   const [pills, setPills] = useState<PillSetting[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const { syncNotifications, permissions } = useNotifications();
   const [editingPill, setEditingPill] =
     useState<PillSetting | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  // Get userId from accessToken
   useEffect(() => {
-    if (open && userId) {
+    const getUserId = async () => {
+      if (!accessToken) return;
+
+      try {
+        const response = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
+          {
+            headers: {
+              Authorization: `Bearer ${anonKey}`,
+              "X-User-Token": accessToken,
+            },
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserId(data.user.id || "");
+        } else {
+          console.error("Failed to fetch user settings");
+        }
+      } catch (error) {
+        console.error("Failed to fetch user ID:", error);
+      }
+    };
+
+    getUserId();
+  }, [accessToken, projectId, anonKey]);
+
+  // Load medications from localStorage or backend
+  useEffect(() => {
+    const loadMedications = () => {
+      const stored = localStorage.getItem("medications");
+      if (stored) {
+        try {
+          setMedications(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse medications:", e);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    loadMedications();
+  }, [pillsSettingsOpen]); // Reload when modal closes
+
+  // Load pills settings when userId is available
+  useEffect(() => {
+    if (userId && medications.length === 0) {
       loadPillsSettings();
     }
-  }, [open, userId]);
+  }, [userId, medications.length]);
 
   const loadPillsSettings = async () => {
     if (!userId) {
       console.error(
         "Cannot load pills settings: userId is empty",
       );
-      toast.error(t("pillsSettings.loadError"));
       return;
     }
 
@@ -112,7 +156,7 @@ export function PillsSettings({
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
         {
           headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
+            Authorization: `Bearer ${anonKey}`,
             "X-User-Token": accessToken,
           },
         },
@@ -122,66 +166,12 @@ export function PillsSettings({
         const data = await response.json();
         setPills(data.pills || []);
       } else {
-        const errorText = await response.text();
-        console.error(
-          "Failed to load pills settings:",
-          response.status,
-          errorText,
-        );
-        toast.error(t("pillsSettings.loadError"));
+        console.error("Failed to load pills settings");
       }
     } catch (error) {
       console.error("Error loading pills settings:", error);
-      toast.error(t("pillsSettings.loadError"));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const savePillsSettings = async () => {
-    setSaving(true);
-    try {
-      for (const pill of pills) {
-        if (
-          !pill.id ||
-          !pill.name ||
-          typeof pill.defaultDosage !== "number" ||
-          isNaN(pill.defaultDosage)
-        ) {
-          console.error("Invalid pill data:", pill);
-          toast.error(t("pillsSettings.invalidData"));
-          setSaving(false);
-          return;
-        }
-      }
-
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${publicAnonKey}`,
-            "X-User-Token": accessToken,
-          },
-          body: JSON.stringify({ pills }),
-        },
-      );
-
-      if (response.ok) {
-        await syncNotifications(pills);
-        toast.success(t("pillsSettings.saveSuccess"));
-        onOpenChange(false);
-      } else {
-        const error = await response.text();
-        console.error("Failed to save pills settings:", error);
-        toast.error(t("pillsSettings.saveError"));
-      }
-    } catch (error) {
-      console.error("Error saving pills settings:", error);
-      toast.error(t("pillsSettings.saveError"));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -207,36 +197,85 @@ export function PillsSettings({
         pill.id === id ? { ...pill, ...updates } : pill,
       ),
     );
-    // Also update editingPill if it matches
     if (editingPill && editingPill.id === id) {
       setEditingPill({ ...editingPill, ...updates });
     }
   };
 
-  const removePill = (id: string) => {
-    setPills(pills.filter((pill) => pill.id !== id));
+  const handleAddMedication = () => {
+    setPillsSettingsOpen(true);
   };
 
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          size="large"
-        >
-          <DialogHeader>
-            <DialogTitle className="flex gap-2">
-              <Pill
-                className="h-5 w-5 text-[#9810FA]"
-                strokeWidth={1.67}
-              />
-              {t("pillsSettings.title")}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              {t("pillsSettings.description")}
-            </DialogDescription>
-          </DialogHeader>
+  const handleEditMedication = (med: Medication) => {
+    // Store medication data for editing
+    localStorage.setItem(
+      "editingMedication",
+      JSON.stringify(med),
+    );
+    navigate("/app/medications/edit");
+  };
 
-          <div>
+  const handleDeleteMedication = (id: string) => {
+    const updatedMeds = medications.filter((m) => m.id !== id);
+    setMedications(updatedMeds);
+    localStorage.setItem(
+      "medications",
+      JSON.stringify(updatedMeds),
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-700 border-t-blue-400"></div>
+          <p className="mt-4 text-muted-foreground">
+            {t("common.loading") || "Loading..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      {/* Header */}
+      <div className="sticky top-0 z-30 bg-card border-b border-border">
+        <div className="max-w-screen-lg mx-auto px-4 py-4">
+          <div className="flex items-center gap-5">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/app")}
+              className="h-10 w-10"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex-1">
+              <h1>{t("medications.title") || "Medications"}</h1>
+              <p>
+                {t("medications.subtitle") ||
+                  "Manage your medications"}
+              </p>
+            </div>
+            <Button onClick={addPill}>
+              <Plus
+                className="h-5 w-5 md:h-6 md:w-6"
+                strokeWidth={2}
+              />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-screen-lg mx-auto px-4 py-6">
+        {medications.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className=""
+          >
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-700 border-t-purple-400"></div>
@@ -247,7 +286,8 @@ export function PillsSettings({
                   <div className="text-center py-8 text-muted-foreground">
                     <Pill className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">
-                      {t("pillsSettings.noPills")}
+                      {t("pillsSettings.noPills") ||
+                        "No medications yet"}
                     </p>
                   </div>
                 ) : (
@@ -255,7 +295,7 @@ export function PillsSettings({
                     {pills.map((pill) => (
                       <div
                         key={pill.id}
-                        className="flex items-center gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                        className="flex items-center bg-popover gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
                         onClick={() => {
                           setEditingPill(pill);
                           setEditModalOpen(true);
@@ -275,7 +315,8 @@ export function PillsSettings({
                           {pill.name ||
                             t(
                               "pillsSettings.medicationPlaceholder",
-                            )}
+                            ) ||
+                            "Medication"}
                         </span>
 
                         {/* Pills/Value Counter */}
@@ -293,115 +334,142 @@ export function PillsSettings({
                         {pill.notificationsEnabled && (
                           <Bell className="h-4 w-4 text-purple-600" />
                         )}
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
                     ))}
                   </div>
                 )}
 
                 {/* Add Medication Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-4 w-full"
-                  onClick={addPill}
-                >
-                  <Plus
-                    className="h-5 w-5 md:h-6 md:w-6"
-                    color="blue"
-                    strokeWidth={2}
-                  />
-                  <span className="text-[14px] md:text-base font-medium tracking-[0.4px] leading-6">
-                    {t("pillsSettings.addMedication")}
-                  </span>
-                </Button>
               </>
             )}
-          </div>
+          </motion.div>
+        ) : (
+          <div className="space-y-3">
+            <AnimatePresence mode="popLayout">
+              {medications.map((med, index) => (
+                <motion.div
+                  key={med.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3">
+                      {/* Color indicator */}
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: med.color + "20",
+                        }}
+                      >
+                        <Pill
+                          className="w-6 h-6"
+                          style={{ color: med.color }}
+                        />
+                      </div>
 
-          {/* Footer */}
-          <div className="border-t border-borde pt-4 flex sm:flex-row flex-col-reverse gap-4">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("pillsSettings.cancel")}
-            </Button>
-            <Button
-              onClick={savePillsSettings}
-              disabled={saving || loading}
-              className="flex-1"
-            >
-              {saving ? (
-                <>
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  {t("pillsSettings.saving")}
-                </>
-              ) : (
-                <>
-                  <Save className="h-6 w-6" strokeWidth={2} />
-                  <span className="hidden md:inline">
-                    {t("pillsSettings.save")}
-                  </span>
-                  <span className="md:hidden">
-                    {t("pillsSettings.save")}
-                  </span>
-                </>
-              )}
-            </Button>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-lg">
+                          {med.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {med.dosage}
+                        </p>
+                        {med.frequency && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            <span>{med.frequency}</span>
+                            {med.time && (
+                              <span>• {med.time}</span>
+                            )}
+                          </div>
+                        )}
+                        {med.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {med.notes}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            handleEditMedication(med)
+                          }
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            handleDeleteMedication(med.id)
+                          }
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
-        </DialogContent>
-      </Dialog>
-      {/* Edit Medication Modal */}
+        )}
+      </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
+
+      {/* Pills Settings Modal */}
+      <PillsSettings
+        open={pillsSettingsOpen}
+        onOpenChange={setPillsSettingsOpen}
+        userId={userId}
+        accessToken={accessToken}
+      />
+
+      {/* Edit Pill Modal */}
       <Dialog
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
       >
-        <DialogContent
-          size="large"
-        >
-          <DialogHeader className="flex-row gap-6 items-center">
-            {" "}
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
             <Button
-              variant="icon"
-              className="flex-0"
-              onClick={() => setEditModalOpen(false)}
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/app")}
+              className="h-10 w-10"
             >
-              <ArrowLeft className="h-5 w-5" strokeWidth={2} />
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <DialogTitle className="flex flex-1 gap-2">
-              {t("pillsSettings.editMedication") ||
-                "Edit Medication"}
+            <DialogTitle>
+              {editingPill?.name
+                ? t("pillsSettings.editMedication") ||
+                  "Edit Medication"
+                : t("pillsSettings.addMedication") ||
+                  "Add Medication"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {t("pillsSettings.editMedicationDescription") ||
-                "Edit your medication settings"}
-            </DialogDescription> {/* Delete Button in Header */}
-            <Button
-              size="icon"
-              variant="destructive"
-              className="mr-10"
-              onClick={() => {
-                if (editingPill) {
-                  removePill(editingPill.id);
-                  setEditModalOpen(false);
-                  toast.success(
-                    t("pillsSettings.medicationDeleted") ||
-                      "Medication deleted",
-                  );
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-              <span className="sr-only">
-                {t("pillsSettings.delete") || "Delete"}
-              </span>
-            </Button>
+              {editingPill?.name
+                ? t(
+                    "pillsSettings.editMedicationDescription",
+                  ) || "Edit your medication settings"
+                : t("pillsSettings.addMedicationDescription") ||
+                  "Add a new medication to your list"}
+            </DialogDescription>
           </DialogHeader>
-
           {editingPill && (
             <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-5 md:flex-row">
+              <div className="flex flex-col gap-5 ">
                 {/* Name */}
                 <div className="space-y-2 flex-1 flex-row">
                   <Label>
@@ -550,11 +618,11 @@ export function PillsSettings({
               </div>
 
               {/* Notification Settings */}
-              <div className="border-t pt-4 justyfi-center border-border/80">
-                <div className="flex items-center gap-5">
+              <div className="border-t pt-4 border-border/80">
+                <div className="flex flex-col gap-4">
                   <div className="flex flex-1 items-center gap-2">
                     <Bell className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-base whitespace-nowrap">
+                    <Label className="text-base flex-1 whitespace-nowrap">
                       {t("pillsSettings.notifications")}
                     </Label>{" "}
                     <Switch
@@ -595,7 +663,7 @@ export function PillsSettings({
                   </div>
 
                   {editingPill.notificationsEnabled && (
-                    <>
+                    <div className="flex gap-5">
                       {/* Time Picker */}
                       <div className="flex-1">
                         <Input
@@ -653,7 +721,7 @@ export function PillsSettings({
                           </SelectContent>
                         </Select>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -667,7 +735,6 @@ export function PillsSettings({
               className="flex-1"
               onClick={() => {
                 setEditModalOpen(false);
-                loadPillsSettings(); // Reload to discard changes
               }}
             >
               {t("pillsSettings.discard") || "Discard"}
@@ -684,6 +751,6 @@ export function PillsSettings({
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

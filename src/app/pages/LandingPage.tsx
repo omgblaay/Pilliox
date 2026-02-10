@@ -1,52 +1,34 @@
-import { useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
-import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
-import Lottie from "lottie-react";
-import { useLottie } from "../hooks/useLottie";
-import {
-  Calendar,
-  Pill,
-  Palette,
-  Shield,
-  Globe,
-  Check,
-  Moon,
-  Sun,
-} from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
-import { LanguageSelector } from "../components/LanguageSelector";
-import { useTheme } from "../hooks/useTheme";
-import Vector from "../../imports/Vector";
-import { getSupabaseClient } from "../../../utils/supabase/client";
+import React, { useEffect, useState } from 'react';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { useTranslation } from 'react-i18next';
+import { Button } from '../components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { Card } from '../components/ui/card';
+import { Sun, Moon, Calendar, Pill, Palette, Shield, Globe, Check } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
+import { LanguageSelector } from '../components/LanguageSelector';
+import Vector from '../../imports/Vector';
+import { supabase } from '/utils/supabase/client';
 
-export function LandingPage() {
-  const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
+export default function LandingPage() {
   const { t } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { theme, setTheme } = useTheme('system');
 
-  // Check if user is logged in
   useEffect(() => {
-    const supabase = getSupabaseClient();
-
     const checkAuth = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        console.log(
-          "Landing page auth check - session:",
-          session?.user?.email,
-        );
         setIsLoggedIn(!!session);
       } catch (error) {
-        console.error("Auth check error:", error);
         setIsLoggedIn(false);
       } finally {
-        setIsCheckingAuth(false);
+        setLoading(false);
       }
     };
 
@@ -56,32 +38,14 @@ export function LandingPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log(
-        "Landing page auth state changed:",
-        session?.user?.email,
-      );
       setIsLoggedIn(!!session);
-      setIsCheckingAuth(false);
+      setLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Load Lottie animations - using working LottieFiles URLs
-  const healthAnimation = useLottie(
-    "https://assets2.lottiefiles.com/packages/lf20_5njp3vgg.json",
-  );
-  const pillsAnimation = useLottie(
-    "https://assets2.lottiefiles.com/packages/lf20_5njp3vgg.json",
-  );
-  const securityAnimation = useLottie(
-    "https://assets10.lottiefiles.com/packages/lf20_myejiggj.json",
-  );
-  const successAnimation = useLottie(
-    "https://assets4.lottiefiles.com/packages/lf20_jbrw3hcz.json",
-  );
 
   const features = [
     {
@@ -120,23 +84,12 @@ export function LandingPage() {
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-500">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2"
-          >
+          <div className="flex items-center gap-2">
             <div className="h-[40px] w-auto">
               <Vector />
             </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3"
-          >
-            {/* Language Selector */}
-            <LanguageSelector variant="ghost" />
-
+          </div>
+          <div className="flex items-center gap-3">
             {/* Theme Toggle */}
             <Button
               variant="ghost"
@@ -166,7 +119,7 @@ export function LandingPage() {
                 <Button
                   variant="outline"
                   onClick={() => navigate("/auth")}
-                  className="flex-0"
+                  className="flex-0 hidden sm:flex"
                 >
                   {t("landing.header.signIn")}
                 </Button>
@@ -178,30 +131,12 @@ export function LandingPage() {
                 </Button>
               </>
             )}
-          </motion.div>
+          </div>
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 relative overflow-hidden">
-        {/* Floating background animations */}
-        <div className="absolute top-20 right-10 w-64 h-64 pointer-events-none z-0">
-          {healthAnimation.animationData && (
-            <Lottie
-              animationData={healthAnimation.animationData}
-              loop={true}
-            />
-          )}
-        </div>
-        <div className="absolute right-0 bottom-0 z-200 w-48 h-48">
-          {pillsAnimation.animationData && (
-            <Lottie
-              animationData={pillsAnimation.animationData}
-              loop={true}
-            />
-          )}
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -239,7 +174,7 @@ export function LandingPage() {
           >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800">
               <img
-                src="https://images.unsplash.com/photo-1767449441925-737379bc2c4d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwaGVhbHRoJTIwYXBwJTIwaW50ZXJmYWNlJTIwbW9iaWxlfGVufDF8fHx8MTc3MDU3NzU0Nnww&ixlib=rb-4.1.0&q=80&w=1080"
+                src="https://images.unsplash.com/photo-1685660375327-47bcca398780?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2F0aW9uJTIwdHJhY2tlciUyMGFwcCUyMGludGVyZmFjZSUyMG1vYmlsZSUyMHBob25lfGVufDF8fHx8MTc3MDYzOTkyOHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
                 alt="Pilliox App Screenshot"
                 className="w-full h-auto"
               />
@@ -259,21 +194,6 @@ export function LandingPage() {
                   {t("landing.hero.trustedBadge")}
                 </span>
               </div>
-            </motion.div>
-
-            {/* Floating success animation */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="absolute -top-8 -right-8 w-24 h-24"
-            >
-              {successAnimation.animationData && (
-                <Lottie
-                  animationData={successAnimation.animationData}
-                  loop={true}
-                />
-              )}
             </motion.div>
           </motion.div>
         </div>
@@ -320,16 +240,6 @@ export function LandingPage() {
 
       {/* Pricing Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative overflow-hidden">
-        {/* Security animation in background */}
-        <div className="absolute top-1/2 right-0 w-64 h-64 opacity-20 pointer-events-none -translate-y-1/2">
-          {securityAnimation.animationData && (
-            <Lottie
-              animationData={securityAnimation.animationData}
-              loop={true}
-            />
-          )}
-        </div>
-
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -469,9 +379,15 @@ export function LandingPage() {
       <footer className="border-t bg-card mt-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            {" "}
+            <LanguageSelector
+              variant="ghost"
+              className="flex-0"
+            />
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {t("landing.footer.copyright")}
             </p>
+            {/* Language Selector */}
             <div className="flex gap-6">
               <button
                 onClick={() => navigate("/docs/privacy")}
