@@ -418,6 +418,18 @@ export function SettingsPage({
             {t("settings.logout") || "Logout"}
           </Button>
         </motion.div>
+
+        {/* Version */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="text-center pt-4 pb-2"
+        >
+          <p className="text-xs text-muted-foreground">
+            Pilliox v1.6.0
+          </p>
+        </motion.div>
       </div>
 
       {/* Bottom Navigation */}

@@ -293,6 +293,9 @@ class NotificationService {
     pill: PillSetting,
     startDate: Date
   ): Promise<number[]> {
+    console.log(`[NotificationService] Scheduling web notifications for ${pill.name}`);
+    console.log(`[NotificationService] Notification time: ${pill.notificationTime}, Frequency: ${pill.notificationFrequency}`);
+    
     const [hours, minutes] = pill.notificationTime!.split(':').map(Number);
 
     const frequencyMap = {
@@ -304,29 +307,37 @@ class NotificationService {
 
     const scheduledIds: number[] = [];
     const maxNotifications = 30;
-    const minDelaySeconds = 10; // Minimum 10 seconds in the future to avoid immediate notifications
+    const minDelayMinutes = 2; // Minimum 2 minutes in the future
 
     // Cancel existing web notifications for this pill
     await this.cancelWebNotificationsForPill(pill.id);
 
+    const now = new Date();
+    
     for (let i = 0; i < maxNotifications; i++) {
       const scheduledDate = new Date(startDate);
       scheduledDate.setDate(startDate.getDate() + (i * frequencyDays));
       scheduledDate.setHours(hours, minutes, 0, 0);
 
-      const now = new Date();
       const delay = scheduledDate.getTime() - now.getTime();
+      const delayMinutes = delay / 1000 / 60;
       
-      // Skip if scheduled time has passed or is too soon (less than minDelaySeconds)
-      if (delay < minDelaySeconds * 1000) {
+      // Skip if scheduled time has passed or is too soon (less than minDelayMinutes)
+      if (delayMinutes < minDelayMinutes) {
+        console.log(`[NotificationService] Skipping notification ${i}: scheduled for ${scheduledDate.toISOString()}, delay is ${delayMinutes.toFixed(1)} minutes`);
         continue;
       }
 
       const notificationId = this.generateNotificationId(pill.id, i);
       scheduledIds.push(notificationId);
 
+      const delayHours = Math.floor(delayMinutes / 60);
+      const remainingMinutes = Math.floor(delayMinutes % 60);
+      console.log(`[NotificationService] Scheduling notification ${notificationId} for ${scheduledDate.toISOString()} (in ${delayHours}h ${remainingMinutes}m)`);
+
       // Schedule using setTimeout
       const timeoutId = window.setTimeout(() => {
+        console.log(`[NotificationService] Showing notification for ${pill.name}`);
         this.showWebNotification(pill, notificationId);
         // Remove from scheduled list after showing
         this.scheduledWebNotifications = this.scheduledWebNotifications.filter(
@@ -342,6 +353,8 @@ class NotificationService {
         timeoutId,
       });
     }
+
+    console.log(`[NotificationService] Scheduled ${scheduledIds.length} notifications for ${pill.name}`);
 
     // Persist scheduled notifications to localStorage
     this.saveWebNotificationsToStorage();

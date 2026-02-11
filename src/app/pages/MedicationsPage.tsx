@@ -3,35 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
-import {
-  Plus,
-  Pill,
-  Trash2,
-  Edit,
-  Clock,
-  Droplet,
-  Bell,
-  Save,
-  ArrowLeft,
-  ChevronRight,
-} from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-import { BottomNavigation } from "../components/BottomNavigation";
-import {
-  PillsSettings,
-  PillSetting,
-} from "../components/PillsSettings";
-import { toast } from "sonner";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Switch } from "../components/ui/switch";
+import { Textarea } from "../components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
   DialogDescription,
 } from "../components/ui/dialog";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
-import { Switch } from "../components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -40,9 +23,27 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "../components/ui/toggle-group";
+  Plus,
+  ArrowLeft,
+  Pill,
+  Activity,
+  Bell,
+  BellOff,
+  Trash2,
+  ChevronRight,
+  X,
+  Clock,
+  Edit,
+  Save,
+  Droplet,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { BottomNavigation } from "../components/BottomNavigation";
+import {
+  PillsSettings,
+  PillSetting,
+} from "../components/PillsSettings";
+import { toast } from "sonner";
 import { notificationService } from "../services/notificationService";
 
 interface Medication {
@@ -111,7 +112,10 @@ export function MedicationsPage({
         await notificationService.initialize();
         console.log("Notification service initialized");
       } catch (error) {
-        console.error("Failed to initialize notifications:", error);
+        console.error(
+          "Failed to initialize notifications:",
+          error,
+        );
       }
     };
 
@@ -368,17 +372,30 @@ export function MedicationsPage({
         // Schedule or update notifications
         try {
           if (editingPill.notificationsEnabled) {
-            await notificationService.updatePillNotifications(editingPill);
-            console.log(`Notifications scheduled for ${editingPill.name}`);
+            await notificationService.updatePillNotifications(
+              editingPill,
+            );
+            console.log(
+              `Notifications scheduled for ${editingPill.name}`,
+            );
           } else {
             // Cancel notifications if they were disabled
-            await notificationService.cancelPillNotifications(editingPill.id);
-            console.log(`Notifications cancelled for ${editingPill.name}`);
+            await notificationService.cancelPillNotifications(
+              editingPill.id,
+            );
+            console.log(
+              `Notifications cancelled for ${editingPill.name}`,
+            );
           }
         } catch (notifError) {
-          console.error("Error managing notifications:", notifError);
+          console.error(
+            "Error managing notifications:",
+            notifError,
+          );
           // Don't fail the save if notifications fail
-          toast.error("Medication saved, but notification setup failed. Please check notification permissions.");
+          toast.error(
+            "Medication saved, but notification setup failed. Please check notification permissions.",
+          );
         }
 
         toast.success(
@@ -536,7 +553,7 @@ export function MedicationsPage({
                           .map((pill) => (
                             <div
                               key={pill.id}
-                              className="flex items-center bg-popover gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                              className="flex items-center bg-popover gap-4 px-4 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
                               onClick={() => {
                                 setEditingPill({ ...pill });
                                 setOriginalPill({ ...pill });
@@ -554,7 +571,7 @@ export function MedicationsPage({
                               />
 
                               {/* Name */}
-                              <span className="flex-1 font-medium text-sm">
+                              <span className="flex-1 font-medium">
                                 {pill.name ||
                                   t(
                                     "pillsSettings.medicationPlaceholder",
@@ -563,16 +580,32 @@ export function MedicationsPage({
                               </span>
 
                               {/* Pills Counter */}
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <div className="flex items-center text-sm gap-2 text-muted-foreground">
                                 <Pill className="h-4 w-4" />
-                                <span>
+                                <span className="text-white">
                                   {pill.defaultDosage}
                                 </span>
                               </div>
 
                               {/* Notification Icon */}
-                              {pill.notificationsEnabled && (
-                                <Bell className="h-4 w-4 text-purple-600" />
+                              {pill.notificationsEnabled ? (
+                                <div className="flex items-center text-sm gap-2 text-blue-500">
+                                  <Bell className="h-4 w-4" />
+                                  <span className="text-white">
+                                    {pill.notificationFrequency ===
+                                      "daily" && "Daily"}
+                                    {pill.notificationFrequency ===
+                                      "every2days" &&
+                                      "Every 2 days"}
+                                    {pill.notificationFrequency ===
+                                      "every3days" &&
+                                      "Every 3 days"}
+                                    {pill.notificationTime &&
+                                      ` | ${pill.notificationTime}`}
+                                  </span>
+                                </div>
+                              ) : (
+                                <BellOff className="h-4 w-4 text-muted-foreground" />
                               )}
                               <ChevronRight className="w-5 h-5 text-muted-foreground" />
                             </div>
@@ -584,7 +617,7 @@ export function MedicationsPage({
                     {pills.filter((p) => p.type === "value")
                       .length > 0 && (
                       <div className="space-y-2">
-                        <h3 className="text-sm font-semibold text-muted-foreground px-1">
+                        <h3 className="text-sm font-semibold px-1">
                           {t("medications.values") ||
                             "Medical Values"}
                         </h3>
@@ -593,7 +626,7 @@ export function MedicationsPage({
                           .map((pill) => (
                             <div
                               key={pill.id}
-                              className="flex items-center bg-popover gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                              className="flex items-center bg-popover gap-4 px-4 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
                               onClick={() => {
                                 setEditingPill({ ...pill });
                                 setOriginalPill({ ...pill });
@@ -611,7 +644,7 @@ export function MedicationsPage({
                               />
 
                               {/* Name */}
-                              <span className="flex-1 font-medium text-sm">
+                              <span className="flex-1 font-medium">
                                 {pill.name ||
                                   t(
                                     "pillsSettings.medicationPlaceholder",
@@ -622,14 +655,22 @@ export function MedicationsPage({
                               {/* Value Counter */}
                               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                 <Droplet className="h-4 w-4" />
-                                <span>
+                                <span className="text-white">
                                   {pill.defaultDosage}
                                 </span>
                               </div>
 
                               {/* Notification Icon */}
-                              {pill.notificationsEnabled && (
-                                <Bell className="h-4 w-4 text-purple-600" />
+                              {pill.notificationsEnabled ? (
+                                <div className="flex items-center text-sm gap-2 text-blue-500">
+                                  <Bell className="h-4 w-4" />
+                                  <span className="text-white">
+                                    {pill.notificationTime &&
+                                      ` ${pill.notificationTime}`}
+                                  </span>
+                                </div>
+                              ) : (
+                                <BellOff className="h-4 w-4 text-muted-foreground" />
                               )}
                               <ChevronRight className="w-5 h-5 text-muted-foreground" />
                             </div>
@@ -971,6 +1012,32 @@ export function MedicationsPage({
                               ? "daily"
                               : editingPill.notificationFrequency,
                         });
+
+                        // Request permissions immediately when enabling notifications
+                        if (checked) {
+                          notificationService
+                            .ensurePermissions()
+                            .then((granted) => {
+                              if (!granted) {
+                                toast.error(
+                                  "Notification permissions were denied. Please enable them in your browser settings.",
+                                );
+                              } else {
+                                toast.success(
+                                  "Notifications enabled! They will be scheduled when you save.",
+                                );
+                              }
+                            })
+                            .catch((error) => {
+                              console.error(
+                                "Permission request failed:",
+                                error,
+                              );
+                              toast.error(
+                                "Failed to request notification permissions",
+                              );
+                            });
+                        }
                       }}
                     />
                   </div>
