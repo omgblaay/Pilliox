@@ -1444,4 +1444,182 @@ app.put('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
   }
 });
 
+// Add a single medication
+app.post('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS POST] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS POST] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS POST] User trying to update another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const newPill = await c.req.json();
+    
+    // Validate pill data
+    if (!newPill.id || !newPill.name || typeof newPill.defaultDosage !== 'number') {
+      return c.json({ error: 'Invalid pill data format' }, 400);
+    }
+    
+    // Get existing pills
+    const existingPills = await kvGet(`pills_settings:${userId}`) || [];
+    
+    // Add new pill
+    const updatedPills = [...existingPills, newPill];
+    
+    await kvSet(`pills_settings:${userId}`, updatedPills);
+    
+    console.log(`[PILLS SETTINGS POST] Added medication for user ${userId}`);
+    
+    return c.json({ success: true, pill: newPill });
+  } catch (error) {
+    console.log('[PILLS SETTINGS POST] ERROR:', error.message);
+    return c.json({ error: 'Failed to add medication' }, 500);
+  }
+});
+
+// Update a single medication
+app.put('/make-server-c7e1f966/pills-settings/:userId/:pillId', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS UPDATE SINGLE] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS UPDATE SINGLE] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    const pillId = c.req.param('pillId');
+    
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS UPDATE SINGLE] User trying to update another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const updatedPill = await c.req.json();
+    
+    // Validate pill data
+    if (!updatedPill.id || !updatedPill.name || typeof updatedPill.defaultDosage !== 'number') {
+      return c.json({ error: 'Invalid pill data format' }, 400);
+    }
+    
+    // Get existing pills
+    const existingPills = await kvGet(`pills_settings:${userId}`) || [];
+    
+    // Find and update the pill
+    const pillIndex = existingPills.findIndex((p: any) => p.id === pillId);
+    
+    if (pillIndex === -1) {
+      return c.json({ error: 'Medication not found' }, 404);
+    }
+    
+    existingPills[pillIndex] = updatedPill;
+    
+    await kvSet(`pills_settings:${userId}`, existingPills);
+    
+    console.log(`[PILLS SETTINGS UPDATE SINGLE] Updated medication ${pillId} for user ${userId}`);
+    
+    return c.json({ success: true, pill: updatedPill });
+  } catch (error) {
+    console.log('[PILLS SETTINGS UPDATE SINGLE] ERROR:', error.message);
+    return c.json({ error: 'Failed to update medication' }, 500);
+  }
+});
+
+// Delete a single medication
+app.delete('/make-server-c7e1f966/pills-settings/:userId/:pillId', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS DELETE] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS DELETE] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    const pillId = c.req.param('pillId');
+    
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS DELETE] User trying to delete another user medication');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    // Get existing pills
+    const existingPills = await kvGet(`pills_settings:${userId}`) || [];
+    
+    // Find the pill
+    const pillIndex = existingPills.findIndex((p: any) => p.id === pillId);
+    
+    if (pillIndex === -1) {
+      return c.json({ error: 'Medication not found' }, 404);
+    }
+    
+    // Remove the pill
+    const updatedPills = existingPills.filter((p: any) => p.id !== pillId);
+    
+    await kvSet(`pills_settings:${userId}`, updatedPills);
+    
+    // Also delete all calendar entries for this pill
+    const { data: calendarKeys, error } = await supabase
+      .from("kv_store_c7e1f966")
+      .select("key, value")
+      .like("key", `calendar:${userId}:%`);
+    
+    if (!error && calendarKeys) {
+      for (const row of calendarKeys) {
+        const entries = row.value;
+        let modified = false;
+        
+        // Remove entries for this pill from each day
+        for (const day in entries) {
+          if (entries[day] && entries[day][pillId]) {
+            delete entries[day][pillId];
+            modified = true;
+          }
+        }
+        
+        // Update the calendar month if modified
+        if (modified) {
+          await kvSet(row.key, entries);
+        }
+      }
+    }
+    
+    console.log(`[PILLS SETTINGS DELETE] Deleted medication ${pillId} and its calendar entries for user ${userId}`);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.log('[PILLS SETTINGS DELETE] ERROR:', error.message);
+    return c.json({ error: 'Failed to delete medication' }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

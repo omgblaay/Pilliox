@@ -90,10 +90,6 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="ring-offset-background cursor-pointer focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-7 md:top-9 right-6 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
-          <XIcon />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>
   );
@@ -107,11 +103,16 @@ function DialogHeader({
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex h-10 justify-center flex-col gap-2 text-left",
+        "flex min-h-10 justify-center flex-col gap-2 text-left relative",
         className,
       )}
       {...props}
-    />
+    >
+      {props.children}
+      <DialogPrimitive.Close className="w-6 h-6 ring-offset-background flex items-center cursor-pointer focus:ring-ring rounded-xs opacity-70 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
+        <XIcon className="m-auto" />
+      </DialogPrimitive.Close>
+    </div>
   );
 }
 

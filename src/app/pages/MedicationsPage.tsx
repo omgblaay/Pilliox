@@ -86,7 +86,18 @@ export function MedicationsPage({
   const [loading, setLoading] = useState(false);
   const [editingPill, setEditingPill] =
     useState<PillSetting | null>(null);
+  const [originalPill, setOriginalPill] =
+    useState<PillSetting | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // State for delete confirmation
+  const [deleteConfirmOpen, setDeleteConfirmOpen] =
+    useState(false);
+  const [deleteKeyword, setDeleteKeyword] = useState("");
+  const [entryCount, setEntryCount] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Get userId from accessToken
   useEffect(() => {
@@ -183,8 +194,9 @@ export function MedicationsPage({
       color: PILL_COLORS[0].value,
       type: "pills",
     };
-    setPills([...pills, newPill]);
     setEditingPill(newPill);
+    setOriginalPill(null);
+    setIsAddingNew(true);
     setEditModalOpen(true);
   };
 
@@ -192,13 +204,194 @@ export function MedicationsPage({
     id: string,
     updates: Partial<PillSetting>,
   ) => {
-    setPills(
-      pills.map((pill) =>
-        pill.id === id ? { ...pill, ...updates } : pill,
-      ),
-    );
+    // Only update the editingPill state, not the pills array
+    // The pills array will be updated when save is clicked
     if (editingPill && editingPill.id === id) {
       setEditingPill({ ...editingPill, ...updates });
+    }
+  };
+
+  // Check calendar entries for medication
+  const checkCalendarEntries = async (pillId: string) => {
+    try {
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar-entries/count/${userId}/${pillId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
+          },
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.count || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error checking calendar entries:", error);
+      return 0;
+    }
+  };
+
+  // Handle delete button click
+  const handleDeleteClick = async () => {
+    if (!editingPill) return;
+
+    const count = await checkCalendarEntries(editingPill.id);
+    setEntryCount(count);
+    setDeleteConfirmOpen(true);
+  };
+
+  // Perform the actual deletion
+  const confirmDelete = async () => {
+    if (!editingPill) return;
+
+    // Get the expected keyword based on current language
+    const expectedKeyword = t(
+      "pillsSettings.deleteKeywordPlaceholder",
+    )
+      .replace("Type ", "")
+      .replace("Wpisz ", "")
+      .replace("eingeben", "LÖSCHEN")
+      .replace("USUŃ", "USUŃ");
+
+    // Check if keyword matches (case-insensitive)
+    if (
+      deleteKeyword.trim().toUpperCase() !==
+        expectedKeyword.toUpperCase() &&
+      entryCount > 0
+    ) {
+      toast.error(t("pillsSettings.deleteKeywordMismatch"));
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      // Delete from backend
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}/${editingPill.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
+          },
+        },
+      );
+
+      if (response.ok) {
+        // Remove from local state
+        setPills(pills.filter((p) => p.id !== editingPill.id));
+        toast.success(t("pillsSettings.deleteSuccess"));
+        setDeleteConfirmOpen(false);
+        setEditModalOpen(false);
+        setEditingPill(null);
+        setOriginalPill(null);
+        setDeleteKeyword("");
+      } else {
+        toast.error(t("pillsSettings.deleteError"));
+      }
+    } catch (error) {
+      console.error("Error deleting medication:", error);
+      toast.error(t("pillsSettings.deleteError"));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Save medication changes
+  const handleSaveMedication = async () => {
+    if (!editingPill || !userId) return;
+
+    // Validate required fields
+    if (!editingPill.name || editingPill.name.trim() === "") {
+      toast.error(
+        t("pillsSettings.medicationPlaceholder") ||
+          "Please enter a medication name",
+      );
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const method = isAddingNew ? "POST" : "PUT";
+      const url = isAddingNew
+        ? `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`
+        : `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}/${editingPill.id}`;
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${anonKey}`,
+          "X-User-Token": accessToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editingPill),
+      });
+
+      if (response.ok) {
+        if (isAddingNew) {
+          // Add new medication to list
+          setPills([...pills, editingPill]);
+        } else {
+          // Update existing medication
+          setPills(
+            pills.map((p) =>
+              p.id === editingPill.id ? editingPill : p,
+            ),
+          );
+        }
+
+        toast.success(
+          isAddingNew
+            ? t("pillsSettings.addMedication") ||
+                "Medication added"
+            : t("pillsSettings.saveChanges") || "Changes saved",
+        );
+
+        setEditModalOpen(false);
+        setEditingPill(null);
+        setOriginalPill(null);
+        setIsAddingNew(false);
+      } else {
+        const errorData = await response.json();
+        toast.error(
+          errorData.error ||
+            t("pillsSettings.deleteError") ||
+            "Failed to save",
+        );
+      }
+    } catch (error) {
+      console.error("Error saving medication:", error);
+      toast.error(
+        t("pillsSettings.deleteError") ||
+          "Failed to save medication",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Discard medication changes
+  const handleDiscardChanges = () => {
+    if (isAddingNew) {
+      // For new medications, just close the modal
+      setEditModalOpen(false);
+      setEditingPill(null);
+      setOriginalPill(null);
+      setIsAddingNew(false);
+    } else {
+      // For existing medications, revert to original
+      if (originalPill) {
+        setEditingPill(originalPill);
+      }
+      setEditModalOpen(false);
+      setEditingPill(null);
+      setOriginalPill(null);
     }
   };
 
@@ -253,7 +446,7 @@ export function MedicationsPage({
             </Button>
             <div className="flex-1">
               <h1>{t("medications.title") || "Medications"}</h1>
-              <p>
+              <p className="small">
                 {t("medications.subtitle") ||
                   "Manage your medications"}
               </p>
@@ -291,52 +484,123 @@ export function MedicationsPage({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {pills.map((pill) => (
-                      <div
-                        key={pill.id}
-                        className="flex items-center bg-popover gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => {
-                          setEditingPill(pill);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        {/* Colored Dot */}
-                        <div
-                          className="w-4 h-4 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              pill.color || "#a855f7",
-                          }}
-                        />
+                  <div className="space-y-4">
+                    {/* Pills Group */}
+                    {pills.filter(
+                      (p) => (p.type || "pills") === "pills",
+                    ).length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-muted-foreground px-1">
+                          {t("medications.pills") || "Pills"}
+                        </h3>
+                        {pills
+                          .filter(
+                            (p) =>
+                              (p.type || "pills") === "pills",
+                          )
+                          .map((pill) => (
+                            <div
+                              key={pill.id}
+                              className="flex items-center bg-popover gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                              onClick={() => {
+                                setEditingPill({ ...pill });
+                                setOriginalPill({ ...pill });
+                                setIsAddingNew(false);
+                                setEditModalOpen(true);
+                              }}
+                            >
+                              {/* Colored Dot */}
+                              <div
+                                className="w-4 h-4 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor:
+                                    pill.color || "#a855f7",
+                                }}
+                              />
 
-                        {/* Name */}
-                        <span className="flex-1 font-medium text-sm">
-                          {pill.name ||
-                            t(
-                              "pillsSettings.medicationPlaceholder",
-                            ) ||
-                            "Medication"}
-                        </span>
+                              {/* Name */}
+                              <span className="flex-1 font-medium text-sm">
+                                {pill.name ||
+                                  t(
+                                    "pillsSettings.medicationPlaceholder",
+                                  ) ||
+                                  "Medication"}
+                              </span>
 
-                        {/* Pills/Value Counter */}
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          {(pill.type || "pills") ===
-                          "pills" ? (
-                            <Pill className="h-4 w-4" />
-                          ) : (
-                            <Droplet className="h-4 w-4" />
-                          )}
-                          <span>{pill.defaultDosage}</span>
-                        </div>
+                              {/* Pills Counter */}
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Pill className="h-4 w-4" />
+                                <span>
+                                  {pill.defaultDosage}
+                                </span>
+                              </div>
 
-                        {/* Notification Icon */}
-                        {pill.notificationsEnabled && (
-                          <Bell className="h-4 w-4 text-purple-600" />
-                        )}
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                              {/* Notification Icon */}
+                              {pill.notificationsEnabled && (
+                                <Bell className="h-4 w-4 text-purple-600" />
+                              )}
+                              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          ))}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Values Group */}
+                    {pills.filter((p) => p.type === "value")
+                      .length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-muted-foreground px-1">
+                          {t("medications.values") ||
+                            "Medical Values"}
+                        </h3>
+                        {pills
+                          .filter((p) => p.type === "value")
+                          .map((pill) => (
+                            <div
+                              key={pill.id}
+                              className="flex items-center bg-popover gap-3 px-3 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                              onClick={() => {
+                                setEditingPill({ ...pill });
+                                setOriginalPill({ ...pill });
+                                setIsAddingNew(false);
+                                setEditModalOpen(true);
+                              }}
+                            >
+                              {/* Colored Dot */}
+                              <div
+                                className="w-4 h-4 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor:
+                                    pill.color || "#a855f7",
+                                }}
+                              />
+
+                              {/* Name */}
+                              <span className="flex-1 font-medium text-sm">
+                                {pill.name ||
+                                  t(
+                                    "pillsSettings.medicationPlaceholder",
+                                  ) ||
+                                  "Medication"}
+                              </span>
+
+                              {/* Value Counter */}
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Droplet className="h-4 w-4" />
+                                <span>
+                                  {pill.defaultDosage}
+                                </span>
+                              </div>
+
+                              {/* Notification Icon */}
+                              {pill.notificationsEnabled && (
+                                <Bell className="h-4 w-4 text-purple-600" />
+                              )}
+                              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -441,17 +705,17 @@ export function MedicationsPage({
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
       >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader className="flex gap-4 flex-row items-center">
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               onClick={() => navigate("/app")}
               className="h-10 w-10"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <DialogTitle>
+            <DialogTitle className="flex-1">
               {editingPill?.name
                 ? t("pillsSettings.editMedication") ||
                   "Edit Medication"
@@ -465,7 +729,21 @@ export function MedicationsPage({
                   ) || "Edit your medication settings"
                 : t("pillsSettings.addMedicationDescription") ||
                   "Add a new medication to your list"}
-            </DialogDescription>
+            </DialogDescription>{" "}
+            {!isAddingNew && editingPill?.name && (
+              <Button
+                variant="destructive"
+                onClick={handleDeleteClick}
+                className="mr-2"
+                size="sm"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={2} />
+                <span className="hidden md:inline">
+                  {t("pillsSettings.deleteMedication") ||
+                    "Delete"}
+                </span>
+              </Button>
+            )}
           </DialogHeader>
           {editingPill && (
             <div className="flex flex-col gap-5">
@@ -524,7 +802,7 @@ export function MedicationsPage({
                 <div className="flex-1">
                   <Label>{t("pillsSettings.type")}</Label>
 
-                  <div className="bg-background/60 rounded-2xl p-1 flex gap-0">
+                  <div className="bg-black/20 rounded-2xl p-1 flex gap-0">
                     <Button
                       size="sm"
                       type="button"
@@ -729,24 +1007,110 @@ export function MedicationsPage({
           )}
 
           {/* Modal Footer */}
-          <div className="border-t border-borde pt-4 flex sm:flex-row flex-col-reverse gap-4">
+          <div className="border-t border-borde pt-4 flex sm:flex-row gap-4">
+            <div className="flex-1 flex gap-4 ">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleDiscardChanges}
+                disabled={isSaving}
+              >
+                {t("pillsSettings.discard") || "Discard"}
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveMedication}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save
+                      className="hidden lg:block h-5 w-5"
+                      strokeWidth={2}
+                    />
+                    {t("pillsSettings.saveChanges") || "Save"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">
+              {t("pillsSettings.deleteConfirmTitle") ||
+                "Delete Medication?"}
+            </DialogTitle>
+            <DialogDescription>
+              {entryCount > 0
+                ? t(
+                    "pillsSettings.deleteConfirmDescription",
+                  ).replace("{count}", entryCount.toString())
+                : t("pillsSettings.deleteConfirmNoEntries") ||
+                  "Are you sure you want to delete this medication?"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {entryCount > 0 && (
+            <div className="space-y-2">
+              <Label>
+                {t("pillsSettings.deleteKeywordPrompt")}
+              </Label>
+              <Input
+                value={deleteKeyword}
+                onChange={(e) =>
+                  setDeleteKeyword(e.target.value)
+                }
+                placeholder={t(
+                  "pillsSettings.deleteKeywordPlaceholder",
+                )}
+                autoFocus
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3 justify-end">
             <Button
               variant="outline"
-              className="flex-1"
               onClick={() => {
-                setEditModalOpen(false);
+                setDeleteConfirmOpen(false);
+                setDeleteKeyword("");
               }}
+              disabled={isDeleting}
             >
-              {t("pillsSettings.discard") || "Discard"}
+              {t("pillsSettings.cancel") || "Cancel"}
             </Button>
             <Button
-              className="flex-1"
-              onClick={() => {
-                setEditModalOpen(false);
-              }}
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={
+                isDeleting || (entryCount > 0 && !deleteKeyword)
+              }
             >
-              <Save className="h-5 w-5" strokeWidth={2} />
-              {t("pillsSettings.saveChanges") || "Save"}
+              {isDeleting ? (
+                <>
+                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" strokeWidth={2} />
+                  {t("pillsSettings.confirmDelete") ||
+                    "Confirm Delete"}
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>

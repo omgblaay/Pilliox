@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n/config";
 import { useState, useEffect } from "react";

@@ -115,25 +115,24 @@ export function ProfilePage({
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-card border-b border-border">
-        <div className="max-w-screen-lg mx-auto items-center flex gap-5 px-4 py-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/app")}
-            className="h-10 w-10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3 mb-2">
+        <div className="max-w-screen-lg mx-auto px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/app")}
+              className="h-10 w-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground">
-                {t("profile.title") || "Profile"}
-              </h1>
+              <h1>{t("profile.title") || "Profile"}</h1>
+              <p className="small">
+                {t("profile.subtitle") ||
+                  "Your health information"}
+              </p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t("profile.subtitle") || "Your health information"}
-          </p>
         </div>
       </div>
 

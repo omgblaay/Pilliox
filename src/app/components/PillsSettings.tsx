@@ -220,9 +220,7 @@ export function PillsSettings({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          size="large"
-        >
+        <DialogContent size="large">
           <DialogHeader>
             <DialogTitle className="flex gap-2">
               <Pill
@@ -357,9 +355,7 @@ export function PillsSettings({
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
       >
-        <DialogContent
-          size="large"
-        >
+        <DialogContent size="large">
           <DialogHeader className="flex-row gap-6 items-center">
             {" "}
             <Button
@@ -376,7 +372,8 @@ export function PillsSettings({
             <DialogDescription className="sr-only">
               {t("pillsSettings.editMedicationDescription") ||
                 "Edit your medication settings"}
-            </DialogDescription> {/* Delete Button in Header */}
+            </DialogDescription>
+            {/* Delete Button in Header */}
             <Button
               size="icon"
               variant="destructive"

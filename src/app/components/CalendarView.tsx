@@ -63,6 +63,13 @@ import { Badge } from "./ui/badge";
 import { ProfileSettings } from "./ProfileSettings";
 import { AppSettings } from "./AppSettings";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
   PillsSettings,
   type PillSetting,
 } from "./PillsSettings";
@@ -348,6 +355,30 @@ export function CalendarView({
 
   // Theme
   const { theme, setTheme } = useTheme("system");
+
+  // Sync ad-hoc medications when dialog opens or selected date changes
+  useEffect(() => {
+    if (dialogOpen && selectedDate) {
+      const dateKey = format(selectedDate, "yyyy-MM-dd");
+      const entry = entries[dateKey];
+
+      // Parse ad-hoc medications JSON for the selected date
+      try {
+        const adHocMedsData = entry?.adHocMeds
+          ? JSON.parse(entry.adHocMeds)
+          : [];
+        setAdHocMeds(
+          Array.isArray(adHocMedsData) ? adHocMedsData : [],
+        );
+      } catch (error) {
+        console.error(
+          "Error parsing ad-hoc medications data:",
+          error,
+        );
+        setAdHocMeds([]);
+      }
+    }
+  }, [dialogOpen, selectedDate, entries]);
 
   // Force re-render when theme changes to update cell colors
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -2036,8 +2067,10 @@ export function CalendarView({
                                             0,
                                             3,
                                           )}
-                                          : {med.dosage}
-                                          {med.unit}
+                                          : {med.dosage}{" "}
+                                          {t(
+                                            `calendar.units.${med.unit}`,
+                                          ) || med.unit}
                                         </span>
                                       </div>
                                     );
@@ -2159,8 +2192,7 @@ export function CalendarView({
                                         className="text-[10px] font-semibold px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-transparent"
                                         title={`${med.name}: ${med.dosage}${med.unit}`}
                                       >
-                                        {med.dosage}
-                                        {med.unit}
+                                        {med.dosage} {med.unit}
                                       </div>
                                     );
                                   },
@@ -2209,15 +2241,30 @@ export function CalendarView({
           className="!p-0 gap-0 overflow-hidden"
         >
           {/* Header */}
-          <DialogHeader className="px-6 py-5 to-card">
-            <DialogTitle className="text-foreground">
+          <DialogHeader className="px-6 h-16 flex-row items-center space-between to-card">
+            <DialogTitle className="flex-1">
               {t("calendar.day", {
                 count: selectedDates.size,
               })}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {t("day.editEntry")}
+              {t("day.description")}
             </DialogDescription>
+
+            {entries[
+              selectedDate
+                ? format(selectedDate, "yyyy-MM-dd")
+                : ""
+            ] && (
+              <Button
+                onClick={() => setDeleteConfirmOpen(true)}
+                variant="destructive"
+                size="sm"
+                className="mr-2 px-4"
+              >
+                {t("day.delete")}
+              </Button>
+            )}
           </DialogHeader>
           <div className="px-[24px] py-[8px] bg-accent to-card border-t border-b border-border">
             <div>
@@ -2825,7 +2872,7 @@ export function CalendarView({
                   {/* Ad-Hoc Medications Section */}
                   {(pillsSettings.length > 0 ||
                     adHocMeds.length > 0) && (
-                    <div className="space-y-3">
+                    <div className="space-y-3 py-4 border-y-1 border-border">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
@@ -2842,7 +2889,6 @@ export function CalendarView({
                           onClick={() =>
                             setAddAdHocDialogOpen(true)
                           }
-                          className="h-8"
                         >
                           <Plus className="h-3 w-3 mr-1" />
                           {t("calendar.addMed") || "Add"}
@@ -2855,8 +2901,19 @@ export function CalendarView({
                           {adHocMeds.map((med) => (
                             <div
                               key={med.id}
-                              className="flex items-center gap-3 p-3 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 transition-colors"
+                              className="flex items-center gap-3 p-3 border rounded-lg transition-colors"
                             >
+                              {" "}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleRemoveAdHocMed(med.id)
+                                }
+                                className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <div className="text-sm font-medium text-foreground">
@@ -2871,8 +2928,11 @@ export function CalendarView({
                                     </div>
                                   )}
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {med.dosage} {med.unit}
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {med.dosage}{" "}
+                                  {t(
+                                    `calendar.units.${med.unit}`,
+                                  ) || med.unit}
                                 </div>
                               </div>
                               <div className="flex gap-1">
@@ -2885,16 +2945,6 @@ export function CalendarView({
                                   className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleRemoveAdHocMed(med.id)
-                                  }
-                                  className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
-                                >
-                                  <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
@@ -2959,19 +3009,6 @@ export function CalendarView({
                 </div>
                 {/* Footer Actions */}
                 <div className="flex gap-3 mt-4">
-                  {entries[
-                    selectedDate
-                      ? format(selectedDate, "yyyy-MM-dd")
-                      : ""
-                  ] && (
-                    <Button
-                      onClick={() => setDeleteConfirmOpen(true)}
-                      variant="destructive"
-                      className="flex-0"
-                    >
-                      {t("day.delete")}
-                    </Button>
-                  )}
                   <Button
                     onClick={handleSave}
                     className="flex-1"
@@ -3140,62 +3177,70 @@ export function CalendarView({
                 onChange={(e) =>
                   setNewAdHocName(e.target.value)
                 }
-                className="bg-input-background border-border text-foreground"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="adhoc-dosage"
-                  className="text-foreground"
-                >
-                  {t("calendar.dosage") || "Dosage"}
-                </Label>
-                <Input
-                  id="adhoc-dosage"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="500"
-                  value={newAdHocDosage}
-                  onChange={(e) =>
-                    setNewAdHocDosage(e.target.value)
-                  }
-                  className="bg-input-background border-border text-foreground"
-                />
-              </div>
+            {/* Pills and Values Section */}
+            <div className="space-y-3">
+              <Label className="text-foreground font-semibold text-base">
+                {t("calendar.pillsAndValues") ||
+                  "Pills and Values"}
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="adhoc-dosage"
+                    className="text-foreground"
+                  >
+                    {t("calendar.dosage") || "Dosage"}
+                  </Label>
+                  <Input
+                    id="adhoc-dosage"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="500"
+                    value={newAdHocDosage}
+                    onChange={(e) =>
+                      setNewAdHocDosage(e.target.value)
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="adhoc-unit"
-                  className="text-foreground"
-                >
-                  {t("calendar.unit") || "Unit"}
-                </Label>
-                <select
-                  id="adhoc-unit"
-                  value={newAdHocUnit}
-                  onChange={(e) =>
-                    setNewAdHocUnit(e.target.value)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-input-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="mg">mg</option>
-                  <option value="g">g</option>
-                  <option value="ml">ml</option>
-                  <option value="mcg">mcg</option>
-                  <option value="IU">IU</option>
-                  <option value="tablets">
-                    {t("calendar.tablets") || "tablets"}
-                  </option>
-                  <option value="capsules">
-                    {t("calendar.capsules") || "capsules"}
-                  </option>
-                  <option value="drops">
-                    {t("calendar.drops") || "drops"}
-                  </option>
-                </select>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="adhoc-unit"
+                    className="text-foreground"
+                  >
+                    {t("calendar.unit") || "Unit"}
+                  </Label>
+                  <Select
+                    value={newAdHocUnit}
+                    onValueChange={(value) =>
+                      setNewAdHocUnit(value)
+                    }
+                  >
+                    <SelectTrigger id="adhoc-unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mg">mg</SelectItem>
+                      <SelectItem value="g">g</SelectItem>
+                      <SelectItem value="ml">ml</SelectItem>
+                      <SelectItem value="mcg">mcg</SelectItem>
+                      <SelectItem value="IU">IU</SelectItem>
+                      <SelectItem value="tablets">
+                        {t("calendar.tablets") || "tablets"}
+                      </SelectItem>
+                      <SelectItem value="cabsules">
+                        {t("calendar.capsules") || "capsules"}
+                      </SelectItem>
+                      <SelectItem value="drops">
+                        {t("calendar.drops") || "drops"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -3248,7 +3293,7 @@ export function CalendarView({
                       onChange={(e) =>
                         setNotificationTime(e.target.value)
                       }
-                      className="pl-10 bg-input-background border-border text-foreground"
+                      className="pl-10"
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">

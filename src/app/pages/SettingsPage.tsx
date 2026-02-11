@@ -185,7 +185,7 @@ export function SettingsPage({
           </Button>
           <div className="flex-1">
             <h1>{t("settings.title") || "Settings"}</h1>
-            <p>
+            <p className="small">
               {t("settings.subtitle") ||
                 "Customize your experience"}
             </p>

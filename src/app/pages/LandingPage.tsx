@@ -1,22 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
-import { useTranslation } from 'react-i18next';
-import { Button } from '../components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { Card } from '../components/ui/card';
-import { Sun, Moon, Calendar, Pill, Palette, Shield, Globe, Check } from 'lucide-react';
-import { useTheme } from '../hooks/useTheme';
-import { LanguageSelector } from '../components/LanguageSelector';
-import Vector from '../../imports/Vector';
-import { supabase } from '/utils/supabase/client';
+import React, { useEffect, useState } from "react";
+import {
+  projectId,
+  publicAnonKey,
+} from "../../../utils/supabase/info";
+import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
+import { Card } from "../components/ui/card";
+import {
+  Sun,
+  Moon,
+  Calendar,
+  Pill,
+  Palette,
+  Shield,
+  Globe,
+  Check,
+} from "lucide-react";
+import { useTheme } from "../hooks/useTheme";
+import { LanguageSelector } from "../components/LanguageSelector";
+import Vector from "../../imports/Vector";
+import { supabase } from "/utils/supabase/client";
 
 export default function LandingPage() {
   const { t } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme('system');
+  const { theme, setTheme } = useTheme("system");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -313,8 +325,11 @@ export default function LandingPage() {
                   ))}
                 </ul>
 
-                <div className="relative z-10">
-                  <Button onClick={() => navigate("/auth")}>
+                <div className="mt-4">
+                  <Button
+                    className="w-full"
+                    onClick={() => navigate("/auth")}
+                  >
                     {t("landing.pricing.cta")}
                   </Button>
 
