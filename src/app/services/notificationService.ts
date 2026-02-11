@@ -542,6 +542,49 @@ class NotificationService {
   }
 
   /**
+   * Send a test notification immediately (for testing purposes)
+   */
+  async sendTestNotification(): Promise<void> {
+    const hasPermission = await this.ensurePermissions();
+    if (!hasPermission) {
+      throw new Error('Notification permissions not granted');
+    }
+
+    try {
+      if (this.isNativePlatform) {
+        // Mobile: Use Capacitor to send immediate notification
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 999999,
+              title: '💊 Test Notification',
+              body: 'If you can see this, notifications are working!',
+              schedule: {
+                at: new Date(Date.now() + 1000), // 1 second from now
+              },
+              channelId: this.NOTIFICATION_CHANNEL.id,
+            },
+          ],
+        });
+      } else {
+        // Web: Show immediate browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('💊 Test Notification', {
+            body: 'If you can see this, notifications are working!',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            requireInteraction: false,
+            vibrate: [200, 100, 200],
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      throw new Error(`Test notification error: ${error}`);
+    }
+  }
+
+  /**
    * Get all pending notifications
    */
   async getPendingNotifications(): Promise<any[]> {

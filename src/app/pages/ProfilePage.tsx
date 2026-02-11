@@ -116,7 +116,7 @@ export function ProfilePage({
       {/* Header */}
       <div className="sticky top-0 z-30 bg-card border-b border-border">
         <div className="max-w-screen-lg mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             <Button
               variant="outline"
               size="icon"

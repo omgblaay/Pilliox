@@ -1335,7 +1335,7 @@ export function CalendarView({
               </div>
 
               {/* Menu Items */}
-              <div className="p-4 space-y-1">
+              <div className="p-4 flex flex-col items-strech space-y-1">
                 {/* View Mode Section */}
                 <Button
                   variant="ghost"
@@ -1492,6 +1492,15 @@ export function CalendarView({
         <div className="w-full lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
           <div className="flex items-center gap-8 justify-between mt-[0px] mr-[0px] ml-[0px] m-[0px]">
             <div className="flex items-center gap-4">
+              {/* Menu button - visible only on mobile */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 rounded-full hover:bg-accent lg:hidden"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-6 w-6 text-muted-foreground" />
+              </Button>
               <div className="flex items-start flex-col gap-2">
                 <div className="h-[28px] w-[120px]">
                   <Vector />
@@ -1510,15 +1519,6 @@ export function CalendarView({
                 title="Manage Subscription"
               >
                 <Crown className="h-6 w-6 text-muted-foreground" />
-              </Button>
-              {/* Menu button - visible only on mobile */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent lg:hidden"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-6 w-6 text-muted-foreground" />
               </Button>
 
               {/* Desktop icons - hidden on mobile */}
@@ -3390,12 +3390,7 @@ export function CalendarView({
           className="bg-card border-border"
         >
           <DialogHeader>
-            <DialogTitle className="text-foreground">
-              {t("about.title")}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              {t("about.description")}
-            </DialogDescription>
+            <DialogTitle>{t("about.title")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 pt-4">
@@ -3432,13 +3427,13 @@ export function CalendarView({
               </ul>
             </div>
 
-            <div className="pt-2 space-y-3">
+            <div className="flex flex-col gap-4">
               <Button variant="secondary" size="sm" href="/">
                 {t("about.visitHomepage")}
               </Button>
               <Button
                 variant="outline"
-                className="w-full"
+                className="flex-1"
                 size="sm"
                 onClick={() => setAboutOpen(false)}
               >

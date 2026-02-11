@@ -39,6 +39,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../components/ui/toggle-group";
+import { notificationService } from "../services/notificationService";
 
 interface Medication {
   id: string;
@@ -98,6 +103,20 @@ export function MedicationsPage({
   const [deleteKeyword, setDeleteKeyword] = useState("");
   const [entryCount, setEntryCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Initialize notification service
+  useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        await notificationService.initialize();
+        console.log("Notification service initialized");
+      } catch (error) {
+        console.error("Failed to initialize notifications:", error);
+      }
+    };
+
+    initNotifications();
+  }, []);
 
   // Get userId from accessToken
   useEffect(() => {
@@ -344,6 +363,22 @@ export function MedicationsPage({
               p.id === editingPill.id ? editingPill : p,
             ),
           );
+        }
+
+        // Schedule or update notifications
+        try {
+          if (editingPill.notificationsEnabled) {
+            await notificationService.updatePillNotifications(editingPill);
+            console.log(`Notifications scheduled for ${editingPill.name}`);
+          } else {
+            // Cancel notifications if they were disabled
+            await notificationService.cancelPillNotifications(editingPill.id);
+            console.log(`Notifications cancelled for ${editingPill.name}`);
+          }
+        } catch (notifError) {
+          console.error("Error managing notifications:", notifError);
+          // Don't fail the save if notifications fail
+          toast.error("Medication saved, but notification setup failed. Please check notification permissions.");
         }
 
         toast.success(
@@ -769,7 +804,7 @@ export function MedicationsPage({
                 {/* Color */}
                 <div className="space-y-2 flex-1">
                   <Label>{t("pillsSettings.color")}</Label>
-                  <div className="flex flex-wrap gap-1 w-full">
+                  <div className="flex flex-wrap gap-2 w-full">
                     {PILL_COLORS.map((color) => (
                       <button
                         key={color.value}
@@ -802,7 +837,7 @@ export function MedicationsPage({
                 <div className="flex-1">
                   <Label>{t("pillsSettings.type")}</Label>
 
-                  <div className="bg-black/20 rounded-2xl p-1 flex gap-0">
+                  <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                     <Button
                       size="sm"
                       type="button"
@@ -1047,20 +1082,22 @@ export function MedicationsPage({
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
       >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-destructive">
-              {t("pillsSettings.deleteConfirmTitle") ||
-                "Delete Medication?"}
-            </DialogTitle>
-            <DialogDescription>
-              {entryCount > 0
-                ? t(
-                    "pillsSettings.deleteConfirmDescription",
-                  ).replace("{count}", entryCount.toString())
-                : t("pillsSettings.deleteConfirmNoEntries") ||
-                  "Are you sure you want to delete this medication?"}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-[500px] p-6">
+          <DialogHeader className="flex-row mb-4">
+            <div className="flex flex-col gap-2 flex-1">
+              <DialogTitle className="text-red-600 dark:text-red-400">
+                {t("pillsSettings.deleteConfirmTitle") ||
+                  "Delete Medication?"}
+              </DialogTitle>
+              <DialogDescription>
+                {entryCount > 0
+                  ? t(
+                      "pillsSettings.deleteConfirmDescription",
+                    ).replace("{count}", entryCount.toString())
+                  : t("pillsSettings.deleteConfirmNoEntries") ||
+                    "Are you sure you want to delete this medication?"}
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
           {entryCount > 0 && (

@@ -103,7 +103,7 @@ function DialogHeader({
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex min-h-10 justify-center flex-col gap-2 text-left relative",
+        "flex min-h-10 w-full items-center gap-2 text-left relative",
         className,
       )}
       {...props}
@@ -140,7 +140,7 @@ function DialogTitle({
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "text-lg leading-none font-semibold",
+        "text-lg leading-none flex-1 font-semibold",
         className,
       )}
       {...props}
