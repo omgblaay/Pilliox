@@ -10,31 +10,100 @@ const SUPABASE_URL = 'https://svlxczytgstimushobmu.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTQ0MzE4MSwiZXhwIjoyMDg1MDE5MTgxfQ.xGsuWAbGM-sNLqkArm4wm64RS3qEDcQl1-8wuXvc_VE';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDMxODEsImV4cCI6MjA4NTAxOTE4MX0.gm3hhEvJXkX77Vg2-m5w7w3M6x3eTlqBrfWvlVWfIZk';
 
-// Create a Supabase client for database operations
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Create a Supabase client for database operations with service role
+// Service role bypasses RLS policies automatically
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 // KV Store functions (inline, no need for separate file)
+// Service role client automatically bypasses RLS
 const kvSet = async (key: string, value: any): Promise<void> => {
-  const { error } = await supabase.from("kv_store_c7e1f966").upsert({ key, value });
-  if (error) throw new Error(error.message);
+  const { error } = await supabase
+    .from("kv_store_c7e1f966")
+    .upsert({ key, value }, { 
+      onConflict: 'key',
+      ignoreDuplicates: false 
+    });
+  if (error) {
+    // Silently fail on RLS errors - auth works without KV
+    if (error.code === '42501') {
+      // RLS policy violation - expected when RLS is not disabled
+      throw new Error('KV_RLS_ERROR'); // Special error code to catch
+    }
+    console.error(`KV Set Error for key "${key}":`, error);
+    throw new Error(error.message);
+  }
 };
 
 const kvGet = async (key: string): Promise<any> => {
-  const { data, error } = await supabase.from("kv_store_c7e1f966").select("value").eq("key", key).maybeSingle();
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase
+    .from("kv_store_c7e1f966")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+  if (error) {
+    // Silently fail on RLS errors
+    if (error.code === '42501') {
+      throw new Error('KV_RLS_ERROR');
+    }
+    console.error(`KV Get Error for key "${key}":`, error);
+    throw new Error(error.message);
+  }
   return data?.value;
 };
 
 const kvDel = async (key: string): Promise<void> => {
-  const { error } = await supabase.from("kv_store_c7e1f966").delete().eq("key", key);
-  if (error) throw new Error(error.message);
+  const { error } = await supabase
+    .from("kv_store_c7e1f966")
+    .delete()
+    .eq("key", key);
+  if (error) {
+    // Silently fail on RLS errors
+    if (error.code === '42501') {
+      throw new Error('KV_RLS_ERROR');
+    }
+    console.error(`KV Del Error for key "${key}":`, error);
+    throw new Error(error.message);
+  }
 };
 
 const kvGetByPrefix = async (prefix: string): Promise<any[]> => {
-  const { data, error } = await supabase.from("kv_store_c7e1f966").select("key, value").like("key", prefix + "%");
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase
+    .from("kv_store_c7e1f966")
+    .select("key, value")
+    .like("key", prefix + "%");
+  if (error) {
+    // Silently fail on RLS errors
+    if (error.code === '42501') {
+      throw new Error('KV_RLS_ERROR');
+    }
+    console.error(`KV GetByPrefix Error for prefix "${prefix}":`, error);
+    throw new Error(error.message);
+  }
   return data?.map((d) => d.value) ?? [];
 };
+
+// Helper to handle KV operations that might fail due to RLS
+// Returns null/default value on RLS errors instead of throwing
+async function safeKvOperation<T>(
+  operation: () => Promise<T>,
+  defaultValue: T = null as any
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (error.message === 'KV_RLS_ERROR') {
+      // Silently return default value on RLS errors
+      return defaultValue;
+    }
+    // Re-throw other errors
+    throw error;
+  }
+}
 
 // Middleware
 app.use('*', cors({
@@ -123,10 +192,15 @@ async function getUserFromToken(accessToken: string): Promise<{ id: string; emai
   // If not OAuth, try email/password token (user ID)
   let user = users.get(accessToken);
   if (!user) {
-    const userData = await kvGet(`user:${accessToken}`);
-    if (userData) {
-      user = userData;
-      users.set(accessToken, userData);
+    try {
+      const userData = await kvGet(`user:${accessToken}`);
+      if (userData) {
+        user = userData;
+        users.set(accessToken, userData);
+      }
+    } catch (kvError: any) {
+      console.warn('KV unavailable in getUserFromToken:', kvError.message);
+      // User might not be found if not in memory and KV is down
     }
   }
   
@@ -146,14 +220,19 @@ async function findUserByEmail(email: string): Promise<{ id: string; email: stri
     }
   }
   
-  // Check KV store
-  const userKeys = await kvGetByPrefix('user:');
-  for (const userData of userKeys) {
-    if (userData.email.toLowerCase() === email.toLowerCase()) {
-      // Load into memory for future use
-      users.set(userData.id, userData);
-      return { id: userData.id, email: userData.email, name: userData.name };
+  // Try KV store if available (non-critical)
+  try {
+    const userKeys = await kvGetByPrefix('user:');
+    for (const userData of userKeys) {
+      if (userData.email.toLowerCase() === email.toLowerCase()) {
+        // Load into memory for future use
+        users.set(userData.id, userData);
+        return { id: userData.id, email: userData.email, name: userData.name };
+      }
     }
+  } catch (kvError: any) {
+    console.warn('KV unavailable in findUserByEmail:', kvError.message);
+    // If KV is down, we can only find users in memory
   }
   
   return null;
@@ -380,7 +459,7 @@ app.get('/make-server-c7e1f966/health', (c) => {
   });
 });
 
-// Simple signup - creates a user and returns a token (user ID)
+// Simple signup - creates a user using Supabase Auth
 app.post('/make-server-c7e1f966/signup', async (c) => {
   try {
     const { email, password, name } = await c.req.json();
@@ -389,67 +468,122 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
       return c.json({ error: 'Email and password are required' }, 400);
     }
     
-    // Check if user already exists
-    for (const [id, user] of users.entries()) {
-      if (user.email === email) {
+    if (password.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log(`[signup] Attempting to create user in Supabase Auth: ${email}`);
+    
+    // Create user in Supabase Auth
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: email,
+      password: password,
+      user_metadata: { name: name || '' },
+      // Automatically confirm the user's email since an email server hasn't been configured
+      email_confirm: true
+    });
+    
+    if (error) {
+      console.error(`[signup] Supabase Auth error:`, error);
+      if (error.message.includes('already registered')) {
         return c.json({ error: 'User already exists' }, 400);
       }
+      return c.json({ error: `Signup failed: ${error.message}` }, 400);
     }
     
-    // Create new user
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    users.set(userId, { email, password, name: name || '', id: userId });
-    
-    // Store user in KV for persistence
-    try {
-      await kvSet(`user:${userId}`, { email, password, name, id: userId });
-    } catch (kvError: any) {
-      // Continue anyway - user is in memory
+    if (!data.user) {
+      console.error(`[signup] No user returned from Supabase Auth`);
+      return c.json({ error: 'Failed to create user' }, 500);
     }
+    
+    const userId = data.user.id;
+    console.log(`✅ [signup] User created successfully in Supabase Auth with ID: ${userId}`);
+    
+    // Now sign in to get a session token
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (signInError || !signInData.session) {
+      console.error(`[signup] Failed to sign in after signup:`, signInError);
+      return c.json({ error: 'User created but failed to sign in' }, 500);
+    }
+    
+    // Add to in-memory store for quick access (no KV needed for auth)
+    const userData = { email, password: '', name: name || '', id: userId };
+    users.set(userId, userData);
+    
+    // Try to store in KV for extra features (non-critical, silently fails on RLS)
+    await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+    
+    console.log(`✅ [signup] Signup complete for user: ${userId}`);
     
     return c.json({ 
-      user: { id: userId, email, name },
-      access_token: userId
+      user: { id: userId, email, name: name || '' },
+      access_token: signInData.session.access_token
     });
   } catch (error: any) {
+    console.error(`[signup] Unexpected error:`, error);
     return c.json({ error: `Signup failed: ${error.message}` }, 500);
   }
 });
 
-// Simple login - validates credentials and returns a token (user ID)
+// Simple login - validates credentials using Supabase Auth
 app.post('/make-server-c7e1f966/login', async (c) => {
   try {
     const { email, password } = await c.req.json();
+    
+    console.log(`[login] Login attempt for email: ${email}`);
     
     if (!email || !password) {
       return c.json({ error: 'Email and password are required' }, 400);
     }
     
-    // Check in-memory store first
-    for (const [id, user] of users.entries()) {
-      if (user.email === email && user.password === password) {
-        return c.json({ 
-          user: { id, email, name: user.name },
-          access_token: id
-        });
-      }
+    // Use Supabase Auth for authentication
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      console.error(`[login] Supabase Auth error:`, error);
+      return c.json({ error: 'Invalid email or password' }, 401);
     }
     
-    // Check KV store
-    const userKeys = await kvGetByPrefix('user:');
-    for (const userData of userKeys) {
-      if (userData.email === email && userData.password === password) {
-        // Load into memory
-        users.set(userData.id, userData);
-        return c.json({ 
-          user: { id: userData.id, email, name: userData.name },
-          access_token: userData.id
-        });
-      }
+    if (!data.session || !data.user) {
+      console.error(`[login] No session or user returned from Supabase`);
+      return c.json({ error: 'Invalid email or password' }, 401);
     }
     
-    return c.json({ error: 'Invalid email or password' }, 401);
-  } catch (error) {
+    console.log(`✅ [login] Successful login for user: ${data.user.id} (${email})`);
+    
+    const userId = data.user.id;
+    const userName = data.user.user_metadata?.name || '';
+    
+    // Create user data object from Supabase Auth (primary source)
+    const userData = {
+      id: userId,
+      email: email,
+      name: userName,
+      password: ''
+    };
+    
+    // Add to in-memory store for quick access
+    users.set(userId, userData);
+    
+    // Optionally try to sync with KV store (non-critical, silently fails on RLS)
+    const kvData = await safeKvOperation(() => kvGet(`user:${userId}`));
+    if (!kvData) {
+      await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+    }
+    
+    return c.json({ 
+      user: { id: userId, email, name: userData.name },
+      access_token: data.session.access_token
+    });
+  } catch (error: any) {
+    console.error(`[login] Unexpected error:`, error);
     return c.json({ error: 'Login failed' }, 500);
   }
 });

@@ -580,18 +580,18 @@ export function MedicationsPage({
                               </span>
 
                               {/* Pills Counter */}
-                              <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                                <Pill className="h-4 w-4" />
-                                <span className="text-white">
+                              <div className="flex items-center text-sm gap-2">
+                                <Pill className="h-4 w-4 text-muted-foreground" />
+                                <span>
                                   {pill.defaultDosage}
                                 </span>
                               </div>
 
                               {/* Notification Icon */}
                               {pill.notificationsEnabled ? (
-                                <div className="flex items-center text-sm gap-2 text-blue-500">
-                                  <Bell className="h-4 w-4" />
-                                  <span className="text-white">
+                                <div className="flex items-center text-sm gap-2 ">
+                                  <Bell className="h-4 w-4 text-blue-500" />
+                                  <span>
                                     {pill.notificationFrequency ===
                                       "daily" && "Daily"}
                                     {pill.notificationFrequency ===
@@ -653,18 +653,18 @@ export function MedicationsPage({
                               </span>
 
                               {/* Value Counter */}
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Droplet className="h-4 w-4" />
-                                <span className="text-white">
+                              <div className="flex items-center gap-1 text-sm">
+                                <Droplet className="h-4 w-4 text-muted-foreground" />
+                                <span>
                                   {pill.defaultDosage}
                                 </span>
                               </div>
 
                               {/* Notification Icon */}
                               {pill.notificationsEnabled ? (
-                                <div className="flex items-center text-sm gap-2 text-blue-500">
-                                  <Bell className="h-4 w-4" />
-                                  <span className="text-white">
+                                <div className="flex items-center text-sm gap-2 0">
+                                  <Bell className="h-4 w-4 text-blue-500" />
+                                  <span>
                                     {pill.notificationTime &&
                                       ` ${pill.notificationTime}`}
                                   </span>

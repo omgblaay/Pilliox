@@ -10,6 +10,8 @@ import { SubscriptionPage } from "./pages/SubscriptionPage";
 import { MedicationsPage } from "./pages/MedicationsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import LandingPage from "./pages/LandingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -37,12 +39,46 @@ function AppRoutes() {
 
     const initAuth = async () => {
       try {
+        // CRITICAL: Check for password reset code parameter FIRST
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code) {
+          console.log('🔐 Password reset code detected in URL, redirecting to reset-password page');
+          // Navigate to reset password page with the code
+          navigate(`/reset-password?code=${code}`);
+          setIsLoading(false);
+          return;
+        }
+        
         // Set up auth state listener to handle OAuth callbacks
         const {
           data: { subscription: sub },
         } = supabase.auth.onAuthStateChange(
           async (event, session) => {
+            console.log('Auth state change event:', event, 'Session:', session);
+            
+            // CRITICAL: Handle password recovery event FIRST before any other logic
+            // DO NOT store tokens or log the user in - just navigate to reset page
+            if (event === 'PASSWORD_RECOVERY') {
+              console.log('⚠️ Password recovery detected - navigating to reset-password page WITHOUT logging in');
+              console.log('⚠️ User will be able to reset password, but NOT access the app until they log in with new password');
+              setIsLoading(false);
+              navigate('/reset-password');
+              // CRITICAL: return early to prevent automatic login
+              return;
+            }
+
+            // Only process session and log in user for non-recovery events
             if (session?.access_token && session?.user?.email) {
+              // IMPORTANT: Skip auto-login if we're on the reset-password page
+              // This prevents the user from being logged in while resetting their password
+              const currentPath = window.location.pathname;
+              if (currentPath === '/reset-password') {
+                console.log('⚠️ User is on reset-password page - skipping auto-login to prevent security bypass');
+                return;
+              }
+              
               setAccessToken(session.access_token);
               setUserEmail(session.user.email);
               localStorage.setItem("accessToken", session.access_token);
@@ -59,7 +95,6 @@ function AppRoutes() {
               // Check if onboarding is completed and navigate accordingly
               // IMPORTANT: Only navigate if we're not already on the correct route
               const onboardingCompleted = localStorage.getItem("pilliox_onboarding_completed");
-              const currentPath = window.location.pathname;
               
               if (!onboardingCompleted && !currentPath.includes("/onboarding")) {
                 // Check if this is a legacy OAuth account by checking settings
@@ -227,6 +262,8 @@ function AppRoutes() {
         />
         <Route path="/docs/terms" element={<TermsOfService onBack={() => navigate(-1)} />} />
         <Route path="/docs/privacy" element={<PrivacyPolicy onBack={() => navigate(-1)} />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Protected Routes */}
         <Route

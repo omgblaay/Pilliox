@@ -195,13 +195,13 @@ export function AuthForm({
   };
 
   return (
-    <div className="min-h-full bg-input dark:bg-[#0a0a0a] flex md:items-center md:justify-center p-4 py-8 md:py-4 relative">
+    <div className="min-h-full bg-input dark:bg-[#0a0a0a] flex gap-4 flex-col md:items-center md:justify-center p-4 py-8 md:py-4 relative">
       {/* Back to Landing Page Button */}
       <Button
         variant="ghost"
         size="sm"
         onClick={() => navigate("/")}
-        className="absolute top-4 left-4 z-10 w-80 mx-auto"
+        className="mx-auto"
       >
         <ArrowLeft className="w-4 h-4" />
         <span className="hidden sm:inline">Back to Home</span>
@@ -452,6 +452,16 @@ export function AuthForm({
                     ) : (
                       <Eye className="w-5 h-5" />
                     )}
+                  </button>
+                </div>
+                {/* Forgot Password Link */}
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                  >
+                    {t("auth.forgotPassword")}
                   </button>
                 </div>
               </div>
