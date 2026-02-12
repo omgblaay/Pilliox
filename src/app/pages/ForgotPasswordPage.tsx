@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Mail } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { getSupabaseClient } from "../../../utils/supabase/client";
-import Vector from "../../imports/Vector";
-import { LanguageSelector } from "../components/LanguageSelector";
+import { Label } from "../components/ui/label";
+import {
+  Alert,
+  AlertDescription,
+} from "../components/ui/alert";
+import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
+import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
 export function ForgotPasswordPage() {
   const { t } = useTranslation();
@@ -14,171 +18,117 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
     setIsLoading(true);
 
     try {
-      const supabase = getSupabaseClient();
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({ email }),
+        },
+      );
 
-      // Get the current site URL (works for both local and production)
-      const siteUrl = window.location.origin;
+      const data = await response.json();
 
-      const { error } =
-        await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${siteUrl}/reset-password`,
-        });
-
-      if (error) {
-        setError(error.message);
+      if (response.ok) {
+        setSuccess(true);
       } else {
-        setEmailSent(true);
+        setError(data.error || "Failed to send reset email");
       }
     } catch (err: any) {
-      setError(err.message || t("auth.resetPasswordError"));
+      setError(err.message || "Failed to send reset email");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Left Side - Branding */}
-      <div className="hidden md:flex md:flex-1 bg-gradient-to-br from-blue-950 to-black-700 p-12 flex-col justify-between">
-        <div>
-          <div className="h-[40px] w-[120px] mb-8">
-            <Vector />
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-4">
-            {t("auth.resetPassword")}
-          </h1>
-          <p className="text-blue-100 text-lg">
-            {t("auth.resetPasswordDescription")}
-          </p>
-        </div>
-      </div>
-
-      {/* Right Side - Form */}
-      <div className="flex-1 md:h-auto bg-input-background p-4 md:p-8 flex flex-col">
-        {/* Mobile Logo and Language Selector */}
-        <div className="flex justify-between items-start mb-8 md:mb-12">
-          <div className="md:hidden h-[40px] w-[120px]">
-            <Vector />
-          </div>
-          <div className="hidden md:block">
-            <LanguageSelector variant="ghost" />
-          </div>
-          <div className="md:hidden">
-            <LanguageSelector variant="ghost" />
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/auth")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">
+              {t("auth.forgotPassword") || "Forgot Password"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {t("auth.forgotPasswordSubtitle") ||
+                "Enter your email to receive a reset link"}
+            </p>
           </div>
         </div>
 
-        {/* Back Button */}
-        <button
-          onClick={() => navigate("/auth")}
-          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>{t("auth.backToLogin")}</span>
-        </button>
-
-        {!emailSent ? (
-          <>
-            {/* Title */}
-            <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {t("auth.forgotPassword")}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t("auth.forgotPasswordDescription")}
-              </p>
-            </div>
-
-            {/* Form */}
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col gap-6 max-w-md"
-            >
-              {/* Email Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="email"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("auth.email")}
-                </label>
+        {success ? (
+          <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <AlertDescription className="text-green-800 dark:text-green-200 ml-2">
+              <strong>Check your email!</strong>
+              <br />
+              If an account exists with that email, we've sent you a password
+              reset link.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                {t("auth.email") || "Email"}
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t("auth.emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t("auth.emailPlaceholder") || "your@email.com"}
+                  className="pl-10"
                   required
-                  autoComplete="email"
                   autoFocus
                 />
               </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <Button type="submit" disabled={isLoading}>
-                {isLoading
-                  ? t("auth.sending")
-                  : t("auth.sendResetLink")}
-              </Button>
-            </form>
-          </>
-        ) : (
-          <>
-            {/* Success State */}
-            <div className="flex flex-col items-center justify-center flex-1 max-w-md mx-auto text-center">
-              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-6">
-                <Mail className="w-8 h-8 text-green-500" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                {t("auth.checkYourEmail")}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                {t("auth.resetLinkSent")}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mb-8">
-                {email}
-              </p>
-              <Button
-                onClick={() => navigate("/auth")}
-                variant="secondary"
-                className="w-full"
-              >
-                {t("auth.backToLogin")}
-              </Button>
-
-              {/* Resend Option */}
-              <div className="mt-6 text-sm text-gray-500 dark:text-gray-500">
-                {t("auth.didntReceiveEmail")}{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmailSent(false);
-                    setEmail("");
-                  }}
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {t("auth.tryAgain")}
-                </button>
-              </div>
             </div>
-          </>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading
+                ? t("auth.sending") || "Sending..."
+                : t("auth.sendResetLink") || "Send Reset Link"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate("/auth")}
+              className="w-full"
+            >
+              {t("auth.backToLogin") || "Back to Login"}
+            </Button>
+          </form>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -52,6 +52,7 @@ export function ProfilePage({
   });
 
   // Password change states
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] =
@@ -60,11 +61,38 @@ export function ProfilePage({
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [showPasswordForm, setShowPasswordForm] =
     useState(false);
+  const [hasPassword, setHasPassword] = useState(true);
+  const [isOAuthOnly, setIsOAuthOnly] = useState(false);
+  const [isLoadingPasswordStatus, setIsLoadingPasswordStatus] = useState(true);
 
   useEffect(() => {
     loadProfile();
     loadStats();
+    checkPasswordStatus();
   }, []);
+
+  const checkPasswordStatus = async () => {
+    try {
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/auth/has-password`,
+        {
+          headers: {
+            Authorization: `Bearer ${anonKey}`,
+            "X-User-Token": accessToken,
+          },
+        },
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setHasPassword(data.hasPassword);
+        setIsOAuthOnly(data.isOAuthOnly);
+      }
+    } catch (error) {
+      console.error("Failed to check password status:", error);
+    } finally {
+      setIsLoadingPasswordStatus(false);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -151,10 +179,21 @@ export function ProfilePage({
       );
       return;
     }
+    
+    // If user has a password, validate current password is entered
+    if (hasPassword && !currentPassword) {
+      setPasswordError("Please enter your current password");
+      return;
+    }
 
     setIsChangingPassword(true);
 
     try {
+      const body: any = { newPassword };
+      if (hasPassword) {
+        body.currentPassword = currentPassword;
+      }
+      
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/change-password`,
         {
@@ -164,24 +203,32 @@ export function ProfilePage({
             Authorization: `Bearer ${anonKey}`,
             "X-User-Token": accessToken,
           },
-          body: JSON.stringify({ newPassword }),
+          body: JSON.stringify(body),
         },
       );
 
+      const data = await response.json();
+
       if (response.ok) {
         setPasswordSuccess(
+          data.message ||
           t("profile.passwordChanged") ||
             "Password changed successfully",
         );
+        setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        
+        // Update password status
+        setHasPassword(true);
+        setIsOAuthOnly(false);
+        
         // Hide form after 2 seconds
         setTimeout(() => {
           setShowPasswordForm(false);
           setPasswordSuccess("");
         }, 2000);
       } else {
-        const data = await response.json();
         setPasswordError(
           data.error ||
             t("profile.passwordChangeFailed") ||
@@ -471,6 +518,35 @@ export function ProfilePage({
                         {passwordSuccess}
                       </AlertDescription>
                     </Alert>
+                  )}
+                  
+                  {/* OAuth user notice */}
+                  {!hasPassword && !isLoadingPasswordStatus && (
+                    <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                      <AlertDescription className="text-blue-800 dark:text-blue-200">
+                        ✨ You signed up with Google. Set a password to enable email login.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {/* Current Password (only if user has one) */}
+                  {hasPassword && (
+                    <div className="space-y-2">
+                      <Label htmlFor="current-password">
+                        {t("profile.currentPassword") ||
+                          "Current Password"}
+                      </Label>
+                      <Input
+                        id="current-password"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) =>
+                          setCurrentPassword(e.target.value)
+                        }
+                        placeholder="Enter your current password"
+                        required
+                      />
+                    </div>
                   )}
 
                   <div className="space-y-2">

@@ -1,19 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate, BrowserRouter } from "react-router";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n/config";
-import { useState, useEffect } from "react";
-import { CalendarView } from "./components/CalendarView";
-import { TermsOfService } from "./pages/TermsOfService";
-import { PrivacyPolicy } from "./pages/PrivacyPolicy";
-import { OnboardingPage } from "./pages/OnboardingPage";
-import { SubscriptionPage } from "./pages/SubscriptionPage";
-import { MedicationsPage } from "./pages/MedicationsPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { AdminPasswordReset } from "./pages/AdminPasswordReset";
-import { DebugAuth } from "./pages/DebugAuth";
 import LandingPage from "./pages/LandingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -25,6 +15,14 @@ import { SubscriptionBanner } from "./components/SubscriptionBanner";
 import { SubscriptionPaywall } from "./components/SubscriptionPaywall";
 import { NotificationPermissionBanner } from "./components/NotificationPermissionBanner";
 import { Toaster } from "sonner";
+import CalendarPage from "./pages/CalendarPage";
+import { MedicationsPage } from "./pages/MedicationsPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { SubscriptionPage } from "./pages/SubscriptionPage";
+import { TermsOfService } from "./pages/TermsOfService";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { OnboardingPage } from "./pages/OnboardingPage";
 
 function AppRoutes() {
   // Initialize theme system to detect browser preference
@@ -269,8 +267,6 @@ function AppRoutes() {
         <Route path="/docs/privacy" element={<PrivacyPolicy onBack={() => navigate(-1)} />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/admin-password-reset" element={<AdminPasswordReset />} />
-        <Route path="/debug-auth" element={<DebugAuth />} />
 
         {/* Protected Routes */}
         <Route
@@ -278,7 +274,7 @@ function AppRoutes() {
           element={
             <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
               <>
-                <CalendarView
+                <CalendarPage
                   accessToken={accessToken!}
                   onLogout={handleLogout}
                   projectId={projectId}

@@ -571,6 +571,24 @@ app.post('/make-server-c7e1f966/login', async (c) => {
       return c.json({ error: 'Email and password are required' }, 400);
     }
     
+    // First check if user exists and is OAuth-only
+    const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    if (!listError && userData) {
+      const user = userData.users.find(u => u.email === email);
+      if (user) {
+        const hasEmailProvider = user.app_metadata?.provider === 'email' || 
+                                 user.identities?.some(id => id.provider === 'email');
+        if (!hasEmailProvider) {
+          console.log(`[login] ⚠️ User ${email} is OAuth-only (registered via Google/Facebook)`);
+          return c.json({ 
+            error: 'This account was created with Google or Facebook. Please use those login methods.',
+            code: 'oauth_only_account',
+            suggestion: 'Please use the "Continue with Google" or "Continue with Facebook" button.'
+          }, 401);
+        }
+      }
+    }
+    
     // Use Supabase Auth for authentication
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -583,12 +601,10 @@ app.post('/make-server-c7e1f966/login', async (c) => {
       
       // Provide more detailed error messages
       if (error.code === 'invalid_credentials') {
-        console.error(`[login] ❌ Invalid credentials for ${email}. User may not exist or password is wrong.`);
-        console.error(`[login] 💡 Suggestion: Try signing up first if you haven't registered yet.`);
+        console.error(`[login] ❌ Invalid credentials for ${email}.`);
         return c.json({ 
-          error: 'Invalid email or password. If you haven\'t registered yet, please sign up first.',
+          error: 'Invalid email or password.',
           code: 'invalid_credentials',
-          suggestion: 'Please check your credentials or sign up for a new account.'
         }, 401);
       }
       
@@ -617,7 +633,7 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     const accessToken = data.session.access_token;
     
     // Create user data object from Supabase Auth (primary source)
-    const userData = {
+    const userData2 = {
       id: userId,
       email: email,
       name: userName,
@@ -626,22 +642,22 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     
     // Add to in-memory store for quick access
     // Store by both userId AND access_token for flexibility
-    users.set(userId, userData);
-    users.set(accessToken, userData);
+    users.set(userId, userData2);
+    users.set(accessToken, userData2);
     
     // Optionally try to sync with KV store (non-critical, silently fails on RLS)
     const kvData = await safeKvOperation(() => kvGet(`user:${userId}`));
     if (!kvData) {
-      await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+      await safeKvOperation(() => kvSet(`user:${userId}`, userData2));
     }
     
     // Also store by access_token in KV for token-based lookups
-    await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
+    await safeKvOperation(() => kvSet(`user:${accessToken}`, userData2));
     
     console.log(`✅ [login] User data stored in memory and KV for userId: ${userId}`);
     
     return c.json({ 
-      user: { id: userId, email, name: userData.name },
+      user: { id: userId, email, name: userData2.name },
       access_token: accessToken
     });
   } catch (error: any) {
@@ -703,176 +719,35 @@ app.post('/make-server-c7e1f966/check-email', async (c) => {
       return c.json({ exists: false, error: 'Unable to check email' }, 500);
     }
     
-    const userExists = data.users.some(user => user.email === email);
+    const user = data.users.find(u => u.email === email);
+    const userExists = !!user;
     
-    console.log(`[check-email] User ${email} exists: ${userExists}`);
+    // Check if user has a password set (not OAuth-only)
+    let isOAuthOnly = false;
+    if (user) {
+      // If user has no email provider in identities, they're OAuth only
+      // OR if they only have oauth providers and no email provider
+      const hasEmailProvider = user.app_metadata?.provider === 'email' || 
+                               user.identities?.some(id => id.provider === 'email');
+      isOAuthOnly = !hasEmailProvider;
+      
+      console.log(`[check-email] User ${email} - OAuth only: ${isOAuthOnly}, provider: ${user.app_metadata?.provider}, identities:`, user.identities?.map(i => i.provider));
+    }
     
-    return c.json({ exists: userExists, email });
+    console.log(`[check-email] User ${email} exists: ${userExists}, isOAuthOnly: ${isOAuthOnly}`);
+    
+    return c.json({ 
+      exists: userExists, 
+      email,
+      isOAuthOnly 
+    });
   } catch (error: any) {
     console.error(`[check-email] Unexpected error:`, error);
     return c.json({ exists: false, error: 'Failed to check email' }, 500);
   }
 });
 
-// Update password (for admin - allows changing password without old password)
-// 🚨 SECURITY: This endpoint is protected with an admin key
-app.post('/make-server-c7e1f966/admin-update-password', async (c) => {
-  try {
-    // 🔒 SECURITY CHECK: Require a special admin key to prevent abuse
-    const adminKey = c.req.header('X-Admin-Key');
-    const expectedAdminKey = Deno.env.get('ADMIN_SECRET_KEY') || 'pilliox-admin-2024-secret';
-    
-    if (adminKey !== expectedAdminKey) {
-      console.log(`[admin-update-password] ❌ Unauthorized: Invalid or missing admin key`);
-      return c.json({ error: 'Unauthorized: Admin access required' }, 401);
-    }
-    
-    const { email, newPassword } = await c.req.json();
-    
-    if (!email || !newPassword) {
-      return c.json({ error: 'Email and new password are required' }, 400);
-    }
-    
-    if (newPassword.length < 6) {
-      return c.json({ error: 'Password must be at least 6 characters' }, 400);
-    }
-    
-    console.log(`[admin-update-password] Updating password for: ${email}`);
-    
-    // Get user by email
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-    
-    if (listError) {
-      console.error(`[admin-update-password] Error listing users:`, listError);
-      return c.json({ error: 'Unable to find user' }, 500);
-    }
-    
-    const user = users.users.find(u => u.email === email);
-    
-    if (!user) {
-      console.log(`[admin-update-password] User ${email} not found`);
-      return c.json({ error: 'User not found' }, 404);
-    }
-    
-    // Update password using admin API
-    const { data, error } = await supabase.auth.admin.updateUserById(
-      user.id,
-      { password: newPassword }
-    );
-    
-    if (error) {
-      console.error(`[admin-update-password] Error updating password:`, error);
-      return c.json({ error: 'Failed to update password' }, 500);
-    }
-    
-    console.log(`✅ [admin-update-password] Password updated successfully for ${email}`);
-    
-    return c.json({ 
-      message: 'Password updated successfully. You can now login with your new password.',
-      success: true
-    });
-  } catch (error: any) {
-    console.error(`[admin-update-password] Unexpected error:`, error);
-    return c.json({ error: 'Failed to update password' }, 500);
-  }
-});
 
-// 🔍 DEBUG ENDPOINT: List all users (admin only)
-app.get('/make-server-c7e1f966/admin-list-users', async (c) => {
-  try {
-    // 🔒 SECURITY CHECK: Require admin key
-    const adminKey = c.req.header('X-Admin-Key');
-    const expectedAdminKey = Deno.env.get('ADMIN_SECRET_KEY') || 'pilliox-admin-2024-secret';
-    
-    if (adminKey !== expectedAdminKey) {
-      console.log(`[admin-list-users] ❌ Unauthorized: Invalid or missing admin key`);
-      return c.json({ error: 'Unauthorized: Admin access required' }, 401);
-    }
-    
-    console.log(`[admin-list-users] Fetching all users from Supabase Auth...`);
-    
-    // List all users from Supabase Auth
-    const { data, error } = await supabase.auth.admin.listUsers();
-    
-    if (error) {
-      console.error(`[admin-list-users] Error listing users:`, error);
-      return c.json({ error: 'Failed to list users' }, 500);
-    }
-    
-    const users = data.users.map(u => ({
-      id: u.id,
-      email: u.email,
-      created_at: u.created_at,
-      email_confirmed_at: u.email_confirmed_at,
-      last_sign_in_at: u.last_sign_in_at,
-      user_metadata: u.user_metadata
-    }));
-    
-    console.log(`[admin-list-users] Found ${users.length} users`);
-    
-    return c.json({ 
-      success: true,
-      count: users.length,
-      users 
-    });
-  } catch (error: any) {
-    console.error(`[admin-list-users] Unexpected error:`, error);
-    return c.json({ error: 'Failed to list users' }, 500);
-  }
-});
-
-// Request password reset - sends email with reset link (production-ready)
-app.post('/make-server-c7e1f966/forgot-password', async (c) => {
-  try {
-    const { email } = await c.req.json();
-    
-    if (!email) {
-      return c.json({ error: 'Email is required' }, 400);
-    }
-    
-    console.log(`[forgot-password] Password reset requested for: ${email}`);
-    
-    // Check if user exists first
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-    
-    if (listError) {
-      console.error(`[forgot-password] Error checking user:`, listError);
-      // Don't reveal if user exists or not
-      return c.json({ 
-        message: 'If an account with that email exists, a password reset link will be sent.',
-        success: true 
-      });
-    }
-    
-    const userExists = users.users.some(u => u.email === email);
-    
-    if (!userExists) {
-      console.log(`[forgot-password] User ${email} not found - but returning success for security`);
-      // Don't reveal that user doesn't exist
-      return c.json({ 
-        message: 'If an account with that email exists, a password reset link will be sent.',
-        success: true 
-      });
-    }
-    
-    // Note: Supabase needs email configuration to send reset emails
-    // For now, we'll use the admin endpoint as a temporary solution
-    console.log(`✅ [forgot-password] User exists. In production, would send reset email.`);
-    console.log(`📧 TODO: Configure Supabase email settings to enable password reset emails`);
-    
-    return c.json({ 
-      message: 'If an account with that email exists, a password reset link will be sent.',
-      success: true,
-      note: 'Email service not configured. Please contact support for password reset.'
-    });
-  } catch (error: any) {
-    console.error(`[forgot-password] Unexpected error:`, error);
-    return c.json({ 
-      message: 'If an account with that email exists, a password reset link will be sent.',
-      success: true 
-    });
-  }
-});
 
 // Get calendar entries for a specific month
 app.get('/make-server-c7e1f966/calendar/:month', async (c) => {
@@ -1103,7 +978,120 @@ function isValidUUID(str: string): boolean {
   return uuidRegex.test(str);
 }
 
-// Change password
+// ====== PASSWORD MANAGEMENT ======
+
+// Check if user has a password set (or is OAuth-only)
+app.get('/make-server-c7e1f966/auth/has-password', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Check if user has email provider in Supabase Auth
+    const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError || !userData) {
+      return c.json({ hasPassword: false, isOAuthOnly: true });
+    }
+    
+    const supabaseUser = userData.users.find(u => u.email === user.email);
+    if (!supabaseUser) {
+      return c.json({ hasPassword: false, isOAuthOnly: false });
+    }
+    
+    // Check if user has email provider (means they have a password)
+    const hasEmailProvider = supabaseUser.app_metadata?.provider === 'email' || 
+                             supabaseUser.identities?.some(id => id.provider === 'email');
+    
+    return c.json({ 
+      hasPassword: hasEmailProvider,
+      isOAuthOnly: !hasEmailProvider 
+    });
+  } catch (error: any) {
+    console.error('[has-password] Error:', error);
+    return c.json({ error: 'Failed to check password status' }, 500);
+  }
+});
+
+// Forgot password - send reset email
+app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
+  try {
+    const { email } = await c.req.json();
+    
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+    
+    console.log(`[forgot-password] Reset request for: ${email}`);
+    
+    // Use Supabase Auth to send password reset email
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${c.req.header('origin') || 'http://localhost:5173'}/reset-password`,
+    });
+    
+    if (error) {
+      console.error('[forgot-password] Error:', error);
+      // Don't reveal if email exists or not for security
+      return c.json({ 
+        message: 'If an account with that email exists, a password reset link has been sent.' 
+      });
+    }
+    
+    console.log(`✅ [forgot-password] Reset email sent to ${email}`);
+    
+    return c.json({ 
+      message: 'If an account with that email exists, a password reset link has been sent.' 
+    });
+  } catch (error: any) {
+    console.error('[forgot-password] Unexpected error:', error);
+    return c.json({ 
+      message: 'If an account with that email exists, a password reset link has been sent.' 
+    });
+  }
+});
+
+// Reset password with token from email
+app.post('/make-server-c7e1f966/auth/reset-password', async (c) => {
+  try {
+    const { token, newPassword } = await c.req.json();
+    
+    if (!token || !newPassword) {
+      return c.json({ error: 'Token and new password are required' }, 400);
+    }
+    
+    if (newPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log('[reset-password] Attempting to reset password with token');
+    
+    // Verify token and update password
+    const { error } = await supabase.auth.admin.updateUserById(
+      token,
+      { password: newPassword }
+    );
+    
+    if (error) {
+      console.error('[reset-password] Error:', error);
+      return c.json({ error: 'Invalid or expired reset token' }, 400);
+    }
+    
+    console.log('✅ [reset-password] Password reset successful');
+    
+    return c.json({ message: 'Password reset successful. You can now log in with your new password.' });
+  } catch (error: any) {
+    console.error('[reset-password] Unexpected error:', error);
+    return c.json({ error: 'Failed to reset password' }, 500);
+  }
+});
+
+// Change password (for logged-in users)
 app.post('/make-server-c7e1f966/change-password', async (c) => {
   try {
     const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
@@ -1112,80 +1100,78 @@ app.post('/make-server-c7e1f966/change-password', async (c) => {
       return c.json({ error: 'Unauthorized' }, 401);
     }
     
-    // Verify user using the helper function
     const user = await getUserFromToken(accessToken);
-    
     if (!user) {
       return c.json({ error: 'Invalid token' }, 401);
     }
     
-    const { newPassword } = await c.req.json();
+    const { currentPassword, newPassword } = await c.req.json();
     
     if (!newPassword || newPassword.length < 6) {
       return c.json({ error: 'Password must be at least 6 characters' }, 400);
     }
     
-    console.log(`[change-password] Changing password for user: ${user.id} (${user.email})`);
+    console.log(`[change-password] Request for user: ${user.email}`);
     
-    // Check if user.id is a valid UUID
-    let supabaseUserId = user.id;
-    
-    if (!isValidUUID(user.id)) {
-      console.log(`[change-password] User ID is not a UUID, looking up by email in Supabase Auth...`);
-      
-      // Try to find the user in Supabase Auth by email
-      const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-      
-      if (listError) {
-        console.error(`[change-password] Error listing users:`, listError);
-        return c.json({ 
-          error: 'Your account needs to be migrated. Please contact support or create a new account.',
-          code: 'legacy_account'
-        }, 400);
-      }
-      
-      const supabaseUser = users.users.find(u => u.email === user.email);
-      
-      if (!supabaseUser) {
-        console.log(`[change-password] User ${user.email} not found in Supabase Auth. They need to sign up properly.`);
-        return c.json({ 
-          error: 'Your account is not properly registered. Please sign up again with your email.',
-          code: 'account_not_found',
-          suggestion: 'Please go to the signup page and create a new account.'
-        }, 404);
-      }
-      
-      supabaseUserId = supabaseUser.id;
-      console.log(`[change-password] Found Supabase user with ID: ${supabaseUserId}`);
+    // Find user in Supabase Auth
+    const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError || !userData) {
+      return c.json({ error: 'Failed to verify account' }, 500);
     }
     
-    // Update password in Supabase Auth (primary source of truth)
-    const { data, error } = await supabase.auth.admin.updateUserById(
-      supabaseUserId,
+    const supabaseUser = userData.users.find(u => u.email === user.email);
+    if (!supabaseUser) {
+      console.log(`[change-password] User ${user.email} not found in Supabase Auth.`);
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Check if user has email provider (has password set)
+    const hasEmailProvider = supabaseUser.app_metadata?.provider === 'email' || 
+                             supabaseUser.identities?.some(id => id.provider === 'email');
+    
+    // If user already has a password, validate current password
+    if (hasEmailProvider) {
+      if (!currentPassword) {
+        return c.json({ error: 'Current password is required' }, 400);
+      }
+      
+      // Verify current password
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      
+      if (verifyError) {
+        console.log('[change-password] Current password verification failed');
+        return c.json({ error: 'Current password is incorrect' }, 401);
+      }
+    }
+    
+    // Update password in Supabase Auth
+    const { error } = await supabase.auth.admin.updateUserById(
+      supabaseUser.id,
       { password: newPassword }
     );
     
     if (error) {
-      console.error(`[change-password] Failed to update password in Supabase Auth:`, error);
+      console.error('[change-password] Failed to update password:', error);
       return c.json({ error: 'Failed to change password: ' + error.message }, 500);
     }
     
-    console.log(`✅ [change-password] Password changed successfully in Supabase Auth for ${user.email}`);
-    
-    // Also update in KV store if user exists there (for backwards compatibility)
-    try {
-      const userData = await safeKvOperation(() => kvGet(`user:${user.id}`));
-      if (userData) {
-        userData.password = ''; // Clear stored password hash for security
-        await safeKvOperation(() => kvSet(`user:${user.id}`, userData));
-      }
-    } catch (kvError: any) {
-      console.warn('[change-password] KV update failed (non-critical):', kvError.message);
+    // If this was an OAuth-only user, we need to add email provider
+    if (!hasEmailProvider) {
+      console.log(`✅ [change-password] Password set for OAuth user ${user.email}`);
+      return c.json({ 
+        success: true,
+        message: 'Password set successfully! You can now log in with email and password.' 
+      });
     }
+    
+    console.log(`✅ [change-password] Password changed for ${user.email}`);
     
     return c.json({ 
       success: true,
-      message: 'Password changed successfully. Please log in with your new password.'
+      message: 'Password changed successfully' 
     });
   } catch (error: any) {
     console.error('[change-password] Unexpected error:', error);
