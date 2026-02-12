@@ -72,7 +72,49 @@ export function AuthForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Login failed");
+        // Show more helpful error messages from the backend
+        const errorMessage = data.error || "Login failed";
+        
+        if (data.code === 'invalid_credentials') {
+          // Check if user exists
+          try {
+            const checkResponse = await fetch(
+              `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/check-email`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${publicAnonKey}`,
+                },
+                body: JSON.stringify({ email: loginEmail }),
+              }
+            );
+            
+            const checkData = await checkResponse.json();
+            
+            if (checkData.exists) {
+              // User exists but password is wrong
+              setError(`Incorrect password.\n\nIf you forgot your password, use a different password or contact support.`);
+            } else {
+              // User doesn't exist
+              setError(`Account not found. Please sign up first.\n\nRedirecting to Sign Up in 3 seconds...`);
+              
+              // Auto-switch to signup tab after 3 seconds
+              setTimeout(() => {
+                setActiveTab('signup');
+                setSignupEmail(loginEmail);
+                setSignupPassword(loginPassword);
+                setError('');
+              }, 3000);
+            }
+          } catch (checkError) {
+            // Fallback if check fails
+            setError(`${errorMessage}\n\nPlease check your credentials or sign up if you don't have an account.`);
+          }
+        } else {
+          setError(errorMessage);
+        }
+        
         setIsLoading(false);
         return;
       }
@@ -112,7 +154,20 @@ export function AuthForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Signup failed");
+        // Check if email already exists
+        if (data.error && data.error.includes('already been registered')) {
+          setError(`This email is already registered. Please use "Login" tab or reset your password if you forgot it.`);
+          
+          // Auto-switch to login tab after 3 seconds
+          setTimeout(() => {
+            setActiveTab('login');
+            setLoginEmail(signupEmail);
+            setLoginPassword(signupPassword);
+            setError('');
+          }, 3000);
+        } else {
+          setError(data.error || "Signup failed");
+        }
         setIsLoading(false);
         return;
       }

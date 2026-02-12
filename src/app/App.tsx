@@ -12,6 +12,8 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { AdminPasswordReset } from "./pages/AdminPasswordReset";
+import { DebugAuth } from "./pages/DebugAuth";
 import LandingPage from "./pages/LandingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -267,6 +269,8 @@ function AppRoutes() {
         <Route path="/docs/privacy" element={<PrivacyPolicy onBack={() => navigate(-1)} />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/admin-password-reset" element={<AdminPasswordReset />} />
+        <Route path="/debug-auth" element={<DebugAuth />} />
 
         {/* Protected Routes */}
         <Route

@@ -487,8 +487,9 @@ export function ProfilePage({
                       }
                       placeholder={
                         t("profile.newPasswordPlaceholder") ||
-                        "Enter new password"
+                        "Enter new password (min 6 characters)"
                       }
+                      minLength={6}
                     />
                   </div>
 
@@ -509,6 +510,7 @@ export function ProfilePage({
                           "profile.confirmPasswordPlaceholder",
                         ) || "Confirm new password"
                       }
+                      minLength={6}
                     />
                   </div>
 
@@ -517,7 +519,8 @@ export function ProfilePage({
                     disabled={
                       isChangingPassword ||
                       !newPassword ||
-                      !confirmPassword
+                      !confirmPassword ||
+                      newPassword.length < 6
                     }
                     className="w-full"
                   >
