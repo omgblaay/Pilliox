@@ -4,6 +4,7 @@ import {
   cva,
   type VariantProps,
 } from "class-variance-authority";
+import { ChevronRight } from "lucide-react";
 
 import { cn } from "./utils";
 
@@ -28,7 +29,7 @@ const buttonVariants = cva(
         tabGroup:
           "h-[40px] flex-1 rounded-[14px] data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]",
         menuItem:
-          "w-full justify-between hover:bg-accent/50 !rounded-none px-4 py-4 h-auto min-h-0",
+          "w-full hover:bg-accent/50 !rounded-none px-4 !justify-start py-4 h-auto min-h-0 flex gap-3 text-left",
       },
       size: {
         default: "min-h-12 has-[>svg]:px-3",
@@ -48,13 +49,15 @@ const Button = React.forwardRef<
   React.ComponentProps<"button"> &
     VariantProps<typeof buttonVariants> & {
       asChild?: boolean;
+      hideChevron?: boolean;
     }
 >(
   (
-    { className, variant, size, asChild = false, ...props },
+    { className, variant, size, asChild = false, hideChevron = false, children, ...props },
     ref,
   ) => {
     const Comp = asChild ? Slot : "button";
+    const showChevron = variant === "menuItem" && !hideChevron;
 
     return (
       <Comp
@@ -64,7 +67,10 @@ const Button = React.forwardRef<
         )}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+        {showChevron && <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />}
+      </Comp>
     );
   },
 );

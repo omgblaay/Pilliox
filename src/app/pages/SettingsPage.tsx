@@ -287,14 +287,9 @@ export function SettingsPage({
               variant="menuItem"
               onClick={onNavigateToTerms}
             >
-              <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">
                   {t("settings.termsOfService") ||
                     "Terms of Service"}
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Button>
 
             <Button
@@ -308,7 +303,6 @@ export function SettingsPage({
                     "Privacy Policy"}
                 </span>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Button>
           </Card>
         </motion.div>

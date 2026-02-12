@@ -40,10 +40,13 @@ function AppRoutes() {
     const initAuth = async () => {
       try {
         // CRITICAL: Check for password reset code parameter FIRST
+        // But distinguish it from OAuth callback codes
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
+        const type = urlParams.get('type');
         
-        if (code) {
+        // Only redirect to reset password if this is explicitly a password recovery
+        if (code && type === 'recovery') {
           console.log('🔐 Password reset code detected in URL, redirecting to reset-password page');
           // Navigate to reset password page with the code
           navigate(`/reset-password?code=${code}`);

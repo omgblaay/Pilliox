@@ -396,66 +396,6 @@ export function ProfilePage({
           </Card>
         </motion.div>
 
-        {/* Health Info Placeholder */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              {t("profile.health.title") ||
-                "Health Information"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("profile.health.comingSoon") ||
-                "INR tracking and blood test history coming soon..."}
-            </p>
-          </Card>
-        </motion.div>
-
-        {/* Account */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            {t("settings.account.title") || "Account"}
-          </h2>
-          <Card className="divide-y divide-border">
-            {/* Subscription */}
-            <Button
-              variant="menuItem"
-              onClick={() => navigate("/app/subscription")}
-            >
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">
-                  {t("settings.subscription") || "Subscription"}
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </Button>
-
-            {/* Clear Data */}
-            <Button
-              variant="menuItem"
-              onClick={handleClearData}
-            >
-              <div className="flex items-center gap-3">
-                <Trash2 className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">
-                  {t("settings.clearData.title") ||
-                    "Clear All Data"}
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </Button>
-          </Card>
-        </motion.div>
-
-        {/* Security */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -474,12 +414,8 @@ export function ProfilePage({
                 >
                   <div className="flex items-center gap-3">
                     <KeyRound className="w-5 h-5 text-muted-foreground" />
-                    <span className="font-medium text-foreground">
-                      {t("settings.changePassword") ||
-                        "Change Password"}
-                    </span>
+                    {t("settings.changePassword")}
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </Button>
               ) : (
                 <div className="space-y-4">
@@ -581,21 +517,64 @@ export function ProfilePage({
           </Card>
         </motion.div>
 
-        {/* Logout */}
+        {/* Health Info Placeholder */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.2 }}
         >
-          <Button
-            variant="outline"
-            onClick={onLogout}
-            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 border-red-200 dark:border-red-900"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            {t("settings.logout") || "Logout"}
-          </Button>
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              {t("profile.health.title") ||
+                "Health Information"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t("profile.health.comingSoon") ||
+                "INR tracking and blood test history coming soon..."}
+            </p>
+          </Card>
         </motion.div>
+
+        {/* Account */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            {t("settings.account.title") || "Account"}
+          </h2>
+          <Card className="divide-y divide-border">
+            {/* Subscription */}
+            <Button
+              variant="menuItem"
+              onClick={() => navigate("/app/subscription")}
+            >
+              <CreditCard className="w-5 h-5 text-muted-foreground" />
+              {t("settings.subscription") || "Subscription"}
+            </Button>
+            {/* Clear Data */}
+            <Button
+              variant="menuItem"
+              onClick={handleClearData}
+            >
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-5 h-5 text-muted-foreground" />
+                {t("settings.clearData.title") ||
+                  "Clear All Data"}
+              </div>
+            </Button>
+            {/* Logout */}
+            <Button variant="menuItem" onClick={onLogout} hideChevron>
+              <div className="flex items-center gap-3">
+                <LogOut className="w-5 h-5 text-muted-foreground" />
+                {t("settings.logout") || "Logout"}
+              </div>
+            </Button>
+          </Card>
+        </motion.div>
+
+        {/* Security */}
       </div>
 
       {/* Bottom Navigation */}
