@@ -339,8 +339,13 @@ export default {
     newPassword: "Nowe hasło",
     newPasswordPlaceholder: "Wprowadź nowe hasło",
     confirmPassword: "Potwierdź nowe hasło",
+    confirmPasswordPlaceholder: "Potwierdź hasło",
     changePasswordButton: "Zmień hasło",
     changing: "Zmiana...",
+    passwordTooShort: "Hasło musi mieć co najmniej 6 znaków",
+    passwordMismatch: "Hasła nie są zgodne",
+    passwordChanged: "Hasło zostało pomyślnie zmienione",
+    passwordChangeFailed: "Nie udało się zmienić hasła",
     dangerZone: "Strefa niebezpieczna",
     deleteAccount: "Usuń konto",
     deleteWarning:

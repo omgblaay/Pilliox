@@ -326,8 +326,13 @@ export default {
     newPassword: "New Password",
     newPasswordPlaceholder: "Enter new password",
     confirmPassword: "Confirm new password",
+    confirmPasswordPlaceholder: "Confirm your password",
     changePasswordButton: "Change Password",
     changing: "Changing...",
+    passwordTooShort: "Password must be at least 6 characters",
+    passwordMismatch: "Passwords do not match",
+    passwordChanged: "Password changed successfully",
+    passwordChangeFailed: "Failed to change password",
     dangerZone: "Danger Zone",
     deleteAccount: "Delete Account",
     deleteWarning:

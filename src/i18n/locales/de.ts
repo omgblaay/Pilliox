@@ -342,8 +342,13 @@ export default {
     newPassword: "Neues Passwort",
     newPasswordPlaceholder: "Neues Passwort eingeben",
     confirmPassword: "Neues Passwort bestätigen",
+    confirmPasswordPlaceholder: "Passwort bestätigen",
     changePasswordButton: "Passwort ändern",
     changing: "Wird geändert...",
+    passwordTooShort: "Passwort muss mindestens 6 Zeichen lang sein",
+    passwordMismatch: "Passwörter stimmen nicht überein",
+    passwordChanged: "Passwort erfolgreich geändert",
+    passwordChangeFailed: "Passwortänderung fehlgeschlagen",
     dangerZone: "Gefahrenzone",
     deleteAccount: "Konto löschen",
     deleteWarning:

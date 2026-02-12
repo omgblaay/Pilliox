@@ -329,6 +329,7 @@ function AppRoutes() {
                 userEmail={userEmail}
                 projectId={projectId}
                 anonKey={publicAnonKey}
+                onLogout={handleLogout}
               />
             </ProtectedRoute>
           }

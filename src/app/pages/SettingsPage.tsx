@@ -1,21 +1,17 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import {
-  LogOut,
   Moon,
   Sun,
   Globe,
-  Bell,
-  Shield,
-  CreditCard,
-  Trash2,
   FileText,
   ChevronRight,
   ArrowLeft,
   Monitor,
+  Shield,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { BottomNavigation } from "../components/BottomNavigation";
@@ -127,49 +123,6 @@ export function SettingsPage({
     saveSettings({ weekStartsOnMonday: startsOnMonday });
   };
 
-  const handleClearData = async () => {
-    if (
-      !confirm(
-        t("settings.clearData.confirm") ||
-          "Are you sure you want to clear all calendar data? This cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/user/data`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
-          },
-        },
-      );
-
-      if (response.ok) {
-        // Clear localStorage
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key?.startsWith("calendarEntries_")) {
-            localStorage.removeItem(key);
-          }
-        }
-        alert(
-          t("settings.clearData.success") ||
-            "All data cleared successfully",
-        );
-      }
-    } catch (error) {
-      console.error("Failed to clear data:", error);
-      alert(
-        t("settings.clearData.error") || "Failed to clear data",
-      );
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -220,45 +173,39 @@ export function SettingsPage({
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                 <Button
-                  variant={
-                    theme === "light" ? "default" : "outline"
-                  }
-                  size="sm"
+                  variant="tabGroup"
+                  className="flex-col h-auto py-4 gap-2"
                   onClick={() => handleThemeChange("light")}
-                  className="flex-col h-auto py-3"
+                  data-state={
+                    theme === "light" ? "active" : "inactive"
+                  }
                 >
-                  <Sun className="w-5 h-5 mb-1" />
-                  <span className="text-xs">
-                    {t("settings.theme.light") || "Light"}
-                  </span>
+                  <Sun className="w-5 h-5" />
+                  {t("settings.theme.light") || "Light"}
                 </Button>
                 <Button
-                  variant={
-                    theme === "dark" ? "default" : "outline"
-                  }
-                  size="sm"
+                  variant="tabGroup"
+                  className="flex-col h-auto py-4 gap-2"
                   onClick={() => handleThemeChange("dark")}
-                  className="flex-col h-auto py-3"
+                  data-state={
+                    theme === "dark" ? "active" : "inactive"
+                  }
                 >
-                  <Moon className="w-5 h-5 mb-1" />
-                  <span className="text-xs">
-                    {t("settings.theme.dark") || "Dark"}
-                  </span>
+                  <Moon className="w-5 h-5" />
+                  {t("settings.theme.dark") || "Dark"}
                 </Button>
                 <Button
-                  variant={
-                    theme === "system" ? "default" : "outline"
-                  }
-                  size="sm"
+                  variant="tabGroup"
+                  className="flex-col h-auto py-4 gap-2"
                   onClick={() => handleThemeChange("system")}
-                  className="flex-col h-auto py-3"
+                  data-state={
+                    theme === "system" ? "active" : "inactive"
+                  }
                 >
-                  <Monitor className="w-5 h-5 mb-1" />
-                  <span className="text-xs">
-                    {t("settings.theme.system") || "System"}
-                  </span>
+                  <Monitor className="w-5 h-5" />
+                  {t("settings.theme.system") || "System"}
                 </Button>
               </div>
             </div>
@@ -302,64 +249,27 @@ export function SettingsPage({
                     "Change calendar week start day"}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                 <Button
-                  variant={
-                    !weekStartsOnMonday ? "default" : "outline"
-                  }
+                  variant="tabGroup"
                   onClick={() => handleWeekStartChange(false)}
+                  data-state={
+                    !weekStartsOnMonday ? "active" : "inactive"
+                  }
                 >
-                  {t("settings.weekStart.sunday") || "Sun"}
+                  {t("days.sunday")}
                 </Button>
                 <Button
-                  variant={
-                    weekStartsOnMonday ? "default" : "outline"
-                  }
+                  variant="tabGroup"
                   onClick={() => handleWeekStartChange(true)}
+                  data-state={
+                    weekStartsOnMonday ? "active" : "inactive"
+                  }
                 >
-                  {t("settings.weekStart.monday") || "Mon"}
+                  {t("days.monday")}
                 </Button>
               </div>
             </div>
-          </Card>
-        </motion.div>
-
-        {/* Account */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            {t("settings.account.title") || "Account"}
-          </h2>
-          <Card className="divide-y divide-border">
-            <button
-              onClick={() => navigate("/app/subscription")}
-              className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">
-                  {t("settings.subscription") || "Subscription"}
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
-
-            <button
-              onClick={handleClearData}
-              className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Trash2 className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">
-                  {t("settings.clearData.title") ||
-                    "Clear All Data"}
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
           </Card>
         </motion.div>
 
@@ -367,15 +277,15 @@ export function SettingsPage({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
         >
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             {t("settings.legal.title") || "Legal"}
           </h2>
           <Card className="divide-y divide-border">
-            <button
+            <Button
+              variant="menuItem"
               onClick={onNavigateToTerms}
-              className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-muted-foreground" />
@@ -385,11 +295,11 @@ export function SettingsPage({
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="menuItem"
               onClick={onNavigateToPrivacy}
-              className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-muted-foreground" />
@@ -399,31 +309,15 @@ export function SettingsPage({
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
+            </Button>
           </Card>
-        </motion.div>
-
-        {/* Logout */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Button
-            variant="outline"
-            onClick={onLogout}
-            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 border-red-200 dark:border-red-900"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            {t("settings.logout") || "Logout"}
-          </Button>
         </motion.div>
 
         {/* Version */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.3 }}
           className="text-center pt-4 pb-2"
         >
           <p className="text-xs text-muted-foreground">

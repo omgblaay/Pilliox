@@ -27,6 +27,8 @@ const buttonVariants = cva(
         link: "underline-offset-4 hover:underline",
         tabGroup:
           "h-[40px] flex-1 rounded-[14px] data-[state=active]:bg-white data-[state=active]:dark:bg-[#404040] data-[state=active]:text-gray-900 data-[state=active]:dark:text-white data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-500 data-[state=inactive]:dark:text-[#888]",
+        menuItem:
+          "w-full justify-between hover:bg-accent/50 !rounded-none px-4 py-4 h-auto min-h-0",
       },
       size: {
         default: "min-h-12 has-[>svg]:px-3",

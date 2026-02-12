@@ -499,16 +499,10 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     const userId = data.user.id;
     console.log(`✅ [signup] User created successfully in Supabase Auth with ID: ${userId}`);
     
-    // Now sign in to get a session token
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (signInError || !signInData.session) {
-      console.error(`[signup] Failed to sign in after signup:`, signInError);
-      return c.json({ error: 'User created but failed to sign in' }, 500);
-    }
+    // Use the user ID directly as the access token instead of trying to sign in immediately
+    // This avoids timing issues where signInWithPassword fails right after createUser
+    // Our getUserFromToken function supports both OAuth tokens and user IDs
+    const accessToken = userId;
     
     // Add to in-memory store for quick access (no KV needed for auth)
     const userData = { email, password: '', name: name || '', id: userId };
@@ -521,7 +515,7 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     
     return c.json({ 
       user: { id: userId, email, name: name || '' },
-      access_token: signInData.session.access_token
+      access_token: accessToken
     });
   } catch (error: any) {
     console.error(`[signup] Unexpected error:`, error);
