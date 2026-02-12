@@ -315,7 +315,7 @@ export function SettingsPage({
           className="text-center pt-4 pb-2"
         >
           <p className="text-xs text-muted-foreground">
-            Pilliox v1.7.0
+            Pilliox v1.6.0
           </p>
         </motion.div>
       </div>

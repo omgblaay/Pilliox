@@ -154,8 +154,11 @@ async function retryWithBackoff<T>(
 
 // Helper function to get user from token (supports both OAuth and email/password)
 async function getUserFromToken(accessToken: string): Promise<{ id: string; email: string; name: string } | null> {
+  console.log('[getUserFromToken] Starting token validation...');
+  
   // First, try to validate as Supabase OAuth token using the SERVICE ROLE to verify the JWT
   try {
+    console.log('[getUserFromToken] Attempting OAuth token validation...');
     // Wrap the auth call with retry logic for connection errors
     const { data, error } = await retryWithBackoff(
       () => supabase.auth.getUser(accessToken),
@@ -164,15 +167,17 @@ async function getUserFromToken(accessToken: string): Promise<{ id: string; emai
     );
     
     if (error) {
-      console.log('OAuth token validation failed:', error.message);
+      console.log('[getUserFromToken] OAuth token validation failed:', error.message);
       // OAuth token validation failed, continue to email/password check
     } else if (data?.user) {
+      console.log('[getUserFromToken] OAuth token valid for user:', data.user.id);
       // IMPORTANT: Check if this email already exists as an email/password account
       // If so, use that account's ID to maintain data continuity
       const email = data.user.email || '';
       const existingUser = await findUserByEmail(email);
       
       if (existingUser) {
+        console.log('[getUserFromToken] Found existing email/password account for OAuth user');
         return existingUser;
       }
       
@@ -186,28 +191,37 @@ async function getUserFromToken(accessToken: string): Promise<{ id: string; emai
   } catch (oauthError: any) {
     // OAuth validation exception - log but don't fail completely
     // This can happen during transient network issues
-    console.log('OAuth validation exception (will try email/password):', oauthError.message);
+    console.log('[getUserFromToken] OAuth validation exception (will try email/password):', oauthError.message);
   }
+  
+  console.log('[getUserFromToken] OAuth validation failed, trying email/password token...');
   
   // If not OAuth, try email/password token (user ID)
   let user = users.get(accessToken);
   if (!user) {
+    console.log('[getUserFromToken] User not in memory, checking KV store...');
     try {
-      const userData = await kvGet(`user:${accessToken}`);
+      const userData = await safeKvOperation(() => kvGet(`user:${accessToken}`));
       if (userData) {
+        console.log('[getUserFromToken] Found user in KV store:', userData.id);
         user = userData;
         users.set(accessToken, userData);
+      } else {
+        console.log('[getUserFromToken] User not found in KV store');
       }
     } catch (kvError: any) {
-      console.warn('KV unavailable in getUserFromToken:', kvError.message);
+      console.warn('[getUserFromToken] KV unavailable:', kvError.message);
       // User might not be found if not in memory and KV is down
     }
+  } else {
+    console.log('[getUserFromToken] User found in memory:', user.id);
   }
   
   if (user) {
     return { id: user.id, email: user.email, name: user.name };
   }
   
+  console.log('[getUserFromToken] Token validation failed - no user found');
   return null;
 }
 
@@ -499,22 +513,45 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     const userId = data.user.id;
     console.log(`✅ [signup] User created successfully in Supabase Auth with ID: ${userId}`);
     
-    // Use the user ID directly as the access token instead of trying to sign in immediately
-    // This avoids timing issues where signInWithPassword fails right after createUser
-    // Our getUserFromToken function supports both OAuth tokens and user IDs
-    const accessToken = userId;
+    // Sign in the user immediately to get a proper session token
+    console.log(`[signup] Signing in the newly created user...`);
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     
-    // Add to in-memory store for quick access (no KV needed for auth)
-    const userData = { email, password: '', name: name || '', id: userId };
+    if (signInError || !signInData.session) {
+      console.error(`[signup] Failed to sign in after signup:`, signInError);
+      // Fallback: use userId as token
+      const accessToken = userId;
+      const userData = { email, password: '', name: name || '', id: userId };
+      users.set(userId, userData);
+      users.set(accessToken, userData);
+      await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+      await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
+      
+      return c.json({ 
+        user: { id: userId, email, name: name || '' },
+        access_token: accessToken
+      });
+    }
+    
+    const accessToken = signInData.session.access_token;
+    const userName = signInData.user.user_metadata?.name || name || '';
+    
+    // Add to in-memory store for quick access - store by both userId AND access_token
+    const userData = { email, password: '', name: userName, id: userId };
     users.set(userId, userData);
+    users.set(accessToken, userData);
     
     // Try to store in KV for extra features (non-critical, silently fails on RLS)
     await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+    await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
     
-    console.log(`✅ [signup] Signup complete for user: ${userId}`);
+    console.log(`✅ [signup] Signup complete for user: ${userId} with proper session token`);
     
     return c.json({ 
-      user: { id: userId, email, name: name || '' },
+      user: { id: userId, email, name: userName },
       access_token: accessToken
     });
   } catch (error: any) {
@@ -554,6 +591,7 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     
     const userId = data.user.id;
     const userName = data.user.user_metadata?.name || '';
+    const accessToken = data.session.access_token;
     
     // Create user data object from Supabase Auth (primary source)
     const userData = {
@@ -564,7 +602,9 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     };
     
     // Add to in-memory store for quick access
+    // Store by both userId AND access_token for flexibility
     users.set(userId, userData);
+    users.set(accessToken, userData);
     
     // Optionally try to sync with KV store (non-critical, silently fails on RLS)
     const kvData = await safeKvOperation(() => kvGet(`user:${userId}`));
@@ -572,9 +612,14 @@ app.post('/make-server-c7e1f966/login', async (c) => {
       await safeKvOperation(() => kvSet(`user:${userId}`, userData));
     }
     
+    // Also store by access_token in KV for token-based lookups
+    await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
+    
+    console.log(`✅ [login] User data stored in memory and KV for userId: ${userId}`);
+    
     return c.json({ 
       user: { id: userId, email, name: userData.name },
-      access_token: data.session.access_token
+      access_token: accessToken
     });
   } catch (error: any) {
     console.error(`[login] Unexpected error:`, error);
@@ -728,22 +773,38 @@ app.get('/make-server-c7e1f966/settings', async (c) => {
     const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
     
     if (!accessToken) {
+      console.log('[settings] Error: No access token provided');
       return c.json({ error: 'Unauthorized' }, 401);
     }
+    
+    console.log('[settings] Verifying user token (first 20 chars):', accessToken.substring(0, 20) + '...');
     
     // Verify user using the helper function
     const user = await getUserFromToken(accessToken);
     
     if (!user) {
-      return c.json({ error: 'Invalid token' }, 401);
+      console.log('[settings] Error: Invalid user token - getUserFromToken returned null');
+      console.log('[settings] User needs to log out and log back in to refresh their session');
+      return c.json({ 
+        error: 'Invalid token',
+        message: 'Your session is invalid. Please log out and log back in.',
+        requiresReauth: true 
+      }, 401);
     }
     
-    // Get user settings from KV store
-    const settings = await kvGet(`settings:${user.id}`) || {
-      weekStartsOnMonday: true,
-      theme: 'system',
-      viewMode: 'month'
-    };
+    console.log(`[settings] Loading settings for user: ${user.id}`);
+    
+    // Get user settings from KV store with safe operation
+    const settings = await safeKvOperation(
+      () => kvGet(`settings:${user.id}`),
+      {
+        weekStartsOnMonday: true,
+        theme: 'system',
+        viewMode: 'month'
+      }
+    );
+    
+    console.log(`[settings] Settings loaded successfully for user: ${user.id}`);
     
     return c.json({ 
       user: { 
@@ -753,8 +814,9 @@ app.get('/make-server-c7e1f966/settings', async (c) => {
       },
       settings 
     });
-  } catch (error) {
-    return c.json({ error: 'Failed to get settings' }, 500);
+  } catch (error: any) {
+    console.error('[settings] Error:', error.message, error.stack);
+    return c.json({ error: 'Failed to get settings', details: error.message }, 500);
   }
 });
 

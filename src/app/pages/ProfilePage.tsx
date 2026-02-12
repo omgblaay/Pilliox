@@ -297,10 +297,10 @@ export function ProfilePage({
                     {name || t("profile.noName") || "User"}
                   </h2>
                 )}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                <p className="small flex gap-2 items-center mt-2">
                   <Mail className="w-4 h-4" />
-                  <span>{userEmail}</span>
-                </div>
+                  {userEmail}
+                </p>
               </div>
             </div>
 
@@ -337,7 +337,6 @@ export function ProfilePage({
             )}
           </Card>
         </motion.div>
-
         {/* Stats Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -394,15 +393,31 @@ export function ProfilePage({
               </div>
             </div>
           </Card>
+        </motion.div>{" "}
+        {/* Health Info Placeholder */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              {t("profile.health.title") ||
+                "Health Information"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t("profile.health.comingSoon") ||
+                "INR tracking and blood test history coming soon..."}
+            </p>
+          </Card>
         </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            {t("profile.security.title") || "Security"}
+            {t("profile.tabs.security") || "Security"}
           </h2>
           <Card className="divide-y divide-border">
             {/* Change Password */}
@@ -418,7 +433,7 @@ export function ProfilePage({
                   </div>
                 </Button>
               ) : (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4 p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <Lock className="w-5 h-5 text-muted-foreground" />
@@ -516,25 +531,6 @@ export function ProfilePage({
             </div>
           </Card>
         </motion.div>
-
-        {/* Health Info Placeholder */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              {t("profile.health.title") ||
-                "Health Information"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("profile.health.comingSoon") ||
-                "INR tracking and blood test history coming soon..."}
-            </p>
-          </Card>
-        </motion.div>
-
         {/* Account */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -565,7 +561,11 @@ export function ProfilePage({
               </div>
             </Button>
             {/* Logout */}
-            <Button variant="menuItem" onClick={onLogout} hideChevron>
+            <Button
+              variant="menuItem"
+              onClick={onLogout}
+              hideChevron
+            >
               <div className="flex items-center gap-3">
                 <LogOut className="w-5 h-5 text-muted-foreground" />
                 {t("settings.logout") || "Logout"}
@@ -573,7 +573,6 @@ export function ProfilePage({
             </Button>
           </Card>
         </motion.div>
-
         {/* Security */}
       </div>
 

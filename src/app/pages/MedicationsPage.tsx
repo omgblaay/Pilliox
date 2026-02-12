@@ -142,7 +142,28 @@ export function MedicationsPage({
           const data = await response.json();
           setUserId(data.user.id || "");
         } else {
-          console.error("Failed to fetch user settings");
+          const errorText = await response.text();
+          console.error(
+            "Failed to fetch user settings:",
+            response.status,
+            errorText,
+          );
+
+          // Check if the error requires re-authentication
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.requiresReauth) {
+              console.log(
+                "Session invalid - redirecting to login...",
+              );
+              // Clear local storage and redirect to auth
+              localStorage.removeItem("accessToken");
+              localStorage.removeItem("userEmail");
+              window.location.href = "/auth";
+            }
+          } catch (e) {
+            // Error parsing JSON, continue normally
+          }
         }
       } catch (error) {
         console.error("Failed to fetch user ID:", error);
@@ -508,6 +529,9 @@ export function MedicationsPage({
                 className="h-5 w-5 md:h-6 md:w-6"
                 strokeWidth={2}
               />
+              <span className="hidden md:inline-block">
+                {t("medications.add")}
+              </span>
             </Button>
           </div>
         </div>
@@ -515,252 +539,161 @@ export function MedicationsPage({
 
       {/* Content */}
       <div className="max-w-screen-lg mx-auto px-4 py-6">
-        {medications.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-700 border-t-purple-400"></div>
+          </div>
+        ) : pills.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className=""
+            className="text-center py-8 text-muted-foreground"
           >
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-700 border-t-purple-400"></div>
-              </div>
-            ) : (
-              <>
-                {pills.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Pill className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">
-                      {t("pillsSettings.noPills") ||
-                        "No medications yet"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Pills Group */}
-                    {pills.filter(
-                      (p) => (p.type || "pills") === "pills",
-                    ).length > 0 && (
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-semibold text-muted-foreground px-1">
-                          {t("medications.pills") || "Pills"}
-                        </h3>
-                        {pills
-                          .filter(
-                            (p) =>
-                              (p.type || "pills") === "pills",
-                          )
-                          .map((pill) => (
-                            <div
-                              key={pill.id}
-                              className="flex items-center bg-popover gap-4 px-4 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                              onClick={() => {
-                                setEditingPill({ ...pill });
-                                setOriginalPill({ ...pill });
-                                setIsAddingNew(false);
-                                setEditModalOpen(true);
-                              }}
-                            >
-                              {/* Colored Dot */}
-                              <div
-                                className="w-4 h-4 rounded-full flex-shrink-0"
-                                style={{
-                                  backgroundColor:
-                                    pill.color || "#a855f7",
-                                }}
-                              />
-
-                              {/* Name */}
-                              <span className="flex-1 font-medium">
-                                {pill.name ||
-                                  t(
-                                    "pillsSettings.medicationPlaceholder",
-                                  ) ||
-                                  "Medication"}
-                              </span>
-
-                              {/* Pills Counter */}
-                              <div className="flex items-center text-sm gap-2">
-                                <Pill className="h-4 w-4 text-muted-foreground" />
-                                <span>
-                                  {pill.defaultDosage}
-                                </span>
-                              </div>
-
-                              {/* Notification Icon */}
-                              {pill.notificationsEnabled ? (
-                                <div className="flex items-center text-sm gap-2 ">
-                                  <Bell className="h-4 w-4 text-blue-500" />
-                                  <span>
-                                    {pill.notificationFrequency ===
-                                      "daily" && "Daily"}
-                                    {pill.notificationFrequency ===
-                                      "every2days" &&
-                                      "Every 2 days"}
-                                    {pill.notificationFrequency ===
-                                      "every3days" &&
-                                      "Every 3 days"}
-                                    {pill.notificationTime &&
-                                      ` | ${pill.notificationTime}`}
-                                  </span>
-                                </div>
-                              ) : (
-                                <BellOff className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                          ))}
-                      </div>
-                    )}
-
-                    {/* Values Group */}
-                    {pills.filter((p) => p.type === "value")
-                      .length > 0 && (
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-semibold px-1">
-                          {t("medications.values") ||
-                            "Medical Values"}
-                        </h3>
-                        {pills
-                          .filter((p) => p.type === "value")
-                          .map((pill) => (
-                            <div
-                              key={pill.id}
-                              className="flex items-center bg-popover gap-4 px-4 h-16 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                              onClick={() => {
-                                setEditingPill({ ...pill });
-                                setOriginalPill({ ...pill });
-                                setIsAddingNew(false);
-                                setEditModalOpen(true);
-                              }}
-                            >
-                              {/* Colored Dot */}
-                              <div
-                                className="w-4 h-4 rounded-full flex-shrink-0"
-                                style={{
-                                  backgroundColor:
-                                    pill.color || "#a855f7",
-                                }}
-                              />
-
-                              {/* Name */}
-                              <span className="flex-1 font-medium">
-                                {pill.name ||
-                                  t(
-                                    "pillsSettings.medicationPlaceholder",
-                                  ) ||
-                                  "Medication"}
-                              </span>
-
-                              {/* Value Counter */}
-                              <div className="flex items-center gap-1 text-sm">
-                                <Droplet className="h-4 w-4 text-muted-foreground" />
-                                <span>
-                                  {pill.defaultDosage}
-                                </span>
-                              </div>
-
-                              {/* Notification Icon */}
-                              {pill.notificationsEnabled ? (
-                                <div className="flex items-center text-sm gap-2 0">
-                                  <Bell className="h-4 w-4 text-blue-500" />
-                                  <span>
-                                    {pill.notificationTime &&
-                                      ` ${pill.notificationTime}`}
-                                  </span>
-                                </div>
-                              ) : (
-                                <BellOff className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Add Medication Button */}
-              </>
-            )}
+            <Pill className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">
+              {t("pillsSettings.noPills") ||
+                "No medications yet"}
+            </p>
           </motion.div>
         ) : (
-          <div className="space-y-3">
-            <AnimatePresence mode="popLayout">
-              {medications.map((med, index) => (
-                <motion.div
-                  key={med.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start gap-3">
-                      {/* Color indicator */}
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor: med.color + "20",
+          <div className="space-y-6">
+            {/* Pills Group */}
+            {pills.filter(
+              (p) => (p.type || "pills") === "pills",
+            ).length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-foreground px-1">
+                  <Pill className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="font-semibold">
+                    {t("medications.pills") || "Pills"}
+                  </h3>
+                </div>
+
+                <Card className="divide-y divide-border">
+                  {pills
+                    .filter(
+                      (p) => (p.type || "pills") === "pills",
+                    )
+                    .map((pill) => (
+                      <Button
+                        variant="menuItem"
+                        key={pill.id}
+                        onClick={() => {
+                          setEditingPill({ ...pill });
+                          setOriginalPill({ ...pill });
+                          setIsAddingNew(false);
+                          setEditModalOpen(true);
                         }}
                       >
-                        <Pill
-                          className="w-6 h-6"
-                          style={{ color: med.color }}
+                        {/* Colored Dot */}
+                        <div
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              pill.color || "#a855f7",
+                          }}
                         />
-                      </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground text-lg">
-                          {med.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {med.dosage}
-                        </p>
-                        {med.frequency && (
-                          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>{med.frequency}</span>
-                            {med.time && (
-                              <span>• {med.time}</span>
-                            )}
+                        {/* Name */}
+                        <span className="flex-1 font-medium text-foreground">
+                          {pill.name ||
+                            t(
+                              "pillsSettings.medicationPlaceholder",
+                            ) ||
+                            "Medication"}
+                        </span>
+
+                        {/* Pills Counter */}
+                        <div className="flex items-center text-sm gap-2 text-muted-foreground">
+                          <Pill className="h-4 w-4" />
+                          <span>{pill.defaultDosage}</span>
+                        </div>
+
+                        {/* Notification Icon */}
+                        {pill.notificationsEnabled ? (
+                          <div className="flex items-center text-sm gap-2 0">
+                            <Bell className="h-4 w-4 text-blue-500" />
+                            <span>
+                              {pill.notificationTime &&
+                                ` ${pill.notificationTime}`}
+                            </span>
                           </div>
+                        ) : (
+                          <BellOff className="h-4 w-4 text-muted-foreground" />
                         )}
-                        {med.notes && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {med.notes}
-                          </p>
-                        )}
-                      </div>
+                      </Button>
+                    ))}
+                </Card>
+              </div>
+            )}
 
-                      {/* Actions */}
-                      <div className="flex gap-1 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleEditMedication(med)
-                          }
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteMedication(med.id)
-                          }
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {/* Medical Values Group */}
+            {pills.filter((p) => p.type === "value").length >
+              0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-foreground px-1">
+                  <Activity className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="font-semibold">
+                    {t("medications.values") ||
+                      "Medical Values"}
+                  </h3>
+                </div>
+
+                <Card className="divide-y divide-border">
+                  {pills
+                    .filter((p) => p.type === "value")
+                    .map((pill) => (
+                      <Button
+                        key={pill.id}
+                        variant="menuItem"
+                        onClick={() => {
+                          setEditingPill({ ...pill });
+                          setOriginalPill({ ...pill });
+                          setIsAddingNew(false);
+                          setEditModalOpen(true);
+                        }}
+                      >
+                        {/* Colored Dot */}
+                        <div
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              pill.color || "#a855f7",
+                          }}
+                        />
+
+                        {/* Name */}
+                        <span className="flex-1 font-medium text-foreground">
+                          {pill.name ||
+                            t(
+                              "pillsSettings.medicationPlaceholder",
+                            ) ||
+                            "Medication"}
+                        </span>
+
+                        {/* Value Counter */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Droplet className="h-4 w-4" />
+                          <span>{pill.defaultDosage}</span>
+                        </div>
+
+                        {/* Notification Icon */}
+                        {pill.notificationsEnabled ? (
+                          <div className="flex items-center text-sm gap-2 0">
+                            <Bell className="h-4 w-4 text-blue-500" />
+                            <span>
+                              {pill.notificationTime &&
+                                ` ${pill.notificationTime}`}
+                            </span>
+                          </div>
+                        ) : (
+                          <BellOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    ))}
+                </Card>
+              </div>
+            )}
           </div>
         )}
       </div>
