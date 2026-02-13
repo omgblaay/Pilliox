@@ -8,7 +8,7 @@ const app = new Hono();
 // Hardcode the Supabase credentials so we don't need environment variables
 const SUPABASE_URL = 'https://svlxczytgstimushobmu.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTQ0MzE4MSwiZXhwIjoyMDg1MDE5MTgxfQ.xGsuWAbGM-sNLqkArm4wm64RS3qEDcQl1-8wuXvc_VE';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDMxODEsImV4cCI6MjA4NTAxOTE4MX0.gm3hhEvJXkX77Vg2-m5w7w3M6x3eTlqBrfWvlVWfIZk';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDMxODEsImV4cCI6MjA4NTAxOTE4MX0.zdauijLfW37nFobgwnTdGvvUAG7aAMqUoj1YyYFzDbU';
 
 // Create a Supabase client for database operations with service role
 // Service role bypasses RLS policies automatically
@@ -1019,7 +1019,7 @@ app.get('/make-server-c7e1f966/auth/has-password', async (c) => {
   }
 });
 
-// Forgot password - send reset email
+// Forgot password - send reset OTP
 app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
   try {
     const { email } = await c.req.json();
@@ -1028,31 +1028,153 @@ app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
       return c.json({ error: 'Email is required' }, 400);
     }
     
-    console.log(`[forgot-password] Reset request for: ${email}`);
+    console.log(`[forgot-password] OTP request for: ${email}`);
     
-    // Use Supabase Auth to send password reset email
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${c.req.header('origin') || 'http://localhost:5173'}/reset-password`,
-    });
+    // Check if user exists first
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    const userExists = userData?.users?.some(u => u.email === email);
     
-    if (error) {
-      console.error('[forgot-password] Error:', error);
-      // Don't reveal if email exists or not for security
+    if (!userExists) {
+      console.log(`[forgot-password] User not found: ${email}`);
+      // Don't reveal if user exists - return success anyway
       return c.json({ 
-        message: 'If an account with that email exists, a password reset link has been sent.' 
+        message: 'If an account with that email exists, a password reset code has been sent.'
       });
     }
     
-    console.log(`✅ [forgot-password] Reset email sent to ${email}`);
+    // Generate 6-digit OTP (000000-999999)
+    const otp = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    
+    // Store OTP in KV with 60 min expiry
+    const otpKey = `password_reset_otp:${email}`;
+    const otpData = {
+      otp,
+      email,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 60 * 60 * 1000, // 60 minutes
+    };
+    
+    try {
+      await kvSet(otpKey, otpData);
+      console.log(`[forgot-password] OTP stored for ${email}: ${otp}`);
+    } catch (error: any) {
+      console.error('[forgot-password] Failed to store OTP:', error);
+      return c.json({ error: 'Failed to generate reset code' }, 500);
+    }
+    
+    // Send email with OTP using Supabase Auth
+    const supabaseClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
+    // Use resetPasswordForEmail - OTP will be in URL parameter
+    const { error: emailError } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: `https://www.pilliox.com/forgot-password?otp=${otp}`,
+    });
+    
+    if (emailError) {
+      console.error('[forgot-password] Email send error:', emailError);
+    }
+    
+    console.log('[forgot-password] OTP email sent via Supabase');
     
     return c.json({ 
-      message: 'If an account with that email exists, a password reset link has been sent.' 
+      message: 'If an account with that email exists, a password reset code has been sent.',
+      // For testing - remove in production
+      debug: { otp } 
     });
   } catch (error: any) {
     console.error('[forgot-password] Unexpected error:', error);
     return c.json({ 
-      message: 'If an account with that email exists, a password reset link has been sent.' 
+      message: 'If an account with that email exists, a password reset code has been sent.' 
     });
+  }
+});
+
+// Verify OTP and reset password
+app.post('/make-server-c7e1f966/auth/verify-reset-otp', async (c) => {
+  try {
+    const { email, otp, newPassword } = await c.req.json();
+    
+    if (!email || !otp || !newPassword) {
+      return c.json({ error: 'Email, OTP, and new password are required' }, 400);
+    }
+    
+    if (newPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log(`[verify-reset-otp] Verifying OTP for: ${email}`);
+    
+    // Get stored OTP
+    const otpKey = `password_reset_otp:${email}`;
+    let storedData;
+    
+    try {
+      storedData = await kvGet(otpKey);
+    } catch (error) {
+      console.error('[verify-reset-otp] Failed to get OTP:', error);
+      return c.json({ error: 'Invalid or expired code' }, 400);
+    }
+    
+    if (!storedData) {
+      console.log('[verify-reset-otp] No OTP found for email');
+      return c.json({ error: 'Invalid or expired code' }, 400);
+    }
+    
+    // Check expiry
+    if (Date.now() > storedData.expiresAt) {
+      console.log('[verify-reset-otp] OTP expired');
+      await kvDel(otpKey); // Clean up
+      return c.json({ error: 'Code has expired. Please request a new one.' }, 400);
+    }
+    
+    // Verify OTP
+    if (storedData.otp !== otp) {
+      console.log('[verify-reset-otp] OTP mismatch');
+      return c.json({ error: 'Invalid code' }, 400);
+    }
+    
+    console.log('[verify-reset-otp] OTP verified, updating password');
+    
+    // Get user by email
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    const user = userData?.users?.find(u => u.email === email);
+    
+    if (!user) {
+      console.error('[verify-reset-otp] User not found');
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Update password using admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      user.id,
+      { password: newPassword }
+    );
+    
+    if (updateError) {
+      console.error('[verify-reset-otp] Password update error:', updateError);
+      return c.json({ error: 'Failed to update password' }, 500);
+    }
+    
+    // Delete OTP after successful reset
+    await kvDel(otpKey);
+    
+    console.log('[verify-reset-otp] Password reset successful');
+    
+    return c.json({ 
+      message: 'Password reset successful. You can now log in with your new password.'
+    });
+  } catch (error: any) {
+    console.error('[verify-reset-otp] Unexpected error:', error);
+    return c.json({ error: 'Failed to reset password' }, 500);
   }
 });
 

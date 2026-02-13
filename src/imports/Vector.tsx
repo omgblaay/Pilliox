@@ -12,11 +12,7 @@ export default function Vector() {
         className="block dark:hidden h-full object-contain"
       />
       {/* Dark mode logo */}
-      <img
-        src={darkLogo}
-        alt="Pilliox"
-        className="hidden dark:block h-full object-contain"
-      />
+    
     </div>
   );
 }

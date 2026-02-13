@@ -18,38 +18,46 @@ export default {
     hero: {
       title: "Your Medical Values,",
       titleHighlight: "Perfectly Tracked",
-      description: "Track INR, blood tests, and medications with a beautiful calendar interface. Designed for simplicity, built for reliability.",
+      description:
+        "Track INR, blood tests, and medications with a beautiful calendar interface. Designed for simplicity, built for reliability.",
       startTrial: "Start Free Trial",
       pricing: "3 days free, then €2.99/month",
       trustedBadge: "Your new tracking app",
     },
     features: {
       title: "Everything You Need",
-      description: "Powerful features designed to make medical tracking effortless",
+      description:
+        "Powerful features designed to make medical tracking effortless",
       calendar: {
         title: "Smart Calendar View",
-        description: "Track medical values like INR and blood test results with an intuitive calendar interface.",
+        description:
+          "Track medical values like INR and blood test results with an intuitive calendar interface.",
       },
       pillCounter: {
         title: "Pill Counter",
-        description: "Never miss a dose with our smart pill tracking system that keeps count of your medications.",
+        description:
+          "Never miss a dose with our smart pill tracking system that keeps count of your medications.",
       },
       colorCoded: {
         title: "Color-Coded Tracking",
-        description: "Multi-day selection with color coding for treatment periods and tags for easy visual organization.",
+        description:
+          "Multi-day selection with color coding for treatment periods and tags for easy visual organization.",
       },
       secure: {
         title: "Secure & Private",
-        description: "Your medical data is encrypted and securely stored with enterprise-grade security.",
+        description:
+          "Your medical data is encrypted and securely stored with enterprise-grade security.",
       },
       multiLanguage: {
         title: "Multi-Language",
-        description: "Available in German, Polish, and English to serve users worldwide.",
+        description:
+          "Available in German, Polish, and English to serve users worldwide.",
       },
     },
     pricing: {
       title: "Simple, Transparent Pricing",
-      description: "Start with a free trial, continue for less than a cup of coffee per month",
+      description:
+        "Start with a free trial, continue for less than a cup of coffee per month",
       plan: "Premium",
       price: "€2.99",
       perMonth: "/month",
@@ -68,7 +76,8 @@ export default {
     },
     cta: {
       title: "Ready to Take Control?",
-      description: "Join thousands of users who trust Pilliox with their medical tracking",
+      description:
+        "Join thousands of users who trust Pilliox with their medical tracking",
       button: "Get Started Now",
     },
     footer: {
@@ -92,31 +101,47 @@ export default {
     loggingIn: "Logging in...",
     signingUp: "Creating account...",
     forgotPassword: "Forgot Password?",
-    forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password.",
+    forgotPasswordDescription:
+      "Enter your email address and we'll send you a link to reset your password.",
     sendResetLink: "Send Reset Link",
+    sendResetCode: "Send Reset Code",
     sending: "Sending...",
     checkYourEmail: "Check Your Email",
-    resetLinkSent: "We've sent a password reset link to:",
+    resetLinkSent: "Resetting link sent to your email",
+    enterCodeAndPassword: "Enter the code from your email and your new password",
+    passwordResetSuccessful: "Password reset successful!",
+    redirectingToLogin: "Redirecting to login...",
+    checkEmailMessage: "Check your email! We've sent a password reset link to",
+    checkInboxMessage: "Please check your inbox and click the link to continue.",
     didntReceiveEmail: "Didn't receive the email?",
     tryAgain: "Try again",
+    resendCode: "Resend Code",
+    resendCodeIn: "Resend Code ({{seconds}}s)",
+    resetCode: "Reset Code",
     resetPassword: "Reset Password",
-    resetPasswordDescription: "Enter your email to receive reset instructions",
+    resetPasswordDescription:
+      "Enter your email to receive reset instructions",
     resetPasswordButton: "Reset Password",
     backToLogin: "Back to Login",
+    backToHome: "Back to Home",
     enterNewPassword: "Enter your new password below",
     newPassword: "New Password",
+    newPasswordPlaceholder: "Enter new password (min 6 characters)",
     confirmPassword: "Confirm Password",
-    confirmPasswordPlaceholder: "Confirm your password",
+    confirmPasswordPlaceholder: "Confirm new password",
     resetting: "Resetting...",
     passwordResetSuccess: "Password Reset Successful",
-    redirectingToLogin: "Redirecting to login...",
     resetPasswordError: "Failed to reset password",
     passwordMinLength: "Password must be at least 6 characters",
     passwordsDontMatch: "Passwords don't match",
-    invalidResetLink: "Invalid or expired reset link. Please request a new one.",
-    resetLinkExpired: "This password reset link has expired. Please request a new one.",
-    sessionVerificationError: "Could not verify your session. Please try again.",
-    sessionExpired: "Your session has expired. Please request a new reset link.",
+    invalidResetLink:
+      "Invalid or expired reset link. Please request a new one.",
+    resetLinkExpired:
+      "This password reset link has expired. Please request a new one.",
+    sessionVerificationError:
+      "Could not verify your session. Please try again.",
+    sessionExpired:
+      "Your session has expired. Please request a new reset link.",
     passwordResetFailed: "Password Reset Failed",
     orContinueWith: "Or continue with",
     bySigningUp: "By continuing, you agree to our",
@@ -143,7 +168,8 @@ export default {
     otherMedications: "Other Medications",
     addMed: "Add",
     addOtherMedication: "Add Other Medication",
-    addOtherMedicationDesc: "Add a one-time medication that's not in your regular schedule.",
+    addOtherMedicationDesc:
+      "Add a one-time medication that's not in your regular schedule.",
     editOtherMedication: "Edit Medication",
     editOtherMedicationDesc: "Update the medication details.",
     medicationName: "Medication Name",
@@ -171,7 +197,8 @@ export default {
     notification: "Notification",
     enableNotification: "Enable Reminder",
     notificationTime: "Reminder Time",
-    notificationDesc: "You'll receive a reminder at this time to take your medication.",
+    notificationDesc:
+      "You'll receive a reminder at this time to take your medication.",
     note: "Note",
     cancel: "Cancel",
     apply: "Apply",
@@ -248,7 +275,8 @@ export default {
     subscription: "Subscription",
     clearData: {
       title: "Clear All Data",
-      confirm: "Are you sure you want to clear all calendar data? This cannot be undone.",
+      confirm:
+        "Are you sure you want to clear all calendar data? This cannot be undone.",
       success: "All data cleared successfully",
       error: "Failed to clear data",
     },
@@ -302,7 +330,8 @@ export default {
     month: "month",
     cancelAnytime: "Cancel anytime, no commitment",
     startFreeTrial: "Start 3-Day Free Trial",
-    trialInfo: "Start your 3-day free trial. No credit card required upfront.",
+    trialInfo:
+      "Start your 3-day free trial. No credit card required upfront.",
     pricing: "Cancel anytime",
     billingInfo: "Billing managed securely by Stripe",
   },
@@ -347,7 +376,8 @@ export default {
     },
     health: {
       title: "Health Information",
-      comingSoon: "INR tracking and blood test history coming soon...",
+      comingSoon:
+        "INR tracking and blood test history coming soon...",
     },
   },
   colors: {
@@ -366,7 +396,8 @@ export default {
     values: "Medical Values",
     empty: {
       title: "No medications yet",
-      description: "Add your first medication to start tracking doses",
+      description:
+        "Add your first medication to start tracking doses",
     },
     addFirst: "Add your first medication",
   },
@@ -381,7 +412,8 @@ export default {
     subtitle: "Manage your medications and values",
     addMedication: "Add Medication",
     editMedication: "Edit Medication",
-    addMedicationDescription: "Add a new medication to your list",
+    addMedicationDescription:
+      "Add a new medication to your list",
     editMedicationDescription: "Edit your medication settings",
     medicationName: "Medication Name",
     medicationPlaceholder: "Enter medication name",
@@ -400,8 +432,10 @@ export default {
     noPills: "No medications yet",
     deleteMedication: "Delete Medication",
     deleteConfirmTitle: "Delete Medication?",
-    deleteConfirmDescription: "This medication has {count} calendar entries. All entries will be permanently deleted.",
-    deleteConfirmNoEntries: "Are you sure you want to delete this medication?",
+    deleteConfirmDescription:
+      "This medication has {count} calendar entries. All entries will be permanently deleted.",
+    deleteConfirmNoEntries:
+      "Are you sure you want to delete this medication?",
     deleteKeywordPrompt: "Type 'DELETE' to confirm",
     deleteKeywordPlaceholder: "Type DELETE",
     deleteKeywordMismatch: "Please type DELETE to confirm",
@@ -423,7 +457,8 @@ export default {
   about: {
     title: "About Pilliox",
     description: "Your medical tracking companion",
-    tagline: "Track your medical values with ease and precision",
+    tagline:
+      "Track your medical values with ease and precision",
     features: "Key Features:",
     feature1: "Track INR values and blood test results",
     feature2: "Monitor daily medications with pill counter",
@@ -611,19 +646,23 @@ export default {
     getStarted: "Get Started",
     step1: {
       title: "Track Your Health",
-      description: "Keep track of your INR values, blood tests, and medication schedule all in one place.",
+      description:
+        "Keep track of your INR values, blood tests, and medication schedule all in one place.",
     },
     step2: {
       title: "Manage Medications",
-      description: "Set up your medications with custom dosages and schedules. Never miss a dose again.",
+      description:
+        "Set up your medications with custom dosages and schedules. Never miss a dose again.",
     },
     step3: {
       title: "Smart Reminders",
-      description: "Get timely notifications for your medications and health tracking appointments.",
+      description:
+        "Get timely notifications for your medications and health tracking appointments.",
     },
     step4: {
       title: "Secure & Private",
-      description: "Your health data is encrypted and securely stored. Only you have access to your information.",
+      description:
+        "Your health data is encrypted and securely stored. Only you have access to your information.",
     },
   },
 } as const;

@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate, BrowserRouter } from "react-router";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  BrowserRouter,
+} from "react-router";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n/config";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -7,7 +13,10 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import LandingPage from "./pages/LandingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { projectId, publicAnonKey } from "../../utils/supabase/info";
+import {
+  projectId,
+  publicAnonKey,
+} from "../../utils/supabase/info";
 import { getSupabaseClient } from "../../utils/supabase/client";
 import { useTheme } from "./hooks/useTheme";
 import { SubscriptionProvider } from "./hooks/useSubscription";
@@ -29,7 +38,9 @@ function AppRoutes() {
   useTheme("system");
   const navigate = useNavigate();
 
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(
+    null,
+  );
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,35 +50,55 @@ function AppRoutes() {
 
     const initAuth = async () => {
       try {
-        // CRITICAL: Check for password reset code parameter FIRST
-        // But distinguish it from OAuth callback codes
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const type = urlParams.get('type');
-        
-        // Only redirect to reset password if this is explicitly a password recovery
-        if (code && type === 'recovery') {
-          console.log('🔐 Password reset code detected in URL, redirecting to reset-password page');
-          // Navigate to reset password page with the code
-          navigate(`/reset-password?code=${code}`);
+        // CRITICAL: Check for password reset parameters FIRST
+        const urlParams = new URLSearchParams(
+          window.location.search,
+        );
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1),
+        );
+
+        const code = urlParams.get("code");
+        const token = urlParams.get("token");
+        const type = urlParams.get("type");
+
+        // Check hash params for recovery tokens (from direct Supabase redirect)
+        const hashAccessToken = hashParams.get("access_token");
+        const hashType = hashParams.get("type");
+
+        // Redirect to reset password if this is explicitly a password recovery
+        // Check multiple formats: code, token, or hash access_token with type=recovery
+        // CRITICAL: Check if we're landing on root (/) with recovery tokens
+        if (
+          (code && type === "recovery") ||
+          (token && type === "recovery") ||
+          (hashAccessToken && hashType === "recovery")
+        ) {
+          // Only redirect if we're not already on the reset password page
+          if (window.location.pathname !== "/reset-password") {
+            // CRITICAL: Use full window.location to preserve all parameters
+            const newUrl =
+              "/reset-password" +
+              window.location.search +
+              window.location.hash;
+            window.location.replace(newUrl); // Use replace to avoid adding to history
+            return;
+          }
+
           setIsLoading(false);
           return;
         }
-        
+
         // Set up auth state listener to handle OAuth callbacks
         const {
           data: { subscription: sub },
         } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            console.log('Auth state change event:', event, 'Session:', session);
-            
             // CRITICAL: Handle password recovery event FIRST before any other logic
             // DO NOT store tokens or log the user in - just navigate to reset page
-            if (event === 'PASSWORD_RECOVERY') {
-              console.log('⚠️ Password recovery detected - navigating to reset-password page WITHOUT logging in');
-              console.log('⚠️ User will be able to reset password, but NOT access the app until they log in with new password');
+            if (event === "PASSWORD_RECOVERY") {
               setIsLoading(false);
-              navigate('/reset-password');
+              navigate("/reset-password");
               // CRITICAL: return early to prevent automatic login
               return;
             }
@@ -77,46 +108,63 @@ function AppRoutes() {
               // IMPORTANT: Skip auto-login if we're on the reset-password page
               // This prevents the user from being logged in while resetting their password
               const currentPath = window.location.pathname;
-              if (currentPath === '/reset-password') {
-                console.log('⚠️ User is on reset-password page - skipping auto-login to prevent security bypass');
+              if (currentPath === "/reset-password") {
                 return;
               }
-              
+
               setAccessToken(session.access_token);
               setUserEmail(session.user.email);
-              localStorage.setItem("accessToken", session.access_token);
-              localStorage.setItem("userEmail", session.user.email);
+              localStorage.setItem(
+                "accessToken",
+                session.access_token,
+              );
+              localStorage.setItem(
+                "userEmail",
+                session.user.email,
+              );
 
               // Emit custom event to notify subscription hook
-              window.dispatchEvent(new Event('userLoggedIn'));
+              window.dispatchEvent(new Event("userLoggedIn"));
 
               // Clear URL hash after successful auth
               if (window.location.hash) {
-                window.history.replaceState(null, "", window.location.pathname);
+                window.history.replaceState(
+                  null,
+                  "",
+                  window.location.pathname,
+                );
               }
 
               // Check if onboarding is completed and navigate accordingly
               // IMPORTANT: Only navigate if we're not already on the correct route
-              const onboardingCompleted = localStorage.getItem("pilliox_onboarding_completed");
-              
-              if (!onboardingCompleted && !currentPath.includes("/onboarding")) {
+              const onboardingCompleted = localStorage.getItem(
+                "pilliox_onboarding_completed",
+              );
+
+              if (
+                !onboardingCompleted &&
+                !currentPath.includes("/onboarding")
+              ) {
                 // Check if this is a legacy OAuth account by checking settings
                 try {
                   const settingsResponse = await fetch(
                     `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
                     {
                       headers: {
-                        'Authorization': `Bearer ${publicAnonKey}`,
-                        'X-User-Token': session.access_token
-                      }
-                    }
+                        Authorization: `Bearer ${publicAnonKey}`,
+                        "X-User-Token": session.access_token,
+                      },
+                    },
                   );
-                  const settingsData = await settingsResponse.json();
-                  
+                  const settingsData =
+                    await settingsResponse.json();
+
                   if (settingsData.user) {
                     // Legacy account detected - skip onboarding
-                    console.log('Legacy OAuth account detected, skipping onboarding');
-                    localStorage.setItem("pilliox_onboarding_completed", "true");
+                    localStorage.setItem(
+                      "pilliox_onboarding_completed",
+                      "true",
+                    );
                     if (!currentPath.startsWith("/app")) {
                       navigate("/app");
                     }
@@ -127,7 +175,10 @@ function AppRoutes() {
                   // On error, send to onboarding
                   navigate("/app/onboarding");
                 }
-              } else if (onboardingCompleted && !currentPath.startsWith("/app")) {
+              } else if (
+                onboardingCompleted &&
+                !currentPath.startsWith("/app")
+              ) {
                 navigate("/app");
               }
 
@@ -139,7 +190,10 @@ function AppRoutes() {
               localStorage.removeItem("userEmail");
               setIsLoading(false);
               navigate("/auth");
-            } else if (!session && event !== "INITIAL_SESSION") {
+            } else if (
+              !session &&
+              event !== "INITIAL_SESSION"
+            ) {
               setIsLoading(false);
             }
           },
@@ -155,15 +209,100 @@ function AppRoutes() {
 
         if (error) {
           setIsLoading(false);
-        } else if (session?.access_token && session?.user?.email) {
+        } else if (
+          session?.access_token &&
+          session?.user?.email
+        ) {
+          const currentPath = window.location.pathname;
+
+          // CRITICAL: Check if this is a recovery session by checking user metadata
+          // Recovery sessions have app_metadata with provider = 'email' and recovery = true
+          // OR they might have recovery_token set
+          const userMetadata = session.user.app_metadata || {};
+          const userFactors = session.user.factors || [];
+
+          // Check AMR (Authentication Method Reference) for recovery
+          const hasRecoveryAmr = session.user.amr?.some(
+            (a: any) =>
+              a.method === "recovery" || a.method === "otp",
+          );
+
+          // If AMR contains 'recovery' or 'otp', this is a recovery session
+          if (hasRecoveryAmr && currentPath === "/") {
+            navigate("/reset-password");
+            setIsLoading(false);
+            return;
+          }
+
+          // Check if we're on root and session is fresh (just created)
+          const sessionCreatedAt = new Date(
+            session.user.created_at ||
+              session.user.confirmed_at ||
+              0,
+          ).getTime();
+          const now = Date.now();
+          const sessionAgeSeconds =
+            (now - sessionCreatedAt) / 1000;
+
+          // If session is brand new and we're on root, wait for auth event
+          if (currentPath === "/" && sessionAgeSeconds < 10) {
+            setTimeout(() => {
+              // Check again after 2 seconds
+              supabase.auth
+                .getSession()
+                .then(({ data: { session: newSession } }) => {
+                  if (newSession) {
+                    const hasRecovery =
+                      newSession.user.amr?.some(
+                        (a: any) =>
+                          a.method === "recovery" ||
+                          a.method === "otp",
+                      );
+                    if (hasRecovery) {
+                      navigate("/reset-password");
+                    } else {
+                      // Normal session, proceed with login
+                      setAccessToken(newSession.access_token);
+                      setUserEmail(newSession.user.email!);
+                      localStorage.setItem(
+                        "accessToken",
+                        newSession.access_token,
+                      );
+                      localStorage.setItem(
+                        "userEmail",
+                        newSession.user.email!,
+                      );
+
+                      const onboardingCompleted =
+                        localStorage.getItem(
+                          "pilliox_onboarding_completed",
+                        );
+                      if (!onboardingCompleted) {
+                        navigate("/app/onboarding");
+                      } else {
+                        navigate("/app");
+                      }
+                    }
+                  }
+                  setIsLoading(false);
+                });
+            }, 2000);
+            return;
+          }
+
+          // Regular session login
           setAccessToken(session.access_token);
           setUserEmail(session.user.email);
-          localStorage.setItem("accessToken", session.access_token);
+          localStorage.setItem(
+            "accessToken",
+            session.access_token,
+          );
           localStorage.setItem("userEmail", session.user.email);
           setIsLoading(false);
         } else {
           // No active session - check localStorage as fallback
-          const storedToken = localStorage.getItem("accessToken");
+          const storedToken =
+            localStorage.getItem("accessToken");
           const storedEmail = localStorage.getItem("userEmail");
 
           if (storedToken && storedEmail) {
@@ -199,33 +338,40 @@ function AppRoutes() {
     localStorage.setItem("userEmail", email);
 
     // Emit custom event to notify subscription hook
-    window.dispatchEvent(new Event('userLoggedIn'));
+    window.dispatchEvent(new Event("userLoggedIn"));
 
     // Check if onboarding is completed
-    const onboardingCompleted = localStorage.getItem("pilliox_onboarding_completed");
+    const onboardingCompleted = localStorage.getItem(
+      "pilliox_onboarding_completed",
+    );
     if (!onboardingCompleted) {
       // Check if this is a legacy account by checking if they have calendar data
-      fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'X-User-Token': token
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        // If user has settings, it's a legacy account - skip onboarding
-        if (data.user) {
-          console.log('Legacy account detected, skipping onboarding');
-          localStorage.setItem("pilliox_onboarding_completed", "true");
-          navigate("/app");
-        } else {
+      fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
+        {
+          headers: {
+            Authorization: `Bearer ${publicAnonKey}`,
+            "X-User-Token": token,
+          },
+        },
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          // If user has settings, it's a legacy account - skip onboarding
+          if (data.user) {
+            localStorage.setItem(
+              "pilliox_onboarding_completed",
+              "true",
+            );
+            navigate("/app");
+          } else {
+            navigate("/app/onboarding");
+          }
+        })
+        .catch(() => {
+          // On error, assume new account
           navigate("/app/onboarding");
-        }
-      })
-      .catch(() => {
-        // On error, assume new account
-        navigate("/app/onboarding");
-      });
+        });
     } else {
       navigate("/app");
     }
@@ -253,34 +399,57 @@ function AppRoutes() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
-        <Route 
-          path="/auth" 
+        <Route
+          path="/auth"
           element={
             accessToken ? (
               <Navigate to="/app" replace />
             ) : (
               <AuthPage onAuthSuccess={handleAuthSuccess} />
             )
-          } 
+          }
         />
-        <Route path="/docs/terms" element={<TermsOfService onBack={() => navigate(-1)} />} />
-        <Route path="/docs/privacy" element={<PrivacyPolicy onBack={() => navigate(-1)} />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route
+          path="/docs/terms"
+          element={
+            <TermsOfService onBack={() => navigate(-1)} />
+          }
+        />
+        <Route
+          path="/docs/privacy"
+          element={
+            <PrivacyPolicy onBack={() => navigate(-1)} />
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
+        />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPasswordPage />}
+        />
 
         {/* Protected Routes */}
         <Route
           path="/app"
           element={
-            <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
+            <ProtectedRoute
+              isAuthenticated={!!accessToken}
+              isLoading={isLoading}
+            >
               <>
                 <CalendarPage
                   accessToken={accessToken!}
                   onLogout={handleLogout}
                   projectId={projectId}
                   anonKey={publicAnonKey}
-                  onNavigateToTerms={() => navigate("/docs/terms")}
-                  onNavigateToPrivacy={() => navigate("/docs/privacy")}
+                  onNavigateToTerms={() =>
+                    navigate("/docs/terms")
+                  }
+                  onNavigateToPrivacy={() =>
+                    navigate("/docs/privacy")
+                  }
                 />
                 <SubscriptionBanner />
                 <SubscriptionPaywall onLogout={handleLogout} />
@@ -290,15 +459,30 @@ function AppRoutes() {
           }
         />
         {/* Alias routes for backward compatibility */}
-        <Route path="/home" element={<Navigate to="/app" replace />} />
-        <Route path="/medications" element={<Navigate to="/app/medications" replace />} />
-        <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
-        <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
-        
+        <Route
+          path="/home"
+          element={<Navigate to="/app" replace />}
+        />
+        <Route
+          path="/medications"
+          element={<Navigate to="/app/medications" replace />}
+        />
+        <Route
+          path="/profile"
+          element={<Navigate to="/app/profile" replace />}
+        />
+        <Route
+          path="/settings"
+          element={<Navigate to="/app/settings" replace />}
+        />
+
         <Route
           path="/app/onboarding"
           element={
-            <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
+            <ProtectedRoute
+              isAuthenticated={!!accessToken}
+              isLoading={isLoading}
+            >
               <OnboardingPage />
             </ProtectedRoute>
           }
@@ -306,7 +490,10 @@ function AppRoutes() {
         <Route
           path="/app/subscription"
           element={
-            <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
+            <ProtectedRoute
+              isAuthenticated={!!accessToken}
+              isLoading={isLoading}
+            >
               <SubscriptionPage />
             </ProtectedRoute>
           }
@@ -314,8 +501,11 @@ function AppRoutes() {
         <Route
           path="/app/medications"
           element={
-            <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
-              <MedicationsPage 
+            <ProtectedRoute
+              isAuthenticated={!!accessToken}
+              isLoading={isLoading}
+            >
+              <MedicationsPage
                 accessToken={accessToken!}
                 projectId={projectId}
                 anonKey={publicAnonKey}
@@ -326,8 +516,11 @@ function AppRoutes() {
         <Route
           path="/app/profile"
           element={
-            <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
-              <ProfilePage 
+            <ProtectedRoute
+              isAuthenticated={!!accessToken}
+              isLoading={isLoading}
+            >
+              <ProfilePage
                 accessToken={accessToken!}
                 userEmail={userEmail}
                 projectId={projectId}
@@ -340,14 +533,21 @@ function AppRoutes() {
         <Route
           path="/app/settings"
           element={
-            <ProtectedRoute isAuthenticated={!!accessToken} isLoading={isLoading}>
-              <SettingsPage 
+            <ProtectedRoute
+              isAuthenticated={!!accessToken}
+              isLoading={isLoading}
+            >
+              <SettingsPage
                 accessToken={accessToken!}
                 onLogout={handleLogout}
                 projectId={projectId}
                 anonKey={publicAnonKey}
-                onNavigateToTerms={() => navigate("/docs/terms")}
-                onNavigateToPrivacy={() => navigate("/docs/privacy")}
+                onNavigateToTerms={() =>
+                  navigate("/docs/terms")
+                }
+                onNavigateToPrivacy={() =>
+                  navigate("/docs/privacy")
+                }
               />
             </ProtectedRoute>
           }

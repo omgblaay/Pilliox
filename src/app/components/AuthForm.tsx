@@ -38,7 +38,7 @@ export function AuthForm({
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
     "login" | "signup"
-  >("signup"); // 🔥 DEFAULT TO SIGNUP - Most users need to create account first
+  >("login"); // 🔥 DEFAULT TO SIGNUP - Most users need to create account first
   const [showPassword, setShowPassword] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -234,12 +234,12 @@ export function AuthForm({
         className="mx-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="hidden sm:inline">Back to Home</span>
+        {t("auth.backToHome") || "Back to Home"}
       </Button>
 
       <div className="flex max-h-auto flex-col md:flex-row w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
         {/* Left Side - Decorative Panel (Desktop sidebar / Mobile top) */}
-        <div className="flex relative w-full md:w-[320px] bg-primary dark:bg-popover flex-col gap-2 p-6 order-first">
+        <div className="relative w-full md:w-[320px] hidden lg:flex bg-primary dark:bg-popover flex-col gap-2 p-6 order-first">
           {/* Background Image with Overlay */}
           <div
             aria-hidden="true"
@@ -300,7 +300,7 @@ export function AuthForm({
               <LanguageSelector variant="ghost" />
             </div>
           </div>
-
+          
           {/* Tab Buttons */}
           <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
             <Button
@@ -391,13 +391,15 @@ export function AuthForm({
                 </div>
                 {/* Forgot Password Link */}
                 <div className="text-right">
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
                     onClick={() => navigate("/forgot-password")}
-                    className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                    size="link"
+                    className="!text-sm p-0"
                   >
                     {t("auth.forgotPassword")}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -591,24 +593,28 @@ export function AuthForm({
             <span>{t("auth.bySigningUp")} </span>
             {onNavigateToTerms && (
               <>
-                <button
+                <Button
                   type="button"
                   onClick={onNavigateToTerms}
-                  className="text-blue-600 cursor-pointer !text-sm dark:text-blue-400 hover:underline"
+                  variant="link"
+                  size="link"
+                  className="!text-sm px-0.5"
                 >
                   {t("auth.termsOfService")}
-                </button>
+                </Button>
                 <span> {t("auth.and")} </span>
               </>
             )}
             {onNavigateToPrivacy && (
-              <button
+              <Button
                 type="button"
-                onClick={onNavigateToPrivacy}
-                className="text-blue-600 cursor-pointer !text-sm dark:text-blue-400 hover:underline"
+                onClick={onNavigateToTerms}
+                variant="link"
+                size="link"
+                className="!text-sm px-0.5"
               >
                 {t("auth.privacyPolicy")}
-              </button>
+              </Button>
             )}
           </div>
         </div>

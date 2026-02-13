@@ -10,7 +10,11 @@ import {
   AlertDescription,
 } from "../components/ui/alert";
 import { Lock, CheckCircle, Eye, EyeOff } from "lucide-react";
-import { projectId, publicAnonKey } from "../../../utils/supabase/info";
+import {
+  projectId,
+  publicAnonKey,
+} from "../../../utils/supabase/info";
+import { getSupabaseClient } from "../../../utils/supabase/client";
 
 export function ResetPasswordPage() {
   const { t } = useTranslation();
@@ -23,19 +27,90 @@ export function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
-    // Extract token from URL hash (Supabase format: #access_token=...)
-    const hash = location.hash;
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get("access_token");
-    
-    if (accessToken) {
-      setToken(accessToken);
-    } else {
-      setError("Invalid or expired reset link. Please request a new one.");
+    // Supabase can send recovery links in two formats:
+    // 1. Query params: ?token=...&type=recovery (older format from verify endpoint)
+    // 2. Hash params: #access_token=...&type=recovery (newer format)
+
+    const searchParams = new URLSearchParams(location.search);
+    const hashParams = new URLSearchParams(
+      location.hash.substring(1),
+    );
+
+    // Check query params first (from /auth/v1/verify endpoint)
+    const queryToken = searchParams.get("token");
+    const queryType = searchParams.get("type");
+
+    // Check hash params (from direct redirect)
+    const hashAccessToken = hashParams.get("access_token");
+    const hashRefreshToken = hashParams.get("refresh_token");
+    const hashType = hashParams.get("type");
+
+    // Handle query params format (from email verify link)
+    if (queryToken && queryType === "recovery") {
+      setToken(queryToken);
+
+      // Exchange the token for a session
+      supabase.auth
+        .verifyOtp({
+          token_hash: queryToken,
+          type: "recovery",
+        })
+        .then(({ data, error }) => {
+          if (error) {
+            setError(
+              "Invalid or expired reset link. Please request a new one.",
+            );
+          } else {
+            // Clear the query params from URL for security
+            window.history.replaceState(
+              {},
+              "",
+              "/reset-password",
+            );
+          }
+        });
     }
-  }, [location]);
+    // Handle hash params format (from direct redirect)
+    else if (hashAccessToken && hashType === "recovery") {
+      setToken(hashAccessToken);
+
+      // Set the session with the recovery token
+      if (hashRefreshToken) {
+        supabase.auth
+          .setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error(
+                "[ResetPassword] ❌ Failed to set session:",
+                error,
+              );
+              setError(
+                "Invalid or expired reset link. Please request a new one.",
+              );
+            } else {
+            }
+          });
+      }
+    }
+    // No valid recovery token found
+    else {
+      console.error(
+        "[ResetPassword] ❌ No valid recovery token found in URL",
+      );
+      console.error(
+        "[ResetPassword] Expected ?token=...&type=recovery OR #access_token=...&type=recovery",
+      );
+      setError(
+        "Invalid or expired reset link. Please request a new one.",
+      );
+    }
+  }, [location, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,30 +135,33 @@ export function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/auth/reset-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify({ token, newPassword }),
-        },
-      );
+      // Use Supabase's updateUser method which works with the recovery session
+      const { error: updateError } =
+        await supabase.auth.updateUser({
+          password: newPassword,
+        });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate("/auth");
-        }, 3000);
-      } else {
-        setError(data.error || "Failed to reset password");
+      if (updateError) {
+        console.error(
+          "[ResetPassword] Update error:",
+          updateError,
+        );
+        setError(
+          updateError.message || "Failed to reset password",
+        );
+        return;
       }
+      setSuccess(true);
+
+      // Sign out to clear the recovery session
+      await supabase.auth.signOut();
+
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate("/auth");
+      }, 3000);
     } catch (err: any) {
+      console.error("[ResetPassword] Unexpected error:", err);
       setError(err.message || "Failed to reset password");
     } finally {
       setIsLoading(false);
@@ -124,7 +202,9 @@ export function ResetPasswordPage() {
                   id="new-password"
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) =>
+                    setNewPassword(e.target.value)
+                  }
                   placeholder="Enter new password (min 6 characters)"
                   className="pl-10 pr-10"
                   minLength={6}
@@ -147,7 +227,8 @@ export function ResetPasswordPage() {
 
             <div className="space-y-2">
               <Label htmlFor="confirm-password">
-                {t("profile.confirmPassword") || "Confirm Password"}
+                {t("profile.confirmPassword") ||
+                  "Confirm Password"}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -155,7 +236,9 @@ export function ResetPasswordPage() {
                   id="confirm-password"
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) =>
+                    setConfirmPassword(e.target.value)
+                  }
                   placeholder="Confirm new password"
                   className="pl-10"
                   minLength={6}
@@ -177,7 +260,8 @@ export function ResetPasswordPage() {
             >
               {isLoading
                 ? t("auth.resetting") || "Resetting..."
-                : t("auth.resetPasswordButton") || "Reset Password"}
+                : t("auth.resetPasswordButton") ||
+                  "Reset Password"}
             </Button>
 
             <Button

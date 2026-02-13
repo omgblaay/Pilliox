@@ -35,6 +35,7 @@ const buttonVariants = cva(
         default: "min-h-12 has-[>svg]:px-3",
         sm: "min-h-10 !text-sm !rounded-2xl has-[>svg]:px-4",
         icon: "size-9 !rounded-full",
+        link: "h-auto",
       },
     },
     defaultVariants: {
@@ -53,7 +54,15 @@ const Button = React.forwardRef<
     }
 >(
   (
-    { className, variant, size, asChild = false, hideChevron = false, children, ...props },
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      hideChevron = false,
+      children,
+      ...props
+    },
     ref,
   ) => {
     const Comp = asChild ? Slot : "button";
@@ -69,7 +78,9 @@ const Button = React.forwardRef<
         {...props}
       >
         {children}
-        {showChevron && <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />}
+        {showChevron && (
+          <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />
+        )}
       </Comp>
     );
   },
