@@ -165,7 +165,10 @@ function AppRoutes() {
                       "pilliox_onboarding_completed",
                       "true",
                     );
-                    if (!currentPath.startsWith("/app")) {
+                    if (
+                      !currentPath.startsWith("/app") &&
+                      !currentPath.startsWith("/docs/")
+                    ) {
                       navigate("/app");
                     }
                   } else {
@@ -177,7 +180,8 @@ function AppRoutes() {
                 }
               } else if (
                 onboardingCompleted &&
-                !currentPath.startsWith("/app")
+                !currentPath.startsWith("/app") &&
+                !currentPath.startsWith("/docs/")
               ) {
                 navigate("/app");
               }

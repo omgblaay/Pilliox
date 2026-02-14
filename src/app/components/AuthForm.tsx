@@ -17,6 +17,8 @@ import Vector from "../../imports/Vector";
 import svgPaths from "../../imports/svg-hepzwgk5tt";
 import imgFrame3 from "figma:asset/d4750969fc6e1ecdb0e81241cf229682cfd97a4a.png";
 import imgImage1 from "figma:asset/84229552ad15a973e3ff4d1f571f1de3e034300c.png";
+import { Logo } from "../components/Logo";
+import { Alert } from "./ui/alert";
 
 interface AuthFormProps {
   onAuthSuccess: (
@@ -38,7 +40,7 @@ export function AuthForm({
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
     "login" | "signup"
-  >("login"); // 🔥 DEFAULT TO SIGNUP - Most users need to create account first
+  >("signup"); // 🔥 DEFAULT TO SIGNUP - Most users need to create account first
   const [showPassword, setShowPassword] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -72,20 +74,8 @@ export function AuthForm({
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data.error || "Login failed";
-
-        if (data.code === "oauth_only_account") {
-          setError(
-            `❌ This email is registered via Google or Facebook.\n\n💡 Please use the "Continue with Google" or "Continue with Facebook" button below to sign in.`,
-          );
-        } else if (data.code === "invalid_credentials") {
-          setError(
-            `❌ Invalid email or password.\n\n💡 If you don't have an account, please use the "Sign Up" tab above.\n\nIf you registered via Google or Facebook, please use those buttons below instead.`,
-          );
-        } else {
-          setError(errorMessage);
-        }
-
+        // Use a single generic error message for all login failures
+        setError(t("auth.invalidLoginCredentials"));
         setIsLoading(false);
         return;
       }
@@ -225,7 +215,7 @@ export function AuthForm({
   };
 
   return (
-    <div className="min-h-full bg-input dark:bg-[#0a0a0a] flex gap-4 flex-col md:items-center md:justify-center p-4 py-8 md:py-4 relative">
+    <div className="min-h-full bg-input-background dark:bg-[#0a0a0a] flex gap-4 flex-col md:items-center md:justify-center p-4 py-8 md:py-4 relative">
       {/* Back to Landing Page Button */}
       <Button
         variant="ghost"
@@ -285,13 +275,13 @@ export function AuthForm({
         </div>
 
         {/* Right Side - Auth Card */}
-        <div className="flex-1 md:h-auto bg-input-background p-4 md:p-8 flex flex-col gap-4">
+        <div className="flex-1 md:h-auto bg-popover p-4 md:p-8 flex flex-col gap-4">
           {/* Logo and Tagline */}
 
           <div className="flex spece-between w-auto">
             <div className="inline-flex flex-col items-start gap-2 flex-1 w-auto">
               <div className="h-[40px] w-[120px]">
-                <Vector />
+                <Logo />
               </div>
             </div>
 
@@ -300,7 +290,7 @@ export function AuthForm({
               <LanguageSelector variant="ghost" />
             </div>
           </div>
-          
+
           {/* Tab Buttons */}
           <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
             <Button
@@ -405,7 +395,7 @@ export function AuthForm({
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
                   {error}
                 </div>
               )}
@@ -509,7 +499,7 @@ export function AuthForm({
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
                   {error}
                 </div>
               )}
@@ -530,7 +520,7 @@ export function AuthForm({
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
               </div>
-              <div className="relative px-4 bg-input-background">
+              <div className="relative px-4 bg-popover">
                 <span className="text-sm text-[#888]">
                   {t("auth.orContinueWith")}
                 </span>

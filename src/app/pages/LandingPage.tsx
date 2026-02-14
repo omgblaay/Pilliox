@@ -185,12 +185,18 @@ export default function LandingPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() =>
-                setTheme(theme === "dark" ? "light" : "dark")
-              }
+              onClick={() => {
+                const isDark =
+                  theme === "dark" ||
+                  (theme === "system" &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches);
+                setTheme(isDark ? "light" : "dark");
+              }}
               className="text-gray-600 dark:text-gray-300"
             >
-              {theme === "dark" ? (
+              {theme === "dark" ||
+              (theme === "system" &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches) ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
@@ -383,7 +389,7 @@ export default function LandingPage() {
           className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl p-8 sm:p-12 shadow-2xl"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-8">
-            Why Choose Pilliox?
+            {t("landing.whyChoose.title")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-white">
             <motion.div
@@ -397,12 +403,10 @@ export default function LandingPage() {
                 <Calendar className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold">
-                Easy Tracking
+                {t("landing.whyChoose.easyTracking.title")}
               </h3>
               <p className="text-white/90 text-sm">
-                Intuitive calendar interface designed
-                specifically for INR values and medication
-                management
+                {t("landing.whyChoose.easyTracking.description")}
               </p>
             </motion.div>
 
@@ -417,11 +421,10 @@ export default function LandingPage() {
                 <Shield className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold">
-                Privacy First
+                {t("landing.whyChoose.privacyFirst.title")}
               </h3>
               <p className="text-white/90 text-sm">
-                Your medical data is encrypted and secure. We
-                never share your information with third parties
+                {t("landing.whyChoose.privacyFirst.description")}
               </p>
             </motion.div>
 
@@ -436,11 +439,10 @@ export default function LandingPage() {
                 <Heart className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold">
-                Built for You
+                {t("landing.whyChoose.builtForYou.title")}
               </h3>
               <p className="text-white/90 text-sm">
-                Designed by healthcare enthusiasts who
-                understand the challenges of medication tracking
+                {t("landing.whyChoose.builtForYou.description")}
               </p>
             </motion.div>
           </div>

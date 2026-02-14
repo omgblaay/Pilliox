@@ -498,7 +498,7 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     });
     
     if (error) {
-      console.error(`[signup] Supabase Auth error:`, error);
+      console.log(`[signup] ⚠️ Signup failed: ${error.message} (code: ${error.code || 'unknown'})`);
       if (error.message.includes('already registered')) {
         return c.json({ error: 'User already exists' }, 400);
       }
@@ -506,7 +506,7 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     }
     
     if (!data.user) {
-      console.error(`[signup] No user returned from Supabase Auth`);
+      console.log(`[signup] ⚠️ No user returned from Supabase Auth`);
       return c.json({ error: 'Failed to create user' }, 500);
     }
     
@@ -521,7 +521,7 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     });
     
     if (signInError || !signInData.session) {
-      console.error(`[signup] Failed to sign in after signup:`, signInError);
+      console.log(`[signup] ⚠️ Auto-signin failed after signup: ${signInError?.message || 'No session'}, using fallback token`);
       // Fallback: use userId as token
       const accessToken = userId;
       const userData = { email, password: '', name: name || '', id: userId };
@@ -555,7 +555,7 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
       access_token: accessToken
     });
   } catch (error: any) {
-    console.error(`[signup] Unexpected error:`, error);
+    console.log(`[signup] 🔴 Unexpected error: ${error.message}`);
     return c.json({ error: `Signup failed: ${error.message}` }, 500);
   }
 });
@@ -566,6 +566,7 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     const { email, password } = await c.req.json();
     
     console.log(`[login] Login attempt for email: ${email}`);
+    console.log(`[login] 🔍 Checking user existence and authentication method...`);
     
     if (!email || !password) {
       return c.json({ error: 'Email and password are required' }, 400);
@@ -573,13 +574,33 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     
     // First check if user exists and is OAuth-only
     const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    console.log(`[login] 📋 Retrieved ${userData?.users?.length || 0} users from database`);
+    
     if (!listError && userData) {
       const user = userData.users.find(u => u.email === email);
+      
+      // If user doesn't exist at all, return specific error
+      if (!user) {
+        console.log(`[login] ⚠️ User ${email} does not exist in database.`);
+        console.log(`[login] 🔴 Returning user_not_found error (404)`);
+        return c.json({ 
+          error: 'No account found with this email address. Please sign up first.',
+          code: 'user_not_found',
+          suggestion: 'Click the "Sign Up" tab to create a new account.'
+        }, 404);
+      }
+      
+      console.log(`[login] ✅ User ${email} exists in database`);
+      
+      // If user exists but is OAuth-only
       if (user) {
         const hasEmailProvider = user.app_metadata?.provider === 'email' || 
                                  user.identities?.some(id => id.provider === 'email');
+        console.log(`[login] 🔐 Email authentication available: ${hasEmailProvider}`);
+        
         if (!hasEmailProvider) {
           console.log(`[login] ⚠️ User ${email} is OAuth-only (registered via Google/Facebook)`);
+          console.log(`[login] 🔴 Returning oauth_only_account error (401)`);
           return c.json({ 
             error: 'This account was created with Google or Facebook. Please use those login methods.',
             code: 'oauth_only_account',
@@ -589,6 +610,8 @@ app.post('/make-server-c7e1f966/login', async (c) => {
       }
     }
     
+    console.log(`[login] 🚀 Attempting authentication with Supabase...`);
+    
     // Use Supabase Auth for authentication
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -596,25 +619,28 @@ app.post('/make-server-c7e1f966/login', async (c) => {
     });
     
     if (error) {
-      console.error(`[login] Supabase Auth error:`, error);
-      console.error(`[login] Error code: ${error.code}, Status: ${error.status}, Message: ${error.message}`);
+      console.log(`[login] ⚠️ Authentication failed: ${error.message} (code: ${error.code})`);
       
       // Provide more detailed error messages
       if (error.code === 'invalid_credentials') {
-        console.error(`[login] ❌ Invalid credentials for ${email}.`);
+        // We already checked above that user exists (lines 583-591)
+        // So this must be a wrong password
+        console.log(`[login] ❌ Wrong password for ${email}.`);
         return c.json({ 
-          error: 'Invalid email or password.',
-          code: 'invalid_credentials',
+          error: 'Incorrect password. Please try again or use "Forgot Password" to reset.',
+          code: 'wrong_password',
         }, 401);
       }
       
       if (error.code === 'email_not_confirmed') {
+        console.log(`[login] ⚠️ Email not confirmed for ${email}`);
         return c.json({ 
           error: 'Email not confirmed. Please check your email for confirmation link.',
           code: 'email_not_confirmed'
         }, 401);
       }
       
+      console.log(`[login] ❌ Authentication error: ${error.code || 'unknown'}`);
       return c.json({ 
         error: 'Invalid email or password',
         code: error.code || 'auth_error'
@@ -661,7 +687,7 @@ app.post('/make-server-c7e1f966/login', async (c) => {
       access_token: accessToken
     });
   } catch (error: any) {
-    console.error(`[login] Unexpected error:`, error);
+    console.log(`[login] 🔴 Unexpected error: ${error.message}`);
     return c.json({ error: 'Login failed' }, 500);
   }
 });
@@ -1014,7 +1040,7 @@ app.get('/make-server-c7e1f966/auth/has-password', async (c) => {
       isOAuthOnly: !hasEmailProvider 
     });
   } catch (error: any) {
-    console.error('[has-password] Error:', error);
+    console.log('[has-password] 🔴 Error:', error.message);
     return c.json({ error: 'Failed to check password status' }, 500);
   }
 });
@@ -1058,7 +1084,7 @@ app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
       await kvSet(otpKey, otpData);
       console.log(`[forgot-password] OTP stored for ${email}: ${otp}`);
     } catch (error: any) {
-      console.error('[forgot-password] Failed to store OTP:', error);
+      console.log('[forgot-password] ⚠️ Failed to store OTP:', error.message);
       return c.json({ error: 'Failed to generate reset code' }, 500);
     }
     
@@ -1080,7 +1106,7 @@ app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
     });
     
     if (emailError) {
-      console.error('[forgot-password] Email send error:', emailError);
+      console.log('[forgot-password] ⚠️ Email send error:', emailError.message);
     }
     
     console.log('[forgot-password] OTP email sent via Supabase');
@@ -1091,7 +1117,7 @@ app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
       debug: { otp } 
     });
   } catch (error: any) {
-    console.error('[forgot-password] Unexpected error:', error);
+    console.log('[forgot-password] 🔴 Unexpected error:', error.message);
     return c.json({ 
       message: 'If an account with that email exists, a password reset code has been sent.' 
     });
@@ -1119,8 +1145,8 @@ app.post('/make-server-c7e1f966/auth/verify-reset-otp', async (c) => {
     
     try {
       storedData = await kvGet(otpKey);
-    } catch (error) {
-      console.error('[verify-reset-otp] Failed to get OTP:', error);
+    } catch (error: any) {
+      console.log('[verify-reset-otp] ⚠️ Failed to get OTP:', error.message);
       return c.json({ error: 'Invalid or expired code' }, 400);
     }
     
@@ -1160,7 +1186,7 @@ app.post('/make-server-c7e1f966/auth/verify-reset-otp', async (c) => {
     );
     
     if (updateError) {
-      console.error('[verify-reset-otp] Password update error:', updateError);
+      console.log('[verify-reset-otp] ⚠️ Password update error:', updateError.message);
       return c.json({ error: 'Failed to update password' }, 500);
     }
     
@@ -1173,7 +1199,7 @@ app.post('/make-server-c7e1f966/auth/verify-reset-otp', async (c) => {
       message: 'Password reset successful. You can now log in with your new password.'
     });
   } catch (error: any) {
-    console.error('[verify-reset-otp] Unexpected error:', error);
+    console.log('[verify-reset-otp] 🔴 Unexpected error:', error.message);
     return c.json({ error: 'Failed to reset password' }, 500);
   }
 });
@@ -1200,7 +1226,7 @@ app.post('/make-server-c7e1f966/auth/reset-password', async (c) => {
     );
     
     if (error) {
-      console.error('[reset-password] Error:', error);
+      console.log('[reset-password] ⚠️ Error:', error.message);
       return c.json({ error: 'Invalid or expired reset token' }, 400);
     }
     
@@ -1208,7 +1234,7 @@ app.post('/make-server-c7e1f966/auth/reset-password', async (c) => {
     
     return c.json({ message: 'Password reset successful. You can now log in with your new password.' });
   } catch (error: any) {
-    console.error('[reset-password] Unexpected error:', error);
+    console.log('[reset-password] 🔴 Unexpected error:', error.message);
     return c.json({ error: 'Failed to reset password' }, 500);
   }
 });
@@ -1276,7 +1302,7 @@ app.post('/make-server-c7e1f966/change-password', async (c) => {
     );
     
     if (error) {
-      console.error('[change-password] Failed to update password:', error);
+      console.log('[change-password] ⚠️ Failed to update password:', error.message);
       return c.json({ error: 'Failed to change password: ' + error.message }, 500);
     }
     
@@ -1296,7 +1322,7 @@ app.post('/make-server-c7e1f966/change-password', async (c) => {
       message: 'Password changed successfully' 
     });
   } catch (error: any) {
-    console.error('[change-password] Unexpected error:', error);
+    console.log('[change-password] 🔴 Unexpected error:', error.message);
     return c.json({ error: 'Failed to change password: ' + error.message }, 500);
   }
 });

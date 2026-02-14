@@ -78,6 +78,7 @@ import { useTheme, type Theme } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import Vector from "../../imports/Vector";
 import { BottomNavigation } from "./BottomNavigation";
+import { Logo } from "../components/Logo";
 
 interface PillDosage {
   pillId: string;
@@ -1321,11 +1322,9 @@ export function CalendarView({
             >
               {/* Sidebar Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
-                <div className="h-[28px] w-[120px]">
-                  <Vector />
-                </div>
+                <Logo />
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   className="h-10 w-10 rounded-full"
                   onClick={() => setSidebarOpen(false)}
@@ -1501,51 +1500,49 @@ export function CalendarView({
               >
                 <Menu className="h-6 w-6 text-muted-foreground" />
               </Button>
-              <div className="flex items-start flex-col gap-2">
-                <div className="h-[28px] w-[120px]">
-                  <Vector />
-                </div>
-                <p className="text-[14px] text-muted-foreground">
+              <div className="flex items-start flex-col gap-1">
+                <Logo />
+                <p className="small">
                   {t("app.welcome", { name })}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="items-center hidden lg:flex gap-3">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
+                className="h-12 w-12"
                 onClick={() => navigate("/app/subscription")}
                 title="Manage Subscription"
               >
-                <Crown className="h-6 w-6 text-muted-foreground" />
+                <Crown className="h-6 w-6" />
               </Button>
 
               {/* Desktop icons - hidden on mobile */}
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
+                className="h-12 w-12 hidden lg:flex"
                 onClick={() => navigate("/app/medications")}
                 title="Medication Settings"
               >
-                <Pill className="h-6 w-6 text-muted-foreground" />
+                <Pill className="h-6 w-6" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
+                className="h-12 w-12  hidden lg:flex"
                 onClick={() => navigate("/app/profile")}
               >
-                <User className="h-7 w-7 text-muted-foreground" />
+                <User className="h-6 w-6" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent hidden lg:flex"
+                className="h-12 w-12 hidden lg:flex"
                 onClick={() => navigate("/app/settings")}
               >
-                <SettingsIcon className="h-[42px] w-[42px] text-muted-foreground" />
+                <SettingsIcon className="h-6 w-6" />
               </Button>
             </div>
           </div>
@@ -1562,7 +1559,7 @@ export function CalendarView({
               {/* Left: Mark Days Button */}
               <Button
                 onClick={handleMultiSelectStart}
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 disabled={multiSelectMode}
                 className="flex-1 hidden sm:flex"
@@ -3391,12 +3388,15 @@ export function CalendarView({
         >
           <DialogHeader>
             <DialogTitle>{t("about.title")}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("about.description")}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-4">
             <div className="flex flex-col gap-3 pb-2">
               <div className="h-[40px] w-[160px]">
-                <Vector />
+                <Logo />
               </div>
               <p className="text-sm text-muted-foreground text-left">
                 {t("about.description")}
@@ -3428,7 +3428,7 @@ export function CalendarView({
             </div>
 
             <div className="flex flex-col gap-4">
-              <Button variant="secondary" size="sm" href="/">
+              <Button variant="secondary" size="sm" href="../">
                 {t("about.visitHomepage")}
               </Button>
               <Button

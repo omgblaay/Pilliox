@@ -80,6 +80,21 @@ export default {
         "Join thousands of users who trust Pilliox with their medical tracking",
       button: "Get Started Now",
     },
+    whyChoose: {
+      title: "Why Choose Pilliox?",
+      easyTracking: {
+        title: "Easy Tracking",
+        description: "Intuitive calendar interface designed specifically for INR values and medication management",
+      },
+      privacyFirst: {
+        title: "Privacy First",
+        description: "Your medical data is encrypted and secure. We never share your information with third parties",
+      },
+      builtForYou: {
+        title: "Built for You",
+        description: "Designed by healthcare enthusiasts who understand the challenges of medication tracking",
+      },
+    },
     footer: {
       copyright: "© 2026 Pilliox. All rights reserved.",
       privacy: "Privacy Policy",
@@ -148,6 +163,7 @@ export default {
     and: "and",
     termsOfService: "Terms of Service",
     privacyPolicy: "Privacy Policy",
+    invalidLoginCredentials: "Invalid login credentials",
     features: {
       title: "Track Your Medical Values & Medications",
       medications:

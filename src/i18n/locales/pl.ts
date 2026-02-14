@@ -77,10 +77,24 @@ export default {
         "Anuluj w dowolnym momencie. Bez zobowiązań.",
     },
     cta: {
-      title: "Gotowy, aby przejąć kontrolę?",
-      description:
-        "Dołącz do tysięcy użytkowników, którzy ufają Pilliox w śledzeniu medycznym",
+      title: "Gotowy przejąć kontrolę?",
+      description: "Tysiące użytkowników ufa Pilliox w śledzeniu wartości medycznych",
       button: "Rozpocznij teraz",
+    },
+    whyChoose: {
+      title: "Dlaczego Pilliox?",
+      easyTracking: {
+        title: "Łatwe śledzenie",
+        description: "Intuicyjny interfejs kalendarza zaprojektowany specjalnie dla wartości INR i zarządzania lekami",
+      },
+      privacyFirst: {
+        title: "Prywatność przede wszystkim",
+        description: "Twoje dane medyczne są zaszyfrowane i bezpieczne. Nigdy nie udostępniamy Twoich informacji stronom trzecim",
+      },
+      builtForYou: {
+        title: "Stworzone dla Ciebie",
+        description: "Zaprojektowane przez entuzjastów opieki zdrowotnej, którzy rozumieją wyzwania związane ze śledzeniem leków",
+      },
     },
     footer: {
       copyright: "© 2026 Pilliox. Wszelkie prawa zastrzeżone.",
@@ -140,17 +154,17 @@ export default {
     sessionExpired: "Twoja sesja wygasła. Proszę poprosić o nowy link resetowania.",
     passwordResetFailed: "Resetowanie hasła nie powiodło się",
     orContinueWith: "Lub kontynuuj z",
-    bySigningUp: "Kontynuując, akceptujesz nasze",
+    bySigningUp: "Kontynuując, akceptujesz nasz",
     and: "i",
     termsOfService: "Regulamin",
-    privacyPolicy: "Polityka prywatności",
+    privacyPolicy: "Politykę prywatności",
+    invalidLoginCredentials: "Nieprawidłowe dane logowania",
     features: {
       title: "Śledź swoje wartości medyczne i leki",
-      medications:
-        "Codzienne śledzenie leków z indywidualnymi dawkami",
-      inrTracking: "Monitoruj wartości krwi i wyniki badań",
-      colorCoded: "Koloruj okresy leczenia z tagami",
-      notes: "Dodaj notatki medyczne do każdego dnia",
+      medications: "Codzienne śledzenie leków z niestandardowymi dawkami",
+      inrTracking: "Monitorowanie wyników badań krwi",
+      colorCoded: "Kodowanie kolorami okresów leczenia z tagami",
+      notes: "Dodawanie notatek medycznych do każdego dnia",
     },
   },
   calendar: {

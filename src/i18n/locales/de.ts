@@ -78,9 +78,23 @@ export default {
     },
     cta: {
       title: "Bereit, die Kontrolle zu übernehmen?",
-      description:
-        "Schließen Sie sich Tausenden von Benutzern an, die Pilliox mit ihrem medizinischen Tracking vertrauen",
-      button: "Jetzt loslegen",
+      description: "Tausende Nutzer vertrauen Pilliox mit ihrer medizinischen Verfolgung",
+      button: "Jetzt starten",
+    },
+    whyChoose: {
+      title: "Warum Pilliox wählen?",
+      easyTracking: {
+        title: "Einfache Verfolgung",
+        description: "Intuitive Kalenderoberfläche, speziell für INR-Werte und Medikamentenverwaltung entwickelt",
+      },
+      privacyFirst: {
+        title: "Datenschutz zuerst",
+        description: "Ihre medizinischen Daten sind verschlüsselt und sicher. Wir geben Ihre Informationen niemals an Dritte weiter",
+      },
+      builtForYou: {
+        title: "Für Sie gebaut",
+        description: "Entwickelt von Gesundheitsenthusiasten, die die Herausforderungen der Medikamentenverfolgung verstehen",
+      },
     },
     footer: {
       copyright: "© 2026 Pilliox. Alle Rechte vorbehalten.",
@@ -139,18 +153,19 @@ export default {
     sessionVerificationError: "Sitzung konnte nicht überprüft werden. Bitte versuchen Sie es erneut.",
     sessionExpired: "Ihre Sitzung ist abgelaufen. Bitte fordern Sie einen neuen Link an.",
     passwordResetFailed: "Passwort zurücksetzen fehlgeschlagen",
-    orContinueWith: "Oder weiter mit",
-    bySigningUp: "Durch Fortfahren stimmen Sie unseren",
+    orContinueWith: "Oder fortfahren mit",
+    bySigningUp: "Wenn Sie fortfahren, stimmen Sie unseren",
     and: "und",
     termsOfService: "Nutzungsbedingungen",
     privacyPolicy: "Datenschutzrichtlinie",
+    invalidLoginCredentials: "Ungültige Anmeldedaten",
     features: {
       title: "Verfolgen Sie Ihre medizinischen Werte & Medikamente",
       medications:
         "Tägliche Medikamentenverfolgung mit individuellen Dosierungen",
-      inrTracking: "Blutwerte und Testergebnisse überwachen",
+      inrTracking: "Überwachung von Blutwerten und Ergebnissen",
       colorCoded:
-        "Behandlungsperioden farblich mit Tags markieren",
+        "Farbcodierung von Behandlungsperioden mit Tags",
       notes: "Medizinische Notizen zu jedem Tag hinzufügen",
     },
   },

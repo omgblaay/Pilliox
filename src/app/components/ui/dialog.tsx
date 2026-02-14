@@ -109,7 +109,7 @@ function DialogHeader({
       {...props}
     >
       {props.children}
-      <DialogPrimitive.Close className="w-6 h-6 ring-offset-background flex items-center cursor-pointer focus:ring-ring rounded-xs opacity-70 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
+      <DialogPrimitive.Close className="w-10 h-10 border-border border-1 rounded-full ring-offset-background flex items-center cursor-pointer focus:ring-ring opacity-70 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
         <XIcon className="m-auto" />
       </DialogPrimitive.Close>
     </div>

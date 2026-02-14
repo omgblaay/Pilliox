@@ -1,7 +1,7 @@
-import React from "react";
-import { useTheme } from "../hooks/useTheme";
-import logoLight from "figma:asset/c7f6ea7f4e6f5e2f25d57077e0d2833d8bd1e23f.png";
-import logoDark from "figma:asset/5dc8700fe5bf3e83dcdf5e2f2e79c370e6e943cd.png";
+import React, { useEffect, useState } from "react";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import logoLight from "figma:asset/8a6609da19e33c9cb01930656c8f65f228118571.png";
+import logoDark from "figma:asset/204393461263049c2f30de2d3b17be3a2d9cddd4.png";
 
 interface LogoProps {
   className?: string;
@@ -9,10 +9,35 @@ interface LogoProps {
 }
 
 export function Logo({ className = "h-[40px] w-auto", alt = "Pilliox" }: LogoProps) {
-  const { theme } = useTheme("system");
+  // Track if dark mode is actually applied to the document
+  const [isDark, setIsDark] = useState(false);
   
-  // Use white logo for dark mode, colored logo for light mode
-  const logoSrc = theme === "dark" ? logoDark : logoLight;
+  useEffect(() => {
+    // Check initial state
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Watch for changes to the html element's class
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
+    
+    return () => observer.disconnect();
+  }, []);
   
-  return <img src={logoSrc} alt={alt} className={className} />;
+  // Use PNG logos that switch based on applied dark mode
+  const logoSrc = isDark ? logoDark : logoLight;
+  
+  return (
+    <ImageWithFallback 
+      src={logoSrc} 
+      alt={alt}
+      className={className}
+    />
+  );
 }
