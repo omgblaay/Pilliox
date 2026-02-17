@@ -24,6 +24,7 @@ import { SubscriptionBanner } from "./components/SubscriptionBanner";
 import { SubscriptionPaywall } from "./components/SubscriptionPaywall";
 import { NotificationPermissionBanner } from "./components/NotificationPermissionBanner";
 import { Toaster } from "sonner";
+import { CookieBanner } from "./components/CookieBanner";
 import CalendarPage from "./pages/CalendarPage";
 import { MedicationsPage } from "./pages/MedicationsPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -561,6 +562,7 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" richColors />
+      <CookieBanner />
     </>
   );
 }

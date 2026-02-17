@@ -669,4 +669,12 @@ export default {
       description: "Twoje dane zdrowotne są zaszyfrowane i bezpiecznie przechowywane. Tylko Ty masz do nich dostęp.",
     },
   },
+  cookies: {
+    title: "Cenimy Twoją prywatność",
+    description:
+      "Używamy plików cookie i lokalnej pamięci, aby zapewnić podstawowe funkcje aplikacji, w tym uwierzytelnianie i zapisywanie preferencji. Nie używamy plików cookie do śledzenia ani reklam.",
+    accept: "Akceptuj",
+    decline: "Odrzuć",
+    learnMore: "Dowiedz się więcej",
+  },
 } as const;

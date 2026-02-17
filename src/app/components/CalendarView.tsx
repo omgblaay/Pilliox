@@ -2247,21 +2247,6 @@ export function CalendarView({
             <DialogDescription className="sr-only">
               {t("day.description")}
             </DialogDescription>
-
-            {entries[
-              selectedDate
-                ? format(selectedDate, "yyyy-MM-dd")
-                : ""
-            ] && (
-              <Button
-                onClick={() => setDeleteConfirmOpen(true)}
-                variant="destructive"
-                size="sm"
-                className="mr-2 px-4"
-              >
-                {t("day.delete")}
-              </Button>
-            )}
           </DialogHeader>
           <div className="px-[24px] py-[8px] bg-accent to-card border-t border-b border-border">
             <div>
@@ -3449,17 +3434,16 @@ export function CalendarView({
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
       >
-        <DialogContent
-          size="small"
-          className="bg-card border-border"
-        >
+        <DialogContent size="small">
           <DialogHeader>
-            <DialogTitle className="text-foreground">
-              {t("deleteConfirm.title")}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {t("deleteConfirm.description")}
-            </DialogDescription>
+            <div className="flex-col flex-1">
+              <DialogTitle className="mb-2">
+                {t("deleteConfirm.title")}
+              </DialogTitle>
+              <DialogDescription>
+                {t("deleteConfirm.description")}
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
           <div className="space-y-3 py-4">
@@ -3497,6 +3481,7 @@ export function CalendarView({
           <div className="flex justify-end pt-2 border-t">
             <Button
               variant="ghost"
+              className="w-full "
               onClick={() => setDeleteConfirmOpen(false)}
             >
               {t("deleteConfirm.cancel")}

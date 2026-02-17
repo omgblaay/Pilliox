@@ -681,4 +681,12 @@ export default {
         "Your health data is encrypted and securely stored. Only you have access to your information.",
     },
   },
+  cookies: {
+    title: "We value your privacy",
+    description:
+      "We use cookies and local storage to provide essential app functionality, including authentication and saving your preferences. We do not use cookies for tracking or advertising.",
+    accept: "Accept",
+    decline: "Decline",
+    learnMore: "Learn more",
+  },
 } as const;

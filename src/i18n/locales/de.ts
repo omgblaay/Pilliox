@@ -678,4 +678,12 @@ export default {
       description: "Ihre Gesundheitsdaten sind verschlüsselt und sicher gespeichert. Nur Sie haben Zugriff auf Ihre Informationen.",
     },
   },
+  cookies: {
+    title: "Wir legen Wert auf Ihre Privatsphäre",
+    description:
+      "Wir verwenden Cookies und lokale Speicherung, um wesentliche App-Funktionen bereitzustellen, einschließlich Authentifizierung und Speicherung Ihrer Einstellungen. Wir verwenden keine Cookies für Tracking oder Werbung.",
+    accept: "Akzeptieren",
+    decline: "Ablehnen",
+    learnMore: "Mehr erfahren",
+  },
 } as const;

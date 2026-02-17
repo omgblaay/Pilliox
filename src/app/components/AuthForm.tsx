@@ -15,7 +15,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Vector from "../../imports/Vector";
 import svgPaths from "../../imports/svg-hepzwgk5tt";
-import imgFrame3 from "figma:asset/d4750969fc6e1ecdb0e81241cf229682cfd97a4a.png";
 import imgImage1 from "figma:asset/84229552ad15a973e3ff4d1f571f1de3e034300c.png";
 import { Logo } from "../components/Logo";
 import { Alert } from "./ui/alert";
@@ -238,26 +237,24 @@ export function AuthForm({
             <img
               alt=""
               className="absolute max-w-none object-cover size-full"
-              src={imgFrame3}
+              src="https://images.unsplash.com/photo-1630094539413-a69caf88ce7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwcGlsbHMlMjBtZWRpY2F0aW9uJTIwcGhhcm1hY3l8ZW58MXx8fHwxNzcxMzE1MTE2fDA&ixlib=rb-4.1.0&q=80&w=1080"
             />
-            <div className="absolute bg-[rgba(0,0,0,0.5)] inset-0" />
+            <div className="absolute bg-popover/80  inset-0" />
           </div>
 
-          {/* Calendar Preview Image */}
+          {/* Calendar Preview Image 
           <div className="absolute h-[361px] left-[32px] bottom-[-100px] w-[249px] rotate-[5deg] hidden md:block">
             <img
               alt="Calendar preview"
               className="absolute inset-0 max-w-none object-cover pointer-events-none size-full rounded-lg"
               src={imgImage1}
             />
-          </div>
+          </div>*/}
 
           {/* Feature List */}
-          <ul className="relative space-y-4 !text-white text-l">
+          <ul className="relative space-y-4 text-l">
             <li>
-              <h1 className="font-bold">
-                {t("auth.features.title")}
-              </h1>
+              <h1>{t("auth.features.title")}</h1>
             </li>
             <li className="flex items-start gap-2">
               • {t("auth.features.medications")}
@@ -321,7 +318,7 @@ export function AuthForm({
           {activeTab === "login" && (
             <form
               onSubmit={handleLogin}
-              className="flex flex-col gap-6"
+              className="flex flex-col gap-4"
             >
               {/* Email Field */}
               <div className="flex flex-col gap-2">
@@ -528,7 +525,7 @@ export function AuthForm({
             </div>
 
             {/* OAuth Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex  gap-3">
               {/* Google Login Button */}
               <Button
                 type="button"
