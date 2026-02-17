@@ -403,7 +403,16 @@ function AppRoutes() {
     <>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/"
+          element={
+            accessToken ? (
+              <Navigate to="/app" replace />
+            ) : (
+              <Navigate to="/auth" replace />
+            )
+          }
+        />
         <Route
           path="/auth"
           element={
@@ -414,6 +423,7 @@ function AppRoutes() {
             )
           }
         />
+        <Route path="/landing" element={<LandingPage />} />
         <Route
           path="/docs/terms"
           element={
