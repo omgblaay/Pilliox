@@ -51,7 +51,7 @@ export function CookieBanner() {
           className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6"
         >
           <div className="max-w-6xl mx-auto">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="bg-popover rounded-2xl shadow-2xl border border-border overflow-hidden">
               <div className="p-4 md:p-8">
                 <div className="flex items-start gap-4">
                   {/* Icon */}
