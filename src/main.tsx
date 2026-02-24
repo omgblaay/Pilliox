@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
+import './styles/index.css';
 import './i18n/config';
 import { Capacitor } from '@capacitor/core';
 
