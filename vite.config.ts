@@ -42,10 +42,23 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    exclude: ['react-router-dom'],
+    include: ['react-router'],
+  },
   build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'esbuild',
     rollupOptions: {
-      // Ensure proper handling of external modules
-      external: [],
+      output: {
+        manualChunks: undefined,
+      },
     },
+  },
+  server: {
+    port: 5173,
+    force: true,
   },
 })

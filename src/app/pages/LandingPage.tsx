@@ -5,7 +5,7 @@ import {
 } from "../../../utils/supabase/info";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { motion, useInView } from "motion/react";
 import { Card } from "../components/ui/card";
 import {

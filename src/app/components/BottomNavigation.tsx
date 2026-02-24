@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { Calendar, Pill, User, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
