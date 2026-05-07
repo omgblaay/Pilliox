@@ -214,7 +214,7 @@ export function SettingsPage({
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-muted-foreground" />
+                  <Globe className="size-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium text-foreground">
                       {t("settings.language.title") ||
@@ -225,20 +225,8 @@ export function SettingsPage({
                 <LanguageSelector variant="outline" />
               </div>
             </div>
-          </Card>
-        </motion.div>
-
-        {/* Calendar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            {t("settings.calendar.title") || "Calendar"}
-          </h2>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
+            {/* Calendar First Day */}
+                        <div className="p-4 flex items-center justify-between">
               <div>
                 <p className="font-medium text-foreground mx-[0px] mt-[0px] mb-[8px]">
                   {t("settings.weekStart.title") ||

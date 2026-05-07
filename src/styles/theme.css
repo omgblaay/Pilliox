@@ -2,12 +2,12 @@
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
+  --background: #f1f1f1;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
-  --card-foreground: var(--gray-50);
+  --card-foreground: #f9fafb;
   --popover: #fff;
-  --popover-foreground: var(--gray-50);
+  --popover-foreground: #f9fafb;
   --primary: #030213;
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.95 0.0058 264.53);
@@ -161,7 +161,7 @@
   button,
   input {
     line-height: 1.5;
-    font-weight: 700;
+    font-weight: 500;
   }
 
   h1 {

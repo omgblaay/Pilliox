@@ -26,6 +26,17 @@ interface ScheduledWebNotification {
   timeoutId: number;
 }
 
+interface StoredWebNotification {
+  id: number;
+  pillId: string;
+  title: string;
+  body: string;
+  scheduledTime: string;
+}
+
+// Max safe value for setTimeout (32-bit signed int). Delays beyond this wrap to 0 and fire immediately.
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
 class NotificationService {
   private initialized = false;
   private isNativePlatform = false;
@@ -67,6 +78,10 @@ class NotificationService {
         if (!('Notification' in window)) {
           console.warn('Browser does not support notifications');
           throw new Error('Browser does not support notifications');
+        }
+        // Restore any notifications that were scheduled before a page reload
+        if (Notification.permission === 'granted') {
+          this.loadWebNotificationsFromStorage();
         }
       }
 
@@ -293,9 +308,8 @@ class NotificationService {
     pill: PillSetting,
     startDate: Date
   ): Promise<number[]> {
-    console.log(`[NotificationService] Scheduling web notifications for ${pill.name}`);
     console.log(`[NotificationService] Notification time: ${pill.notificationTime}, Frequency: ${pill.notificationFrequency}`);
-    
+
     const [hours, minutes] = pill.notificationTime!.split(':').map(Number);
 
     const frequencyMap = {
@@ -307,89 +321,122 @@ class NotificationService {
 
     const scheduledIds: number[] = [];
     const maxNotifications = 30;
-    const minDelayMinutes = 2; // Minimum 2 minutes in the future
+    const minDelayMs = 2 * 60 * 1000; // 2 minutes minimum
 
     // Cancel existing web notifications for this pill
     await this.cancelWebNotificationsForPill(pill.id);
 
     const now = new Date();
-    
+    const storedNotifications: StoredWebNotification[] = [];
+
     for (let i = 0; i < maxNotifications; i++) {
       const scheduledDate = new Date(startDate);
       scheduledDate.setDate(startDate.getDate() + (i * frequencyDays));
       scheduledDate.setHours(hours, minutes, 0, 0);
 
       const delay = scheduledDate.getTime() - now.getTime();
-      const delayMinutes = delay / 1000 / 60;
-      
-      // Skip if scheduled time has passed or is too soon (less than minDelayMinutes)
-      if (delayMinutes < minDelayMinutes) {
-        console.log(`[NotificationService] Skipping notification ${i}: scheduled for ${scheduledDate.toISOString()}, delay is ${delayMinutes.toFixed(1)} minutes`);
+
+      // Skip if too soon or in the past
+      if (delay < minDelayMs) {
+        console.log(`[NotificationService] Skipping notification ${i}: scheduled for ${scheduledDate.toISOString()}, delay is ${(delay / 60000).toFixed(1)} minutes`);
+        continue;
+      }
+
+      // Skip if delay exceeds max safe setTimeout value — would fire immediately due to 32-bit overflow
+      if (delay > MAX_TIMEOUT_MS) {
+        console.log(`[NotificationService] Skipping notification ${i}: delay ${Math.floor(delay / 3600000)}h exceeds max setTimeout range`);
         continue;
       }
 
       const notificationId = this.generateNotificationId(pill.id, i);
       scheduledIds.push(notificationId);
 
-      const delayHours = Math.floor(delayMinutes / 60);
-      const remainingMinutes = Math.floor(delayMinutes % 60);
+      const delayHours = Math.floor(delay / 3600000);
+      const remainingMinutes = Math.floor((delay % 3600000) / 60000);
       console.log(`[NotificationService] Scheduling notification ${notificationId} for ${scheduledDate.toISOString()} (in ${delayHours}h ${remainingMinutes}m)`);
+
+      const title = `💊 ${pill.name}`;
+      const body = this.getNotificationBody(pill);
 
       // Schedule using setTimeout
       const timeoutId = window.setTimeout(() => {
         console.log(`[NotificationService] Showing notification for ${pill.name}`);
-        this.showWebNotification(pill, notificationId);
-        // Remove from scheduled list after showing
+        void this.showWebNotificationById(title, body, notificationId, pill.id);
         this.scheduledWebNotifications = this.scheduledWebNotifications.filter(
           n => n.id !== notificationId
         );
+        this.removeNotificationFromStorage(notificationId);
       }, delay);
 
-      // Store scheduled notification
       this.scheduledWebNotifications.push({
         id: notificationId,
         pillId: pill.id,
         scheduledTime: scheduledDate,
         timeoutId,
       });
+
+      storedNotifications.push({
+        id: notificationId,
+        pillId: pill.id,
+        title,
+        body,
+        scheduledTime: scheduledDate.toISOString(),
+      });
     }
 
     console.log(`[NotificationService] Scheduled ${scheduledIds.length} notifications for ${pill.name}`);
 
-    // Persist scheduled notifications to localStorage
-    this.saveWebNotificationsToStorage();
+    this.saveWebNotificationsToStorage(storedNotifications, pill.id);
 
     return scheduledIds;
   }
 
   /**
-   * Show a web notification
+   * Show a web notification for a PillSetting (used during an active session)
    */
   private showWebNotification(pill: PillSetting, notificationId: number): void {
+    void this.showWebNotificationById(
+      `💊 ${pill.name}`,
+      this.getNotificationBody(pill),
+      notificationId,
+      pill.id
+    );
+  }
+
+  /**
+   * Show a web notification by title/body (used for restoration after page reload)
+   */
+  private async showWebNotificationById(title: string, body: string, notificationId: number, pillId: string): Promise<void> {
     if (!('Notification' in window) || Notification.permission !== 'granted') {
       console.warn('Cannot show notification: permission not granted');
       return;
     }
 
-    const notification = new Notification(`💊 ${pill.name}`, {
-      body: this.getNotificationBody(pill),
+    const options: NotificationOptions = {
+      body,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      tag: `pill-${pill.id}-${notificationId}`,
+      tag: `pill-${pillId}-${notificationId}`,
       requireInteraction: false,
-      vibrate: [200, 100, 200],
-      data: {
-        pillId: pill.id,
-        pillName: pill.name,
-        dosage: pill.defaultDosage,
-        type: pill.type,
-      },
-    });
+      data: { pillId, notificationId, url: '/' },
+    };
 
+    // Chrome silently drops new Notification() when a service worker controls the page.
+    // Use ServiceWorkerRegistration.showNotification() when a SW is active.
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, options);
+        return;
+      } catch (e) {
+        console.warn('[NotificationService] SW notification failed, falling back to Notification API:', e);
+      }
+    }
+
+    const notification = new Notification(title, options);
     notification.onclick = () => {
       window.focus();
       notification.close();
-      // TODO: Navigate to calendar or specific medication
     };
   }
 
@@ -397,50 +444,105 @@ class NotificationService {
    * Cancel web notifications for a specific pill
    */
   private async cancelWebNotificationsForPill(pillId: string): Promise<void> {
-    const notificationsToCancel = this.scheduledWebNotifications.filter(
-      n => n.pillId === pillId
-    );
-
-    notificationsToCancel.forEach(n => {
-      clearTimeout(n.timeoutId);
-    });
+    this.scheduledWebNotifications
+      .filter(n => n.pillId === pillId)
+      .forEach(n => clearTimeout(n.timeoutId));
 
     this.scheduledWebNotifications = this.scheduledWebNotifications.filter(
       n => n.pillId !== pillId
     );
 
-    this.saveWebNotificationsToStorage();
+    // Remove from localStorage
+    this.saveWebNotificationsToStorage([], pillId);
   }
 
   /**
-   * Save scheduled web notifications to localStorage
+   * Merge and save scheduled notifications to localStorage.
+   * `incoming` replaces any existing entries for the same pillId.
    */
-  private saveWebNotificationsToStorage(): void {
+  private saveWebNotificationsToStorage(
+    incoming: StoredWebNotification[] = [],
+    replacePillId?: string
+  ): void {
     try {
-      const data = this.scheduledWebNotifications.map(n => ({
-        id: n.id,
-        pillId: n.pillId,
-        scheduledTime: n.scheduledTime.toISOString(),
-      }));
-      localStorage.setItem('pilliox_scheduled_notifications', JSON.stringify(data));
+      let existing: StoredWebNotification[] = [];
+      const raw = localStorage.getItem('pilliox_scheduled_notifications');
+      if (raw) existing = JSON.parse(raw);
+
+      const filtered = replacePillId
+        ? existing.filter(n => n.pillId !== replacePillId)
+        : existing;
+
+      localStorage.setItem(
+        'pilliox_scheduled_notifications',
+        JSON.stringify([...filtered, ...incoming])
+      );
     } catch (error) {
       console.error('Failed to save notifications to storage:', error);
     }
   }
 
   /**
-   * Load scheduled web notifications from localStorage
-   * This is called on app initialization to restore notifications after page reload
+   * Restore scheduled notifications from localStorage after a page reload.
+   * Missed notifications (within a 1-hour grace window) are shown immediately.
    */
   private loadWebNotificationsFromStorage(): void {
     try {
-      const stored = localStorage.getItem('pilliox_scheduled_notifications');
-      if (!stored) return;
+      const raw = localStorage.getItem('pilliox_scheduled_notifications');
+      if (!raw) return;
 
-      // Note: This just loads the data structure. The actual re-scheduling
-      // happens when syncAllNotifications is called with the latest pill settings
+      const stored: StoredWebNotification[] = JSON.parse(raw);
+      const now = Date.now();
+      const graceMs = 60 * 60 * 1000; // 1-hour grace window for missed notifications
+
+      for (const item of stored) {
+        const scheduledAt = new Date(item.scheduledTime).getTime();
+        const delay = scheduledAt - now;
+
+        if (delay < 0) {
+          // Missed — show immediately if within grace window
+          if (now - scheduledAt <= graceMs) {
+            this.showWebNotificationById(item.title, item.body, item.id, item.pillId);
+          }
+          continue;
+        }
+
+        if (delay > MAX_TIMEOUT_MS) continue; // Too far out — will be rescheduled on next sync
+
+        const timeoutId = window.setTimeout(() => {
+          void this.showWebNotificationById(item.title, item.body, item.id, item.pillId);
+          this.scheduledWebNotifications = this.scheduledWebNotifications.filter(
+            n => n.id !== item.id
+          );
+          this.removeNotificationFromStorage(item.id);
+        }, delay);
+
+        this.scheduledWebNotifications.push({
+          id: item.id,
+          pillId: item.pillId,
+          scheduledTime: new Date(item.scheduledTime),
+          timeoutId,
+        });
+      }
     } catch (error) {
       console.error('Failed to load notifications from storage:', error);
+    }
+  }
+
+  /**
+   * Remove a single notification entry from localStorage by its ID
+   */
+  private removeNotificationFromStorage(notificationId: number): void {
+    try {
+      const raw = localStorage.getItem('pilliox_scheduled_notifications');
+      if (!raw) return;
+      const stored: StoredWebNotification[] = JSON.parse(raw);
+      localStorage.setItem(
+        'pilliox_scheduled_notifications',
+        JSON.stringify(stored.filter(n => n.id !== notificationId))
+      );
+    } catch (error) {
+      console.error('Failed to remove notification from storage:', error);
     }
   }
 
@@ -633,7 +735,7 @@ class NotificationService {
       } else {
         this.scheduledWebNotifications.forEach(n => clearTimeout(n.timeoutId));
         this.scheduledWebNotifications = [];
-        this.saveWebNotificationsToStorage();
+        localStorage.removeItem('pilliox_scheduled_notifications');
       }
     } catch (error) {
       console.error('Failed to cancel all notifications:', error);

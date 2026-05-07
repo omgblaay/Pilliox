@@ -61,8 +61,8 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { ProfileSettings } from "./ProfileSettings";
-import { AppSettings } from "./AppSettings";
+import { AboutModal } from "./AboutModal";
+import { AdHocMedicationDialog, type AdHocMedicationData } from "./AdHocMedicationDialog";
 import {
   Select,
   SelectContent,
@@ -117,11 +117,8 @@ interface CalendarEntry {
 
 interface CalendarViewProps {
   accessToken: string;
-  onLogout: () => void;
   projectId: string;
   anonKey: string;
-  onNavigateToTerms?: () => void;
-  onNavigateToPrivacy?: () => void;
 }
 
 const COLORS = MARK_COLORS;
@@ -143,11 +140,8 @@ function getColorForTheme(
 
 export function CalendarView({
   accessToken,
-  onLogout,
   projectId,
   anonKey,
-  onNavigateToTerms,
-  onNavigateToPrivacy,
 }: CalendarViewProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -245,16 +239,7 @@ export function CalendarView({
   );
   const [addAdHocDialogOpen, setAddAdHocDialogOpen] =
     useState(false);
-  const [editingAdHocId, setEditingAdHocId] = useState<
-    string | null
-  >(null);
-  const [newAdHocName, setNewAdHocName] = useState("");
-  const [newAdHocDosage, setNewAdHocDosage] = useState("");
-  const [newAdHocUnit, setNewAdHocUnit] = useState("mg");
-  const [notificationEnabled, setNotificationEnabled] =
-    useState(false);
-  const [notificationTime, setNotificationTime] =
-    useState("09:00");
+  const [editingAdHocMed, setEditingAdHocMed] = useState<AdHocMedication | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(false);
 
@@ -278,8 +263,6 @@ export function CalendarView({
   const [tempNote, setTempNote] = useState("");
 
   // Settings
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [pillsSettingsOpen, setPillsSettingsOpen] =
     useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -772,54 +755,26 @@ export function CalendarView({
     setDeleteConfirmOpen(false);
   };
 
-  const handleAddAdHocMed = () => {
-    if (!newAdHocName.trim()) return;
-
-    if (editingAdHocId) {
-      // Edit existing medication
+  const handleAdHocSave = (data: AdHocMedicationData, editingId: string | null) => {
+    if (editingId) {
       setAdHocMeds(
         adHocMeds.map((med) =>
-          med.id === editingAdHocId
-            ? {
-                ...med,
-                name: newAdHocName.trim(),
-                dosage: parseFloat(newAdHocDosage) || 0,
-                unit: newAdHocUnit,
-                notificationEnabled,
-                notificationTime,
-              }
-            : med,
+          med.id === editingId ? { ...med, ...data } : med,
         ),
       );
-      setEditingAdHocId(null);
     } else {
-      // Add new medication
       const newMed: AdHocMedication = {
         id: `adhoc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: newAdHocName.trim(),
-        dosage: parseFloat(newAdHocDosage) || 0,
-        unit: newAdHocUnit,
-        notificationEnabled,
-        notificationTime,
+        ...data,
       };
       setAdHocMeds([...adHocMeds, newMed]);
     }
-
-    setNewAdHocName("");
-    setNewAdHocDosage("");
-    setNewAdHocUnit("mg");
-    setNotificationEnabled(false);
-    setNotificationTime("09:00");
+    setEditingAdHocMed(null);
     setAddAdHocDialogOpen(false);
   };
 
   const handleEditAdHocMed = (med: AdHocMedication) => {
-    setEditingAdHocId(med.id);
-    setNewAdHocName(med.name);
-    setNewAdHocDosage(med.dosage.toString());
-    setNewAdHocUnit(med.unit);
-    setNotificationEnabled(med.notificationEnabled || false);
-    setNotificationTime(med.notificationTime || "09:00");
+    setEditingAdHocMed(med);
     setAddAdHocDialogOpen(true);
   };
 
@@ -1379,7 +1334,7 @@ export function CalendarView({
                   variant="ghost"
                   className="justify-start"
                   onClick={() => {
-                    setProfileOpen(true);
+                    navigate("/app/profile");
                     setSidebarOpen(false);
                   }}
                 >
@@ -1416,7 +1371,7 @@ export function CalendarView({
                   variant="ghost"
                   className="justify-start"
                   onClick={() => {
-                    setSettingsOpen(true);
+                    navigate("/app/settings");
                     setSidebarOpen(false);
                   }}
                 >
@@ -1479,9 +1434,6 @@ export function CalendarView({
               </Button>
               <div className="flex items-start flex-col gap-1">
                 <Logo />
-                <p className="small">
-                  {t("app.welcome", { name })}
-                </p>
               </div>
             </div>
             <div className="items-center hidden lg:flex gap-3">
@@ -1529,7 +1481,7 @@ export function CalendarView({
       {/* Main Content */}
       <div className="w-full lg:max-w-[800px] mx-auto px-4">
         {/* Calendar Card */}
-        <div className="bg-input-background rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="bg-white dark:bg-input-background rounded-2xl shadow-sm border border-border overflow-hidden">
           {/* Month/Week Navigation */}
           <div className="p-[12px] border-b border-border px-[12px] py-[8px]">
             <div className="flex items-center justify-between gap-2">
@@ -2457,238 +2409,16 @@ export function CalendarView({
       </Dialog>
 
       {/* Add Ad-Hoc Medication Dialog */}
-      <Dialog
+      <AdHocMedicationDialog
         open={addAdHocDialogOpen}
-        onOpenChange={setAddAdHocDialogOpen}
-      >
-        <DialogContent
-          size="small"
-        >
-          <DialogHeader>
-            <DialogTitle className="text-foreground">
-              {editingAdHocId
-                ? t("calendar.editOtherMedication") ||
-                  "Edit Medication"
-                : t("calendar.addOtherMedication") ||
-                  "Add Other Medication"}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {editingAdHocId
-                ? t("calendar.editOtherMedicationDesc") ||
-                  "Update the medication details."
-                : t("calendar.addOtherMedicationDesc") ||
-                  "Add a one-time medication that's not in your regular schedule."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label
-                htmlFor="adhoc-name"
-                className="text-foreground"
-              >
-                {t("calendar.medicationName") ||
-                  "Medication Name"}
-              </Label>
-              <Input
-                id="adhoc-name"
-                placeholder={
-                  t("calendar.medicationNamePlaceholder") ||
-                  "e.g., Aspirin, Ibuprofen"
-                }
-                value={newAdHocName}
-                onChange={(e) =>
-                  setNewAdHocName(e.target.value)
-                }
-              />
-            </div>
-
-            {/* Pills and Values Section */}
-            <div className="space-y-3">
-              <Label className="text-foreground font-semibold text-base">
-                {t("calendar.pillsAndValues") ||
-                  "Pills and Values"}
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="adhoc-dosage"
-                    className="text-foreground"
-                  >
-                    {t("calendar.dosage") || "Dosage"}
-                  </Label>
-                  <Input
-                    id="adhoc-dosage"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    placeholder="500"
-                    value={newAdHocDosage}
-                    onChange={(e) =>
-                      setNewAdHocDosage(e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="adhoc-unit"
-                    className="text-foreground"
-                  >
-                    {t("calendar.unit") || "Unit"}
-                  </Label>
-                  <Select
-                    value={newAdHocUnit}
-                    onValueChange={(value) =>
-                      setNewAdHocUnit(value)
-                    }
-                  >
-                    <SelectTrigger id="adhoc-unit">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mg">mg</SelectItem>
-                      <SelectItem value="g">g</SelectItem>
-                      <SelectItem value="ml">ml</SelectItem>
-                      <SelectItem value="mcg">mcg</SelectItem>
-                      <SelectItem value="IU">IU</SelectItem>
-                      <SelectItem value="tablets">
-                        {t("calendar.tablets") || "tablets"}
-                      </SelectItem>
-                      <SelectItem value="cabsules">
-                        {t("calendar.capsules") || "capsules"}
-                      </SelectItem>
-                      <SelectItem value="drops">
-                        {t("calendar.drops") || "drops"}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Notification Section */}
-            <div className="space-y-3 pt-4 border-t border-border">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
-                  <Label className="text-foreground font-medium">
-                    {t("calendar.enableNotification") ||
-                      "Enable Reminder"}
-                  </Label>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setNotificationEnabled(!notificationEnabled)
-                  }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationEnabled
-                      ? "bg-blue-600"
-                      : "bg-gray-300 dark:bg-gray-600"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      notificationEnabled
-                        ? "translate-x-6"
-                        : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {notificationEnabled && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="adhoc-notification-time"
-                    className="text-sm"
-                  >
-                    {t("calendar.notificationTime") ||
-                      "Reminder Time"}
-                  </Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="adhoc-notification-time"
-                      type="time"
-                      value={notificationTime}
-                      onChange={(e) =>
-                        setNotificationTime(e.target.value)
-                      }
-                      className="pl-10"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t("calendar.notificationDesc") ||
-                      "You'll receive a reminder at this time to take your medication."}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAddAdHocDialogOpen(false);
-                setEditingAdHocId(null);
-                setNewAdHocName("");
-                setNewAdHocDosage("");
-                setNewAdHocUnit("mg");
-                setNotificationEnabled(false);
-                setNotificationTime("09:00");
-              }}
-              className="flex-1"
-            >
-              {t("calendar.cancel") || "Cancel"}
-            </Button>
-            <Button
-              onClick={handleAddAdHocMed}
-              disabled={!newAdHocName.trim()}
-              className="flex-1"
-            >
-              {editingAdHocId ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  {t("calendar.update") || "Update"}
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t("calendar.add") || "Add"}
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Profile Settings Modal */}
-      <ProfileSettings
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        accessToken={accessToken}
-        anonKey={anonKey}
-        onLogout={onLogout}
-        onNavigateToTerms={onNavigateToTerms}
-        onNavigateToPrivacy={onNavigateToPrivacy}
+        onOpenChange={(open) => {
+          setAddAdHocDialogOpen(open);
+          if (!open) setEditingAdHocMed(null);
+        }}
+        editingMed={editingAdHocMed}
+        onSave={handleAdHocSave}
       />
 
-      {/* App Settings Modal */}
-      <AppSettings
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        accessToken={accessToken}
-        projectId={projectId}
-        anonKey={anonKey}
-        theme={theme}
-        onThemeChange={setTheme}
-        weekStartsOnMonday={weekStartsOnMonday}
-        onWeekStartChange={setWeekStartsOnMonday}
-        viewMode={viewMode}
-      />
 
       {/* Pills Settings Modal */}
       <PillsSettings
@@ -2706,72 +2436,7 @@ export function CalendarView({
       />
 
       {/* About App Modal */}
-      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
-        <DialogContent
-          size="small"
-          className="bg-card border-border"
-        >
-          <DialogHeader>
-            <DialogTitle>{t("about.title")}</DialogTitle>
-            <DialogDescription className="sr-only">
-              {t("about.description")}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-4">
-            <div className="flex flex-col gap-3 pb-2">
-              <div className="h-[40px] w-[160px]">
-                <Logo />
-              </div>
-              <p className="text-sm text-muted-foreground text-left">
-                {t("about.description")}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {t("about.features")}
-              </p>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
-                  <span>{t("about.feature1")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
-                  <span>{t("about.feature2")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
-                  <span>{t("about.feature3")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
-                  <span>{t("about.feature4")}</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => navigate("/")}
-              >
-                {t("about.visitHomepage")}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                size="sm"
-                onClick={() => setAboutOpen(false)}
-              >
-                {t("about.close")}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
 
       {/* Delete Confirmation Modal */}
       <Dialog

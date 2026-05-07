@@ -458,15 +458,8 @@ function AppRoutes() {
               <>
                 <CalendarPage
                   accessToken={accessToken!}
-                  onLogout={handleLogout}
                   projectId={projectId}
                   anonKey={publicAnonKey}
-                  onNavigateToTerms={() =>
-                    navigate("/docs/terms")
-                  }
-                  onNavigateToPrivacy={() =>
-                    navigate("/docs/privacy")
-                  }
                 />
                 <SubscriptionBanner />
                 <SubscriptionPaywall onLogout={handleLogout} />

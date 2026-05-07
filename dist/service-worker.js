@@ -31,6 +31,22 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Handle notification clicks — bring the app to the foreground
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
 // Fetch strategy: Network first, fall back to cache
 self.addEventListener('fetch', (event) => {
   // Only handle http/https — chrome-extension:// and other schemes are unsupported by the Cache API

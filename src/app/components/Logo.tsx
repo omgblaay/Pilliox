@@ -7,7 +7,7 @@ interface LogoProps {
   alt?: string;
 }
 
-export function Logo({ className = "h-[40px] w-auto", alt = "Pilliox" }: LogoProps) {
+export function Logo({ className = "h-[32px] w-auto", alt = "Pilliox" }: LogoProps) {
   // Track if dark mode is actually applied to the document
   const [isDark, setIsDark] = useState(false);
   
