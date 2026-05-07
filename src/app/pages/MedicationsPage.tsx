@@ -1,4 +1,15 @@
 import { useState, useEffect } from "react";
+import {
+  format,
+  addDays,
+  startOfDay,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  getDay,
+  isAfter,
+} from "date-fns";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
@@ -7,6 +18,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { Textarea } from "../components/ui/textarea";
+import { fetchWithTokenRefresh } from "../../utils/api-client";
 import {
   Dialog,
   DialogContent,
@@ -36,13 +48,16 @@ import {
   Edit,
   Save,
   Droplet,
+  CalendarDays,
+  Loader2,
 } from "lucide-react";
+import { cn } from "../components/ui/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { BottomNavigation } from "../components/BottomNavigation";
 import {
   PillsSettings,
   PillSetting,
-} from "../components/PillsSettings";
+} from "../components/PillsSettings.tsx";
 import { toast } from "sonner";
 import { notificationService } from "../services/notificationService";
 
@@ -98,6 +113,70 @@ export function MedicationsPage({
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [fillTargetPill, setFillTargetPill] = useState<PillSetting | null>(null);
+  const [fillWeekdays, setFillWeekdays] = useState<Set<number>>(new Set());
+  const [fillRange, setFillRange] = useState<"month" | "year" | "custom">("month");
+  const [fillFrom, setFillFrom] = useState("");
+  const [fillTo, setFillTo] = useState("");
+  const [filling, setFilling] = useState(false);
+
+  const openFillDialog = (pill: PillSetting) => {
+    setFillTargetPill(pill);
+    setFillWeekdays(new Set());
+    setFillRange("month");
+    setFillFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+    setFillTo(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  };
+
+  const handleFillDays = async () => {
+    if (!fillTargetPill) return;
+    setFilling(true);
+    try {
+      let fromDate: Date, toDate: Date;
+      const now = new Date();
+      if (fillRange === "month") { fromDate = startOfMonth(now); toDate = endOfMonth(now); }
+      else if (fillRange === "year") { fromDate = startOfYear(now); toDate = endOfYear(now); }
+      else {
+        fromDate = new Date(fillFrom); toDate = new Date(fillTo);
+        if (isAfter(fromDate, toDate)) { toast.error("Start date must be before end date"); setFilling(false); return; }
+      }
+      const dates: string[] = [];
+      let cur = startOfDay(fromDate);
+      while (!isAfter(cur, startOfDay(toDate))) {
+        const dow = getDay(cur);
+        if (fillWeekdays.size === 0 || fillWeekdays.has(dow)) dates.push(format(cur, "yyyy-MM-dd"));
+        cur = addDays(cur, 1);
+      }
+      const byMonth: Record<string, string[]> = {};
+      dates.forEach(d => { const mk = d.slice(0, 7); (byMonth[mk] ??= []).push(d); });
+      let filled = 0;
+      for (const [mk, mDates] of Object.entries(byMonth)) {
+        let entries: Record<string, any> = {};
+        try {
+          const r = await fetchWithTokenRefresh(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${mk}`);
+          if (r.ok) entries = (await r.json()).entries ?? {};
+        } catch {}
+        const next = { ...entries };
+        for (const d of mDates) {
+          const ex = next[d] ?? { amount: "", note: "" };
+          let arr: { pillId: string; dosage: number }[] = [];
+          try { arr = ex.pills ? JSON.parse(ex.pills) : []; } catch {}
+          if (!arr.some(p => p.pillId === fillTargetPill.id)) {
+            arr.push({ pillId: fillTargetPill.id, dosage: fillTargetPill.defaultDosage });
+            next[d] = { ...ex, pills: JSON.stringify(arr) };
+            filled++;
+          }
+        }
+        await fetchWithTokenRefresh(`https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${mk}`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entries: next }),
+        });
+      }
+      toast.success(filled > 0 ? `Filled ${filled} empty day${filled !== 1 ? "s" : ""} with ${fillTargetPill.name}` : `All selected days already have ${fillTargetPill.name} logged`);
+      setFillTargetPill(null);
+    } catch { toast.error("Failed to fill days"); }
+    finally { setFilling(false); }
+  };
+
   // State for delete confirmation
   const [deleteConfirmOpen, setDeleteConfirmOpen] =
     useState(false);
@@ -128,14 +207,8 @@ export function MedicationsPage({
       if (!accessToken) return;
 
       try {
-        const response = await fetch(
+        const response = await fetchWithTokenRefresh(
           `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
-          {
-            headers: {
-              Authorization: `Bearer ${anonKey}`,
-              "X-User-Token": accessToken,
-            },
-          },
         );
 
         if (response.ok) {
@@ -207,14 +280,8 @@ export function MedicationsPage({
 
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
-          },
-        },
       );
 
       if (response.ok) {
@@ -575,53 +642,34 @@ export function MedicationsPage({
                       (p) => (p.type || "pills") === "pills",
                     )
                     .map((pill) => (
-                      <Button
-                        variant="menuItem"
-                        key={pill.id}
-                        onClick={() => {
-                          setEditingPill({ ...pill });
-                          setOriginalPill({ ...pill });
-                          setIsAddingNew(false);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        {/* Colored Dot */}
-                        <div
-                          className="w-4 h-4 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              pill.color || "#a855f7",
+                      <div key={pill.id} className="flex items-center">
+                        <Button
+                          variant="menuItem"
+                          hideChevron
+                          className="flex-1"
+                          onClick={() => {
+                            setEditingPill({ ...pill });
+                            setOriginalPill({ ...pill });
+                            setIsAddingNew(false);
+                            setEditModalOpen(true);
                           }}
-                        />
-
-                        {/* Name */}
-                        <span className="flex-1 font-medium text-foreground">
-                          {pill.name ||
-                            t(
-                              "pillsSettings.medicationPlaceholder",
-                            ) ||
-                            "Medication"}
-                        </span>
-
-                        {/* Pills Counter */}
-                        <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                          <Pill className="h-4 w-4" />
-                          <span>{pill.defaultDosage}</span>
-                        </div>
-
-                        {/* Notification Icon */}
-                        {pill.notificationsEnabled ? (
-                          <div className="flex items-center text-sm gap-2 0">
-                            <Bell className="h-4 w-4 text-blue-500" />
-                            <span>
-                              {pill.notificationTime &&
-                                ` ${pill.notificationTime}`}
-                            </span>
+                        >
+                          <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
+                          <span className="flex-1 font-medium text-foreground">{pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}</span>
+                          <div className="flex items-center text-sm gap-2 text-muted-foreground">
+                            <Pill className="h-4 w-4" />
+                            <span>{pill.defaultDosage}</span>
                           </div>
-                        ) : (
-                          <BellOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
+                          {pill.notificationsEnabled ? (
+                            <div className="flex items-center text-sm gap-2">
+                              <Bell className="h-4 w-4 text-blue-500" />
+                              <span>{pill.notificationTime && ` ${pill.notificationTime}`}</span>
+                            </div>
+                          ) : (
+                            <BellOff className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
                     ))}
                 </Card>
               </div>
@@ -643,53 +691,34 @@ export function MedicationsPage({
                   {pills
                     .filter((p) => p.type === "value")
                     .map((pill) => (
-                      <Button
-                        key={pill.id}
-                        variant="menuItem"
-                        onClick={() => {
-                          setEditingPill({ ...pill });
-                          setOriginalPill({ ...pill });
-                          setIsAddingNew(false);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        {/* Colored Dot */}
-                        <div
-                          className="w-4 h-4 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor:
-                              pill.color || "#a855f7",
+                      <div key={pill.id} className="flex items-center">
+                        <Button
+                          variant="menuItem"
+                          hideChevron
+                          className="flex-1"
+                          onClick={() => {
+                            setEditingPill({ ...pill });
+                            setOriginalPill({ ...pill });
+                            setIsAddingNew(false);
+                            setEditModalOpen(true);
                           }}
-                        />
-
-                        {/* Name */}
-                        <span className="flex-1 font-medium text-foreground">
-                          {pill.name ||
-                            t(
-                              "pillsSettings.medicationPlaceholder",
-                            ) ||
-                            "Medication"}
-                        </span>
-
-                        {/* Value Counter */}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Droplet className="h-4 w-4" />
-                          <span>{pill.defaultDosage}</span>
-                        </div>
-
-                        {/* Notification Icon */}
-                        {pill.notificationsEnabled ? (
-                          <div className="flex items-center text-sm gap-2 0">
-                            <Bell className="h-4 w-4 text-blue-500" />
-                            <span>
-                              {pill.notificationTime &&
-                                ` ${pill.notificationTime}`}
-                            </span>
+                        >
+                          <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
+                          <span className="flex-1 font-medium text-foreground">{pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}</span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Droplet className="h-4 w-4" />
+                            <span>{pill.defaultDosage}</span>
                           </div>
-                        ) : (
-                          <BellOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
+                          {pill.notificationsEnabled ? (
+                            <div className="flex items-center text-sm gap-2">
+                              <Bell className="h-4 w-4 text-blue-500" />
+                              <span>{pill.notificationTime && ` ${pill.notificationTime}`}</span>
+                            </div>
+                          ) : (
+                            <BellOff className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
                     ))}
                 </Card>
               </div>
@@ -743,7 +772,7 @@ export function MedicationsPage({
               <Button
                 variant="destructive"
                 onClick={handleDeleteClick}
-                className="mr-2"
+                className="mr-14"
                 size="sm"
               >
                 <Trash2 className="h-4 w-4" strokeWidth={2} />
@@ -902,6 +931,19 @@ export function MedicationsPage({
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Fill Days */}
+              <div className="border-t pt-4 border-border/80">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => openFillDialog(editingPill)}
+                >
+                  <CalendarDays className="size-4" />
+                  Fill empty days with default dosage
+                </Button>
               </div>
 
               {/* Notification Settings */}
@@ -1148,6 +1190,68 @@ export function MedicationsPage({
                     "Confirm Delete"}
                 </>
               )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fill Days Dialog */}
+      <Dialog open={!!fillTargetPill} onOpenChange={(o) => !o && setFillTargetPill(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="size-5 text-muted-foreground" />
+              Fill empty days — {fillTargetPill?.name}
+            </DialogTitle>
+            <DialogDescription className="sr-only">Fill empty calendar days with the default dosage</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">
+                {fillWeekdays.size === 0 ? "Every day of the week" : "Only on selected days"}
+              </Label>
+              <div className="flex gap-1.5">
+                {([t("days.mon"), t("days.tue"), t("days.wed"), t("days.thu"), t("days.fri"), t("days.sat"), t("days.sun")] as const).map((label, i) => {
+                  const dow = i === 6 ? 0 : i + 1;
+                  const active = fillWeekdays.has(dow);
+                  return (
+                    <button key={i} type="button"
+                      onClick={() => setFillWeekdays(prev => { const n = new Set(prev); n.has(dow) ? n.delete(dow) : n.add(dow); return n; })}
+                      className={cn("flex-1 h-9 rounded-lg text-sm font-medium transition-colors",
+                        active ? "bg-primary text-primary-foreground" : "bg-accent hover:bg-accent/70 text-muted-foreground")}
+                    >{label}</button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Date range</Label>
+              <div className="flex gap-1 p-1 rounded-[18px] bg-gray-100 dark:bg-[#2a2a2a]">
+
+                {(["month","year","custom"] as const).map(r => (
+                    <Button key={r} type="button" variant="tabGroup" data-state={fillRange === r ? "active" : "inactive"} className="flex-1"
+                    onClick={() => {
+                      setFillRange(r);
+                      if (r === "month") { setFillFrom(format(startOfMonth(new Date()), "yyyy-MM-dd")); setFillTo(format(endOfMonth(new Date()), "yyyy-MM-dd")); }
+                      else if (r === "year") { setFillFrom(format(startOfYear(new Date()), "yyyy-MM-dd")); setFillTo(format(endOfYear(new Date()), "yyyy-MM-dd")); }
+                    }}>
+                    {r === "month" ? t("dataRange.thisMonth") : r === "year" ? t("dataRange.thisYear") : t("dataRange.range")}
+                  </Button>
+                ))}
+              </div>
+              {fillRange === "custom" && (
+                <div className="flex gap-2 pt-1">
+                  <input type="date" value={fillFrom} onChange={e => setFillFrom(e.target.value)} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground" />
+                  <input type="date" value={fillTo} onChange={e => setFillTo(e.target.value)} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground" />
+                </div>
+              )}
+            </div>
+
+            <Button type="button" className="w-full" disabled={filling} onClick={handleFillDays}>
+              {filling ? <Loader2 className="size-4 animate-spin" /> : <CalendarDays className="size-4" />}
+              {filling ? "Filling days…" : `${t("dataRange.fillEmpty")}` || `"Fill empty days in range"`}
             </Button>
           </div>
         </DialogContent>

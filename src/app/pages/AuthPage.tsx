@@ -2,16 +2,14 @@ import { useNavigate } from "react-router";
 import { AuthForm } from "../components/AuthForm";
 
 interface AuthPageProps {
-  onAuthSuccess: (token: string, email: string) => void;
+  onAuthSuccess: (token: string, email: string, refreshToken?: string) => void;
 }
 
 export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const navigate = useNavigate();
 
-  const handleAuthSuccess = (token: string, email: string) => {
-    // Don't navigate here - let App.tsx handle the navigation
-    // based on onboarding status
-    onAuthSuccess(token, email);
+  const handleAuthSuccess = (token: string, email: string, refreshToken?: string) => {
+    onAuthSuccess(token, email, refreshToken);
   };
 
   return (

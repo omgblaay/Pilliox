@@ -55,7 +55,7 @@ export function CookieBanner() {
               <div className="p-4 md:p-8">
                 <div className="flex items-start gap-4">
                   {/* Icon */}
-                  <div className="hidden md:flex flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <div className="hidden md:flex flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 items-center justify-center">
                     <Cookie className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
 

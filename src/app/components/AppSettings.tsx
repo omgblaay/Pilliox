@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "./LanguageSelector";
 import { type Theme } from "../hooks/useTheme";
 import { cn } from "./ui/utils";
+import { fetchWithTokenRefresh } from "../../../utils/api-client";
 import {
   Dialog,
   DialogContent,
@@ -64,14 +65,8 @@ export function AppSettings({
 
   const loadSettings = async () => {
     try {
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
-        {
-          headers: {
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
-          },
-        },
       );
 
       if (response.ok) {
@@ -94,14 +89,12 @@ export function AppSettings({
     onWeekStartChange(checked);
 
     try {
-      await fetch(
+      await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
           },
           body: JSON.stringify({ 
             weekStartsOnMonday: checked,
@@ -121,14 +114,12 @@ export function AppSettings({
     }
 
     try {
-      await fetch(
+      await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
           },
           body: JSON.stringify({ 
             theme: newTheme,

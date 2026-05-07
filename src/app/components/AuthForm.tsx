@@ -15,7 +15,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import Vector from "../../imports/Vector";
 import svgPaths from "../../imports/svg-hepzwgk5tt";
-import imgImage1 from "figma:asset/84229552ad15a973e3ff4d1f571f1de3e034300c.png";
 import { Logo } from "../components/Logo";
 import { Alert } from "./ui/alert";
 
@@ -23,6 +22,7 @@ interface AuthFormProps {
   onAuthSuccess: (
     accessToken: string,
     userEmail: string,
+    refreshToken?: string,
   ) => void;
   onNavigateToTerms?: () => void;
   onNavigateToPrivacy?: () => void;
@@ -80,7 +80,7 @@ export function AuthForm({
       }
 
       if (data?.access_token) {
-        onAuthSuccess(data.access_token, loginEmail);
+        onAuthSuccess(data.access_token, loginEmail, data.refresh_token);
       }
     } catch (err: any) {
       setError(err.message || "Login failed");
@@ -219,7 +219,7 @@ export function AuthForm({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/landing")}
         className="mx-auto"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -237,7 +237,8 @@ export function AuthForm({
             <img
               alt=""
               className="absolute max-w-none object-cover size-full"
-              src="https://images.unsplash.com/photo-1630094539413-a69caf88ce7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwcGlsbHMlMjBtZWRpY2F0aW9uJTIwcGhhcm1hY3l8ZW58MXx8fHwxNzcxMzE1MTE2fDA&ixlib=rb-4.1.0&q=80&w=1080"
+              src="src/assets/bg.png"
+              style={{ filter: "grayscale(1)" }}
             />
             <div className="absolute bg-popover/80  inset-0" />
           </div>
@@ -278,7 +279,7 @@ export function AuthForm({
           <div className="flex spece-between w-auto">
             <div className="inline-flex flex-col items-start gap-2 flex-1 w-auto">
               <div className="h-[40px] w-[120px]">
-                <Logo />
+                <Logo className="h-[40px] w-[120px]" />
               </div>
             </div>
 

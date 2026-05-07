@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { getSupabaseClient } from '../../../utils/supabase/client';
+import { fetchWithTokenRefresh } from '../../utils/api-client';
 import { toast } from 'sonner';
 
 interface SubscriptionStatus {
@@ -20,7 +22,7 @@ interface SubscriptionContextType {
   status: SubscriptionStatus | null;
   loading: boolean;
   error: string | null;
-  refreshStatus: () => Promise<void>;
+  refreshStatus: () => Promise<SubscriptionStatus | null>;
   syncSubscription: () => Promise<void>;
   resetSubscription: () => Promise<void>;
   openCheckout: () => Promise<void>;
@@ -34,34 +36,74 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshStatus = async () => {
+  // Capture session_id BEFORE React Router's <Navigate> strips it from the URL.
+  // Reading in a useState initializer runs synchronously during render, prior to effects.
+  // Also persist it to sessionStorage so the sync button can retry complete-checkout later.
+  const [checkoutSessionId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('session_id');
+    if (id) sessionStorage.setItem('pendingStripeSession', id);
+    return id ?? sessionStorage.getItem('pendingStripeSession');
+  });
+
+  const refreshStatus = async (): Promise<SubscriptionStatus | null> => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const supabase = getSupabaseClient();
+
+      // Always ask Supabase for the current session — it auto-refreshes if expired
+      const { data: { session } } = await supabase.auth.getSession();
+      let token = session?.access_token ?? localStorage.getItem('accessToken');
+
       if (!token) {
         setStatus(null);
         setLoading(false);
-        return;
+        return null;
       }
 
-      const response = await fetch(
+      // Keep localStorage in sync with whatever token Supabase has
+      if (session?.access_token) {
+        localStorage.setItem('accessToken', session.access_token);
+      }
+
+      const doFetch = (t: string) => fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/status`,
         {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`,
-            'X-User-Token': token,
+            'X-User-Token': t,
           },
         }
       );
+
+      let response = await doFetch(token);
+
+      // Still 401 — force an explicit session refresh and retry once
+      if (response.status === 401) {
+        const body401 = await response.clone().text().catch(() => '');
+        console.log('[subscription] 401 body:', body401);
+        console.log('[subscription] current token prefix:', token.slice(0, 20));
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        console.log('[subscription] refreshSession result:', !!refreshData?.session, 'error:', refreshError?.message);
+        const freshToken = refreshData?.session?.access_token;
+        if (freshToken) {
+          localStorage.setItem('accessToken', freshToken);
+          token = freshToken;
+          response = await doFetch(token);
+        }
+      }
 
       if (!response.ok) {
         throw new Error('Failed to fetch subscription status');
       }
 
-      const data = await response.json();
+      const data: SubscriptionStatus = await response.json();
+      console.log('[subscription] status response:', JSON.stringify(data));
       setStatus(data);
       setError(null);
+      return data;
     } catch (err: any) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -74,24 +116,57 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(
+      // Try complete-checkout first — either with a stored pending session_id,
+      // or with the stripeCustomerId already known from the current status object.
+      // This recovers the case where the automatic post-checkout call was missed.
+      const pendingSession = sessionStorage.getItem('pendingStripeSession');
+      const knownCustomerId = status?.subscription?.stripeCustomerId;
+
+      if (pendingSession || knownCustomerId) {
+        console.log('[subscription] attempting complete-checkout — session:', pendingSession, 'customer:', knownCustomerId);
+        const ccResponse = await fetchWithTokenRefresh(
+          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/complete-checkout`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId: pendingSession || undefined,
+              customerId: !pendingSession ? knownCustomerId : undefined,
+            }),
+          }
+        );
+        if (ccResponse.ok) {
+          console.log('[subscription] complete-checkout via sync succeeded');
+          sessionStorage.removeItem('pendingStripeSession');
+          await refreshStatus();
+          return;
+        }
+        console.warn('[subscription] complete-checkout via sync failed:', ccResponse.status, await ccResponse.text().catch(() => ''));
+      }
+
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/sync`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'X-User-Token': token,
             'Content-Type': 'application/json',
           },
         }
       );
+
+      if (response.status === 404) {
+        const body = await response.json();
+        throw new Error(body.message || 'No active subscription found in Stripe');
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to sync subscription: ${response.status} - ${errorText}`);
       }
 
-      const data = await response.json();
+      await response.json();
 
       // Refresh status after sync
       await refreshStatus();
@@ -107,13 +182,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/reset`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'X-User-Token': token,
             'Content-Type': 'application/json',
           },
         }
@@ -124,7 +197,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw new Error(`Failed to reset subscription: ${response.status} - ${errorText}`);
       }
 
-      const data = await response.json();
+      await response.json();
 
       // Refresh status after reset
       await refreshStatus();
@@ -140,13 +213,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/create-checkout`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'X-User-Token': token,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -194,13 +265,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/create-portal`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'X-User-Token': token,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -227,45 +296,65 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshStatus();
-    
-    // Check if we're returning from Stripe checkout
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    
-    if (sessionId) {
-      // Clean URL
+
+    // Check if we're returning from Stripe checkout.
+    // Use checkoutSessionId captured at render time — by the time this effect
+    // runs, React Router's <Navigate> has already removed the param from the URL.
+    if (checkoutSessionId) {
+      // Clean URL (pathname may have already been updated by the router)
       window.history.replaceState({}, '', window.location.pathname);
-      
-      // Fetch checkout session details and update subscription
-      const fetchCheckoutSession = async () => {
+
+      // Poll regardless of whether complete-checkout succeeds — the Stripe
+      // webhook may have already updated the status in the database.
+      const delays = [500, 1000, 2000, 4000, 8000];
+      const pollAccess = async (remaining: number[]) => {
+        const latest = await refreshStatus();
+        console.log('[subscription] poll result:', latest?.hasAccess, latest?.subscription?.status);
+        if (latest?.hasAccess || remaining.length === 0) return;
+        setTimeout(() => pollAccess(remaining.slice(1)), remaining[0]);
+      };
+      pollAccess(delays);
+
+      // Fire complete-checkout in parallel as a best-effort sync.
+      // It saves the Stripe subscription data to the DB so future status
+      // calls return the correct result even without a webhook.
+      const completeCheckout = async () => {
         try {
           const token = localStorage.getItem('accessToken');
-          if (!token) return;
-          
-          const response = await fetch(
+          if (!token) {
+            console.warn('[subscription] complete-checkout skipped: no token in localStorage');
+            return;
+          }
+
+          console.log('[subscription] calling complete-checkout with session:', checkoutSessionId);
+          const response = await fetchWithTokenRefresh(
             `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/complete-checkout`,
             {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${publicAnonKey}`,
-                'X-User-Token': token,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ sessionId }),
+              body: JSON.stringify({ sessionId: checkoutSessionId }),
             }
           );
-          
+
           if (response.ok) {
+            console.log('[subscription] complete-checkout succeeded, triggering extra refresh');
+            sessionStorage.removeItem('pendingStripeSession');
             toast.success('Subscription activated successfully! 🎉');
-            // Refresh status after a short delay
-            setTimeout(() => refreshStatus(), 1000);
+            // One extra refresh after complete-checkout saves the data
+            await refreshStatus();
+          } else {
+            const text = await response.text();
+            console.error('[subscription] complete-checkout failed:', response.status, text);
+            // Keep pendingStripeSession so the sync button can retry
           }
         } catch (error) {
-          // Silently fail
+          console.error('[subscription] complete-checkout error:', error);
         }
       };
-      
-      fetchCheckoutSession();
+
+      completeCheckout();
     }
 
     // Listen for storage changes (when user logs in/out in another tab or same tab)
@@ -287,11 +376,26 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener('userLoggedIn', handleLogin);
 
+    // Refresh when the tab becomes visible again (user returns to the app)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Periodically re-check subscription so stale "active" status can't persist
+    const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+    const intervalId = setInterval(refreshStatus, REFRESH_INTERVAL_MS);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('userLoggedIn', handleLogin);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [checkoutSessionId]);
 
   return (
     <SubscriptionContext.Provider

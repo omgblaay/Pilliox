@@ -60,7 +60,6 @@ const DialogOverlay = React.forwardRef<
       {...props}
     />
   );
-  z;
 });
 DialogOverlay.displayName = "DialogOverlay";
 
@@ -83,7 +82,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border sm:p-6 p-4 shadow-lg duration-200 max-h-[90vh] overflow-y-auto rounded-2xl bg-popover border-border",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border sm:p-6 p-4 shadow-lg duration-200 max-h-[90vh] overflow-y-auto rounded-2xl bg-popover border-border",
           sizeClasses[size],
           className,
         )}
@@ -103,13 +102,13 @@ function DialogHeader({
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex min-h-10 w-full items-center gap-2 text-left relative",
+        "flex flex-col min-h-10 w-full gap-2 text-left relative",
         className,
       )}
       {...props}
     >
       {props.children}
-      <DialogPrimitive.Close className="w-10 h-10 border-border border-1 rounded-full ring-offset-background flex items-center cursor-pointer focus:ring-ring opacity-70 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
+      <DialogPrimitive.Close className="w-10 h-10 absolute top-0 right-0 border-border border-1 rounded-full ring-offset-background flex items-center cursor-pointer focus:ring-ring opacity-70 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
         <XIcon className="m-auto" />
       </DialogPrimitive.Close>
     </div>

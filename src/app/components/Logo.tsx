@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import logoLight from "figma:asset/8a6609da19e33c9cb01930656c8f65f228118571.png";
-import logoDark from "figma:asset/204393461263049c2f30de2d3b17be3a2d9cddd4.png";
+
+const logoLight = "src/assets/8a6609da19e33c9cb01930656c8f65f228118571.png";
+const logoDark = "src/assets/204393461263049c2f30de2d3b17be3a2d9cddd4.png";
 
 interface LogoProps {
   className?: string;
@@ -34,7 +34,7 @@ export function Logo({ className = "h-[40px] w-auto", alt = "Pilliox" }: LogoPro
   const logoSrc = isDark ? logoDark : logoLight;
   
   return (
-    <ImageWithFallback 
+    <img 
       src={logoSrc} 
       alt={alt}
       className={className}

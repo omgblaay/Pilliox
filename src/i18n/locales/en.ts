@@ -8,6 +8,7 @@ export default {
     medications: "Medications",
     profile: "Profile",
     settings: "Settings",
+    addDays: "Add Days",
   },
   landing: {
     header: {
@@ -196,6 +197,8 @@ export default {
     tablets: "tablets",
     capsules: "capsules",
     drops: "drops",
+    delete: "Delete",
+    cancel: "Cancel",
     // Unit translations
     units: {
       mg: "mg",
@@ -216,7 +219,6 @@ export default {
     notificationDesc:
       "You'll receive a reminder at this time to take your medication.",
     note: "Note",
-    cancel: "Cancel",
     apply: "Apply",
     loading: "Loading...",
     colorTag: "Color & Tag",
@@ -253,7 +255,7 @@ export default {
     settings: "Settings",
     profile: "Profile",
     preferences: "Preferences",
-    weekStartsOnMonday: "Week starts on Monday",
+    weekStartsOnMonday: "Week starts on:",
     mondayFirst: "Monday is the first day",
     sundayFirst: "Sunday is the first day",
     changePassword: "Change Password",
@@ -280,7 +282,7 @@ export default {
       title: "Calendar",
     },
     weekStart: {
-      title: "Week starts on Monday",
+      title: "Week starts on:",
       description: "Change calendar week start day",
       monday: "Mon",
       sunday: "Sun",
@@ -459,6 +461,12 @@ export default {
     deleteError: "Failed to delete medication",
     cancel: "Cancel",
     confirmDelete: "Confirm Delete",
+  },  
+  dataRange: {
+    thisMonth: "This Month",
+    thisYear: "This Year",
+    range: "Date Range",
+    fillEmpty: "Fill empty days in range",
   },
   deleteConfirm: {
     title: "Remove Tag",

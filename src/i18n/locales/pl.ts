@@ -8,6 +8,7 @@ export default {
     medications: "Leki",
     profile: "Profil",
     settings: "Ustawienia",
+    addDays: "Dodaj dni",
   },
   landing: {
     header: {
@@ -245,7 +246,7 @@ export default {
     settings: "Ustawienia",
     profile: "Profil",
     preferences: "Preferencje",
-    weekStartsOnMonday: "Tydzień zaczyna się w poniedziałek",
+    weekStartsOnMonday: "Tydzień zaczyna się w:",
     mondayFirst: "Poniedziałek jest pierwszym dniem",
     sundayFirst: "Niedziela jest pierwszym dniem",
     changePassword: "Zmień hasło",
@@ -272,7 +273,7 @@ export default {
       title: "Kalendarz",
     },
     weekStart: {
-      title: "Tydzień zaczyna się w poniedziałek",
+      title: "Tydzień zaczyna się w:",
       description: "Zmień dzień rozpoczęcia tygodnia",
       monday: "Pon",
       sunday: "Nie",
@@ -456,6 +457,11 @@ export default {
     allDaysDescription:
       "Usuń tag ze wszystkich dni z tym samym kolorem i etykietą",
     cancel: "Anuluj",
+  },
+  dataRange: {
+    thisMonth: "Ten miesiąc",
+    thisYear: "Ten tydzień",
+    range: "Zakres dat",
   },
   about: {
     title: "O Pilliox",

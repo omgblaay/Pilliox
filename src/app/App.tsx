@@ -227,7 +227,7 @@ function AppRoutes() {
           const userFactors = session.user.factors || [];
 
           // Check AMR (Authentication Method Reference) for recovery
-          const hasRecoveryAmr = session.user.amr?.some(
+          const hasRecoveryAmr = (session.user as any).amr?.some(
             (a: any) =>
               a.method === "recovery" || a.method === "otp",
           );
@@ -258,7 +258,7 @@ function AppRoutes() {
                 .then(({ data: { session: newSession } }) => {
                   if (newSession) {
                     const hasRecovery =
-                      newSession.user.amr?.some(
+                      (newSession.user as any).amr?.some(
                         (a: any) =>
                           a.method === "recovery" ||
                           a.method === "otp",
@@ -305,21 +305,16 @@ function AppRoutes() {
           localStorage.setItem("userEmail", session.user.email);
           setIsLoading(false);
         } else {
-          // No active session - check localStorage as fallback
-          const storedToken =
-            localStorage.getItem("accessToken");
-          const storedEmail = localStorage.getItem("userEmail");
-
-          if (storedToken && storedEmail) {
-            setAccessToken(storedToken);
-            setUserEmail(storedEmail);
+          // No active Supabase session — clear any stale localStorage auth data.
+          // It cannot be refreshed without a valid refresh token, so using it
+          // would cause every API call to 401.
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("userEmail");
+          // Give 2s for an in-progress OAuth callback to complete.
+          // onAuthStateChange (registered above) handles the actual login.
+          setTimeout(() => {
             setIsLoading(false);
-          } else {
-            // Give OAuth callback time to complete
-            setTimeout(() => {
-              setIsLoading(false);
-            }, 2000);
-          }
+          }, 2000);
         }
       } catch (err) {
         setIsLoading(false);
@@ -336,11 +331,18 @@ function AppRoutes() {
     };
   }, [navigate]);
 
-  const handleAuthSuccess = (token: string, email: string) => {
+  const handleAuthSuccess = (token: string, email: string, refreshToken?: string) => {
     setAccessToken(token);
     setUserEmail(email);
     localStorage.setItem("accessToken", token);
     localStorage.setItem("userEmail", email);
+
+    // Establish the client-side Supabase session so auto-refresh and
+    // onAuthStateChange work correctly going forward.
+    if (refreshToken) {
+      getSupabaseClient().auth.setSession({ access_token: token, refresh_token: refreshToken })
+        .catch(() => {});
+    }
 
     // Emit custom event to notify subscription hook
     window.dispatchEvent(new Event("userLoggedIn"));
@@ -468,7 +470,7 @@ function AppRoutes() {
                 />
                 <SubscriptionBanner />
                 <SubscriptionPaywall onLogout={handleLogout} />
-                <NotificationPermissionBanner />
+                {/* <NotificationPermissionBanner />*/}
               </>
             </ProtectedRoute>
           }

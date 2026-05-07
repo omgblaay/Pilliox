@@ -22,6 +22,7 @@ import { pl } from "date-fns/locale/pl";
 import {
   ChevronLeft,
   ChevronRight,
+  CalendarSync,
   ChevronDown,
   LogOut,
   Droplet,
@@ -29,6 +30,7 @@ import {
   Check,
   X,
   Plus,
+  Minus,
   Palette,
   Settings as SettingsIcon,
   User,
@@ -59,7 +61,6 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Badge } from "./ui/badge";
 import { ProfileSettings } from "./ProfileSettings";
 import { AppSettings } from "./AppSettings";
 import {
@@ -79,6 +80,11 @@ import { useTranslation } from "react-i18next";
 import Vector from "../../imports/Vector";
 import { BottomNavigation } from "./BottomNavigation";
 import { Logo } from "../components/Logo";
+import { fetchWithTokenRefresh } from "../../utils/api-client";
+import { MiniDayPicker } from "./MiniDayPicker";
+import { ColorPicker } from "./ColorPicker";
+import { EditDayDialog } from "./EditDayDialog";
+import { MarkDaysDialog, COLORS as MARK_COLORS } from "./MarkDaysDialog";
 
 interface PillDosage {
   pillId: string;
@@ -104,6 +110,7 @@ interface CalendarEntry {
   note: string;
   pills?: string; // JSON string of PillDosage[]
   adHocMeds?: string; // JSON string of AdHocMedication[]
+  pillDosageOverrides?: string; // JSON string of Record<string, number>
   color?: string;
   tag?: string;
 }
@@ -117,71 +124,8 @@ interface CalendarViewProps {
   onNavigateToPrivacy?: () => void;
 }
 
-const COLORS = [
-  {
-    name: "Blue",
-    value: "bg-blue-100 border-blue-300 text-blue-700",
-    dark: "#1E3A8A", // Darker blue for dark mode
-    hex: "#DBEAFE",
-  },
-  {
-    name: "Green",
-    value: "bg-green-100 border-green-300 text-green-700",
-    dark: "#065F46", // Darker green for dark mode
-    hex: "#D1FAE5",
-  },
-  {
-    name: "Purple",
-    value: "bg-purple-100 border-purple-300 text-purple-700",
-    dark: "#6B21A8", // Darker purple for dark mode
-    hex: "#F3E8FF",
-  },
-  {
-    name: "Pink",
-    value: "bg-pink-100 border-pink-300 text-pink-700",
-    dark: "#9F1239", // Darker pink for dark mode
-    hex: "#FCE7F3",
-  },
-  {
-    name: "Yellow",
-    value: "bg-yellow-100 border-yellow-300 text-yellow-700",
-    dark: "#92400E", // Darker yellow/amber for dark mode
-    hex: "#FEF3C7",
-  },
-  {
-    name: "Orange",
-    value: "bg-orange-100 border-orange-300 text-orange-700",
-    dark: "#9A3412", // Darker orange for dark mode
-    hex: "#FFEDD5",
-  },
-  {
-    name: "Red",
-    value: "bg-red-100 border-red-300 text-red-700",
-    dark: "#991B1B", // Darker red for dark mode
-    hex: "#FEE2E2",
-  },
-  {
-    name: "Indigo",
-    value: "bg-indigo-100 border-indigo-300 text-indigo-700",
-    dark: "#3730A3", // Darker indigo for dark mode
-    hex: "#E0E7FF",
-  },
-];
+const COLORS = MARK_COLORS;
 
-// Helper function to determine if a color is light or dark
-const isLightColor = (color: string): boolean => {
-  // Convert hex to RGB
-  const hex = color.replace("#", "");
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-
-  // Calculate luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  // Return true if light (luminance > 0.5)
-  return luminance > 0.5;
-};
 
 // Helper function to get the appropriate color for the current theme
 function getColorForTheme(
@@ -295,6 +239,7 @@ export function CalendarView({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [pills, setPills] = useState<PillDosage[]>([]);
+  const [dosageOverrides, setDosageOverrides] = useState<Record<string, number>>({});
   const [adHocMeds, setAdHocMeds] = useState<AdHocMedication[]>(
     [],
   );
@@ -327,6 +272,10 @@ export function CalendarView({
     useState(false);
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [multiTag, setMultiTag] = useState("");
+  const [multiPickerMonth, setMultiPickerMonth] = useState(new Date());
+
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [tempNote, setTempNote] = useState("");
 
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -351,8 +300,12 @@ export function CalendarView({
 
   // Tag editing
   const [editingTag, setEditingTag] = useState(false);
+  const [editTagDialogOpen, setEditTagDialogOpen] = useState(false);
   const [tempTagText, setTempTagText] = useState("");
   const [tempTagColor, setTempTagColor] = useState(COLORS[0]);
+  const [tagAddDays, setTagAddDays] = useState<Set<string>>(new Set());
+  const [tagRemoveDays, setTagRemoveDays] = useState<Set<string>>(new Set());
+  const [editTagPickerMonth, setEditTagPickerMonth] = useState(new Date());
 
   // Theme
   const { theme, setTheme } = useTheme("system");
@@ -488,14 +441,8 @@ export function CalendarView({
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const response = await fetch(
+        const response = await fetchWithTokenRefresh(
           `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
-          {
-            headers: {
-              Authorization: `Bearer ${anonKey}`,
-              "X-User-Token": accessToken,
-            },
-          },
         );
 
         if (response.ok) {
@@ -534,14 +481,8 @@ export function CalendarView({
       if (!userId) return;
 
       try {
-        const response = await fetch(
+        const response = await fetchWithTokenRefresh(
           `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${anonKey}`,
-              "X-User-Token": accessToken,
-            },
-          },
         );
 
         if (response.ok) {
@@ -569,12 +510,7 @@ export function CalendarView({
       try {
         const url = `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`;
 
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
-          },
-        });
+        const response = await fetchWithTokenRefresh(url);
 
         if (response.ok) {
           const data = await response.json();
@@ -604,23 +540,11 @@ export function CalendarView({
 
       try {
         const [prevResponse, nextResponse] = await Promise.all([
-          fetch(
+          fetchWithTokenRefresh(
             `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${prevMonthKey}`,
-            {
-              headers: {
-                Authorization: `Bearer ${anonKey}`,
-                "X-User-Token": accessToken,
-              },
-            },
           ),
-          fetch(
+          fetchWithTokenRefresh(
             `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${nextMonthKey}`,
-            {
-              headers: {
-                Authorization: `Bearer ${anonKey}`,
-                "X-User-Token": accessToken,
-              },
-            },
           ),
         ]);
 
@@ -651,14 +575,12 @@ export function CalendarView({
   ) => {
     try {
       const monthKey = format(currentMonth, "yyyy-MM");
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
           },
           body: JSON.stringify({ entries: newEntries }),
         },
@@ -703,6 +625,14 @@ export function CalendarView({
       console.error("Error parsing pills data:", error);
       setPills([]);
     }
+    try {
+      const overridesData = entry?.pillDosageOverrides
+        ? JSON.parse(entry.pillDosageOverrides)
+        : {};
+      setDosageOverrides(typeof overridesData === "object" && overridesData !== null ? overridesData : {});
+    } catch {
+      setDosageOverrides({});
+    }
 
     // Parse ad-hoc medications JSON
     try {
@@ -737,13 +667,21 @@ export function CalendarView({
     const adHocMedsJson =
       adHocMeds.length > 0 ? JSON.stringify(adHocMeds) : "";
 
-    if (amount || note || pillsJson || adHocMedsJson) {
+    // Serialize dosage overrides (only non-empty)
+    const nonEmptyOverrides = Object.fromEntries(
+      Object.entries(dosageOverrides).filter(([, v]) => v !== undefined)
+    );
+    const pillDosageOverridesJson =
+      Object.keys(nonEmptyOverrides).length > 0 ? JSON.stringify(nonEmptyOverrides) : "";
+
+    if (amount || note || pillsJson || adHocMedsJson || pillDosageOverridesJson) {
       newEntries[dateKey] = {
         ...newEntries[dateKey],
         amount,
         note,
         pills: pillsJson,
         adHocMeds: adHocMedsJson,
+        pillDosageOverrides: pillDosageOverridesJson,
       };
     } else if (
       !newEntries[dateKey]?.color &&
@@ -757,6 +695,7 @@ export function CalendarView({
         note: "",
         pills: "",
         adHocMeds: "",
+        pillDosageOverrides: "",
       };
     }
 
@@ -767,6 +706,7 @@ export function CalendarView({
     setNote("");
     setPills([]);
     setAdHocMeds([]);
+    setDosageOverrides({});
   };
 
   const handleRemoveColorTag = () => {
@@ -965,14 +905,12 @@ export function CalendarView({
     newViewMode: "month" | "week",
   ) => {
     try {
-      await fetch(
+      await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${anonKey}`,
-            "X-User-Token": accessToken,
           },
           body: JSON.stringify({
             viewMode: newViewMode,
@@ -1024,6 +962,14 @@ export function CalendarView({
       console.error("Error parsing pills data:", error);
       setPills([]);
     }
+    try {
+      const overridesData = entry?.pillDosageOverrides
+        ? JSON.parse(entry.pillDosageOverrides)
+        : {};
+      setDosageOverrides(typeof overridesData === "object" && overridesData !== null ? overridesData : {});
+    } catch {
+      setDosageOverrides({});
+    }
 
     // Update month if we crossed month boundary
     if (!isSameMonth(previousDay, currentMonth)) {
@@ -1050,6 +996,14 @@ export function CalendarView({
     } catch (error) {
       console.error("Error parsing pills data:", error);
       setPills([]);
+    }
+    try {
+      const overridesData = entry?.pillDosageOverrides
+        ? JSON.parse(entry.pillDosageOverrides)
+        : {};
+      setDosageOverrides(typeof overridesData === "object" && overridesData !== null ? overridesData : {});
+    } catch {
+      setDosageOverrides({});
     }
 
     // Update month if we crossed month boundary
@@ -1085,6 +1039,7 @@ export function CalendarView({
   };
   const applyColorToSelection = () => {
     if (selectedDates.size > 0) {
+      setMultiPickerMonth(currentMonth);
       setMultiSelectDialogOpen(true);
     }
   };
@@ -1174,9 +1129,24 @@ export function CalendarView({
       currentEntry.tag,
     );
 
-    // Update all grouped days
+    // Update all grouped days plus any newly added days, minus removed ones
     const newEntries = { ...entries };
-    groupedDays.forEach((dayKey) => {
+
+    // Remove tag/color from days marked for removal
+    tagRemoveDays.forEach((dayKey) => {
+      const entry = newEntries[dayKey];
+      if (!entry) return;
+      const { color: _c, tag: _t, ...rest } = entry;
+      if (Object.values(rest).some(Boolean)) {
+        newEntries[dayKey] = rest as typeof entry;
+      } else {
+        delete newEntries[dayKey];
+      }
+    });
+
+    // Apply updated tag/color to remaining grouped + newly added days
+    const allDaysToUpdate = new Set([...groupedDays, ...tagAddDays].filter(k => !tagRemoveDays.has(k)));
+    allDaysToUpdate.forEach((dayKey) => {
       newEntries[dayKey] = {
         ...newEntries[dayKey],
         tag: tempTagText,
@@ -1186,7 +1156,10 @@ export function CalendarView({
 
     setEntries(newEntries);
     saveEntries(newEntries);
+    setTagAddDays(new Set());
+    setTagRemoveDays(new Set());
     setEditingTag(false);
+    setEditTagDialogOpen(false);
   };
 
   // Function to start editing tag
@@ -1202,10 +1175,14 @@ export function CalendarView({
     const colorObj = COLORS.find(
       (c) =>
         c.hex.toLowerCase() ===
-        currentEntry.color.toLowerCase(),
+        currentEntry.color?.toLowerCase(),
     );
     setTempTagColor(colorObj || COLORS[0]);
+    setTagAddDays(new Set());
+    setTagRemoveDays(new Set());
+    setEditTagPickerMonth(selectedDate);
     setEditingTag(true);
+    setEditTagDialogOpen(true);
   };
 
   // Calculate days based on view mode
@@ -1448,7 +1425,7 @@ export function CalendarView({
                     {t("settings.title")}
                   </span>
                 </Button>
-
+{/* Separator 
                 <Button
                   variant="ghost"
                   className="justify-start"
@@ -1461,7 +1438,7 @@ export function CalendarView({
                   <span className="text-[15px] font-medium">
                     {t("subscription.title") || "Subscription"}
                   </span>
-                </Button>
+                </Button>*/}
 
                 {/* Separator */}
                 <div className="h-px bg-border my-2" />
@@ -1508,7 +1485,7 @@ export function CalendarView({
               </div>
             </div>
             <div className="items-center hidden lg:flex gap-3">
-              <Button
+              {/*<Button
                 variant="outline"
                 size="icon"
                 className="h-12 w-12"
@@ -1516,7 +1493,7 @@ export function CalendarView({
                 title="Manage Subscription"
               >
                 <Crown className="h-6 w-6" />
-              </Button>
+              </Button>*/}
 
               {/* Desktop icons - hidden on mobile */}
               <Button
@@ -1564,7 +1541,7 @@ export function CalendarView({
                 disabled={multiSelectMode}
                 className="flex-1 hidden sm:flex"
               >
-                <Palette className="h-3 w-3" />
+                <Palette className="size-5" />
                 {t("calendar.markDays")}
               </Button>
 
@@ -1575,7 +1552,7 @@ export function CalendarView({
                   size="icon"
                   onClick={handlePreviousMonth}
                 >
-                  <ChevronLeft className="h-5 w-5 text-foreground" />
+                  <ChevronLeft className="size-5" />
                 </Button>
                 <motion.div
                   className="overflow-hidden relative flex-1"
@@ -1600,7 +1577,7 @@ export function CalendarView({
                         duration: 0.3,
                         ease: "easeInOut",
                       }}
-                      className="text-[14px] text-center whitespace-nowrap"
+                      className="text-sm font-normal text-center whitespace-nowrap"
                     >
                       {formatHeaderTitle(currentMonth)}
                     </motion.h2>
@@ -1611,7 +1588,7 @@ export function CalendarView({
                   size="icon"
                   onClick={handleNextMonth}
                 >
-                  <ChevronRight className="h-5 w-5 text-foreground" />
+                  <ChevronRight className="size-5" />
                 </Button>
               </div>
 
@@ -1637,7 +1614,7 @@ export function CalendarView({
                     ? t("calendar.weeklyPreview")
                     : t("calendar.monthlyPreview")}
                 </span>
-                <ChevronDown className="h-4 w-4 text-foreground" />
+                <CalendarSync className="size-5 text-foreground" />
               </Button>
             </div>
           </div>
@@ -1755,7 +1732,7 @@ export function CalendarView({
                   const isToday = isSameDay(day, new Date());
 
                   // Get appropriate color for current theme
-                  const displayColor = hasColor
+                  const displayColor = hasColor && entry.color
                     ? getColorForTheme(entry.color, isDarkMode)
                     : undefined;
 
@@ -1986,59 +1963,72 @@ export function CalendarView({
                           {/* Data container */}
                           <div className="flex gap-2 flex-1 ml-auto items-center flex-row flex-wrap justify-end">
                             {/* Individual Medications Display */}
-                            {hasPills &&
-                              (() => {
-                                const pillsData: PillDosage[] =
-                                  JSON.parse(
-                                    entry.pills || "[]",
-                                  );
-                                return pillsData.map((pill) => {
-                                  const pillSetting =
-                                    pillsSettings.find(
-                                      (ps) =>
-                                        ps.id === pill.pillId,
-                                    );
-                                  if (!pillSetting) return null;
-
-                                  return (
-                                    <div
-                                      key={pill.pillId}
-                                      style={{
-                                        backgroundColor:
-                                          pillSetting.color,
-                                      }}
-                                      className={cn(
-                                        "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded-md whitespace-nowrap",
-                                      )}
-                                    >
-                                      {pillSetting.type ===
-                                      "pills" ? (
-                                        <>
-                                          <Pill className="h-3 w-3" />
-                                          <span>
-                                            {pillSetting.name.substring(
-                                              0,
-                                              3,
-                                            )}
-                                            : {pill.dosage}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <>
+                            {(() => {
+                              let pillsData: PillDosage[] = [];
+                              try {
+                                pillsData = entry.pills ? JSON.parse(entry.pills) : [];
+                              } catch {}
+                              let entryOverrides: Record<string, number> = {};
+                              try {
+                                entryOverrides = entry.pillDosageOverrides ? JSON.parse(entry.pillDosageOverrides) : {};
+                              } catch {}
+                              return (
+                                <>
+                                  {pillsSettings
+                                    .filter((ps) => (ps.type || "pills") === "pills")
+                                    .map((pillSetting) => {
+                                      const pill = pillsData.find((p) => p.pillId === pillSetting.id);
+                                      const isTaken = !!pill;
+                                      const ghostDosage = entryOverrides[pillSetting.id] ?? pillSetting.defaultDosage;
+                                      if (isTaken) {
+                                        return (
+                                          <div
+                                            key={pillSetting.id}
+                                            style={{ backgroundColor: pillSetting.color }}
+                                            className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded-md whitespace-nowrap"
+                                          >
+                                            <Pill className="h-3 w-3" />
+                                            <span>
+                                              {pillSetting.name.substring(0, 3)}: {pill!.dosage}
+                                            </span>
+                                          </div>
+                                        );
+                                      } else {
+                                        return (
+                                          <div
+                                            key={pillSetting.id}
+                                            style={{ borderColor: pillSetting.color || "#a855f7", color: pillSetting.color || "#a855f7" }}
+                                            className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md whitespace-nowrap border border-dashed opacity-40"
+                                          >
+                                            <Pill className="h-3 w-3" />
+                                            <span>
+                                              {pillSetting.name.substring(0, 3)}: {ghostDosage}
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                    })}
+                                  {pillsData
+                                    .filter((pill) => pillsSettings.find((ps) => ps.id === pill.pillId)?.type === "value")
+                                    .map((pill) => {
+                                      const pillSetting = pillsSettings.find((ps) => ps.id === pill.pillId);
+                                      if (!pillSetting) return null;
+                                      return (
+                                        <div
+                                          key={pill.pillId}
+                                          style={{ backgroundColor: pillSetting.color }}
+                                          className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded-md whitespace-nowrap"
+                                        >
                                           <Droplet className="h-3 w-3" />
                                           <span>
-                                            {pillSetting.name.substring(
-                                              0,
-                                              3,
-                                            )}
-                                            : {pill.dosage}
+                                            {pillSetting.name.substring(0, 3)}: {pill.dosage}
                                           </span>
-                                        </>
-                                      )}
-                                    </div>
-                                  );
-                                });
-                              })()}
+                                        </div>
+                                      );
+                                    })}
+                                </>
+                              );
+                            })()}
 
                             {/* Ad-Hoc Medications Display - Week View */}
                             {hasAdHocMeds &&
@@ -2143,36 +2133,66 @@ export function CalendarView({
 
                           {/* Individual Medications Display - Dots Only */}
                           <div className="flex gap-1 items-center justify-center flex-wrap">
-                            {hasPills &&
-                              (() => {
-                                const pillsData: PillDosage[] =
-                                  JSON.parse(
-                                    entry.pills || "[]",
-                                  );
-                                return pillsData.map((pill) => {
-                                  const pillSetting =
-                                    pillsSettings.find(
-                                      (ps) =>
-                                        ps.id === pill.pillId,
-                                    );
-                                  if (!pillSetting) return null;
-
-                                  return (
-                                    <div
-                                      key={pill.pillId}
-                                      className="text-[10px] font-semibold px-1 py-0.5 rounded text-white"
-                                      style={{
-                                        backgroundColor:
-                                          pillSetting.color ||
-                                          "#a855f7",
-                                      }}
-                                      title={`${pillSetting.name}: ${pill.dosage}`}
-                                    >
-                                      {pill.dosage}
-                                    </div>
-                                  );
-                                });
-                              })()}
+                            {(() => {
+                              let pillsData: PillDosage[] = [];
+                              try {
+                                pillsData = entry.pills ? JSON.parse(entry.pills) : [];
+                              } catch {}
+                              let entryOverrides: Record<string, number> = {};
+                              try {
+                                entryOverrides = entry.pillDosageOverrides ? JSON.parse(entry.pillDosageOverrides) : {};
+                              } catch {}
+                              return (
+                                <>
+                                  {pillsSettings
+                                    .filter((ps) => (ps.type || "pills") === "pills")
+                                    .map((pillSetting) => {
+                                      const pill = pillsData.find((p) => p.pillId === pillSetting.id);
+                                      const isTaken = !!pill;
+                                      const ghostDosage = entryOverrides[pillSetting.id] ?? pillSetting.defaultDosage;
+                                      if (isTaken) {
+                                        return (
+                                          <div
+                                            key={pillSetting.id}
+                                            className="text-[10px] font-semibold px-1 py-0.5 rounded text-white"
+                                            style={{ backgroundColor: pillSetting.color || "#a855f7" }}
+                                            title={`${pillSetting.name}: ${pill!.dosage}`}
+                                          >
+                                            {pill!.dosage}
+                                          </div>
+                                        );
+                                      } else {
+                                        return (
+                                          <div
+                                            key={pillSetting.id}
+                                            className="text-[10px] font-semibold px-1 py-0.5 rounded border border-dashed opacity-90"
+                                            style={{ borderColor: pillSetting.color || "#a855f7", color: pillSetting.color || "#a855f7" }}
+                                            title={`${pillSetting.name}: ${ghostDosage}`}
+                                          >
+                                            {ghostDosage}
+                                          </div>
+                                        );
+                                      }
+                                    })}
+                                  {pillsData
+                                    .filter((pill) => pillsSettings.find((ps) => ps.id === pill.pillId)?.type === "value")
+                                    .map((pill) => {
+                                      const pillSetting = pillsSettings.find((ps) => ps.id === pill.pillId);
+                                      if (!pillSetting) return null;
+                                      return (
+                                        <div
+                                          key={pill.pillId}
+                                          className="text-[10px] font-semibold px-1 py-0.5 rounded text-white"
+                                          style={{ backgroundColor: pillSetting.color || "#a855f7" }}
+                                          title={`${pillSetting.name}: ${pill.dosage}`}
+                                        >
+                                          {pill.dosage}
+                                        </div>
+                                      );
+                                    })}
+                                </>
+                              );
+                            })()}
 
                             {/* Ad-Hoc Medications Display - Colorless with Border */}
                             {hasAdHocMeds &&
@@ -2232,885 +2252,207 @@ export function CalendarView({
       </div>
 
       {/* Single Day Entry Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          size="small"
-          className="!p-0 gap-0 overflow-hidden"
-        >
-          {/* Header */}
-          <DialogHeader className="px-6 h-16 flex-row items-center space-between to-card">
-            <DialogTitle className="flex-1">
-              {t("calendar.day", {
-                count: selectedDates.size,
-              })}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              {t("day.description")}
-            </DialogDescription>
+      <EditDayDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        selectedDate={selectedDate}
+        selectedDates={selectedDates}
+        entries={entries}
+        isDarkMode={isDarkMode}
+        swipeDirectionRef={swipeDirectionRef}
+        pillsSettings={pillsSettings}
+        amount={amount}
+        setAmount={setAmount}
+        note={note}
+        pills={pills}
+        setPills={setPills}
+        adHocMeds={adHocMeds}
+        dosageOverrides={dosageOverrides}
+        setDosageOverrides={setDosageOverrides}
+        setNoteDialogOpen={setNoteDialogOpen}
+        setTempNote={setTempNote}
+        setDeleteConfirmOpen={setDeleteConfirmOpen}
+        setAddAdHocDialogOpen={setAddAdHocDialogOpen}
+        navigateToPreviousDay={navigateToPreviousDay}
+        navigateToNextDay={navigateToNextDay}
+        handleDayModalSwipe={handleDayModalSwipe}
+        formatDialogDate={formatDialogDate}
+        startEditingTag={startEditingTag}
+        handleSave={handleSave}
+        handleRemoveAdHocMed={handleRemoveAdHocMed}
+        handleEditAdHocMed={handleEditAdHocMed}
+        dateLocale={dateLocale}
+      />
+
+      {/* Multi-select Color Dialog */}
+      <MarkDaysDialog
+        open={multiSelectDialogOpen}
+        onOpenChange={setMultiSelectDialogOpen}
+        selectedDates={selectedDates}
+        setSelectedDates={setSelectedDates}
+        selectedColor={selectedColor}
+        setSelectedColor={setSelectedColor}
+        multiTag={multiTag}
+        setMultiTag={setMultiTag}
+        multiPickerMonth={multiPickerMonth}
+        setMultiPickerMonth={setMultiPickerMonth}
+        isDarkMode={isDarkMode}
+        weekStartsOnMonday={weekStartsOnMonday}
+        getMonthName={getMonthName}
+        onApply={applyMultiSelectColors}
+      />
+
+      {/* Edit Tag Dialog */}
+      <Dialog open={editTagDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setTagAddDays(new Set());
+          setTagRemoveDays(new Set());
+          setEditingTag(false);
+          setEditTagDialogOpen(false);
+        }
+      }}>
+        <DialogContent size="small">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">{t("multiSelect.tagLabel")}</DialogTitle>
           </DialogHeader>
-          <div className="px-[24px] py-[8px] bg-accent to-card border-t border-b border-border">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={navigateToPreviousDay}
-                >
-                  <ChevronLeft className="h-4 w-4 text-foreground" />
-                </Button>
-                <motion.div
-                  className="flex-1 overflow-hidden"
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={handleDayModalSwipe}
-                >
-                  <AnimatePresence
-                    mode="wait"
-                    initial={false}
-                    custom={swipeDirectionRef.current}
-                  >
-                    <motion.div
-                      key={
-                        selectedDate
-                          ? format(selectedDate, "yyyy-MM-dd")
-                          : "none"
-                      }
-                      custom={swipeDirectionRef.current}
-                      variants={headerSlideVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{
-                        duration: 0.3,
-                        ease: "easeInOut",
-                      }}
-                      className="text-l font-bold text-foreground text-[14px] text-center flex-1 font-normal"
-                    >
-                      {selectedDate &&
-                        formatDialogDate(selectedDate)}
-                    </motion.div>
-                  </AnimatePresence>
-                </motion.div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={navigateToNextDay}
-                >
-                  <ChevronRight className="h-4 w-4 text-foreground" />
-                </Button>
-              </div>
-            </div>
+          <div className="space-y-3">
+            <Input
+              value={tempTagText}
+              onChange={(e) => setTempTagText(e.target.value)}
+              placeholder="Tag"
+              maxLength={50}
+            />
+
+            {/* Color Picker */}
+            <ColorPicker
+              colors={COLORS}
+              selectedColor={tempTagColor}
+              onSelect={(color) => setTempTagColor(color as typeof COLORS[0])}
+              isDarkMode={isDarkMode}
+            />
+
+            {/* Mini day picker */}
+            {selectedDate && (() => {
+              const dateKey = format(selectedDate, "yyyy-MM-dd");
+              const currentEntry = entries[dateKey];
+              const alreadyGrouped = new Set(
+                currentEntry?.color && currentEntry?.tag
+                  ? findGroupedDays(currentEntry.color, currentEntry.tag)
+                  : [dateKey],
+              );
+              return (
+                <MiniDayPicker
+                  month={editTagPickerMonth}
+                  onMonthChange={setEditTagPickerMonth}
+                  monthLabel={`${getMonthName(editTagPickerMonth)} ${format(editTagPickerMonth, "yyyy")}`}
+                  weekStartsOnMonday={weekStartsOnMonday}
+                  highlightColor={tempTagColor}
+                  isDarkMode={isDarkMode}
+                  label={t("nav.addDays") || "Days"}
+                  getDayProps={(key) => {
+                    const inGroup = alreadyGrouped.has(key);
+                    const selected = tagAddDays.has(key);
+                    const markedForRemoval = tagRemoveDays.has(key);
+                    return {
+                      className: cn(
+                        inGroup && !markedForRemoval && "cursor-pointer font-semibold",
+                        inGroup && markedForRemoval && "cursor-pointer opacity-40 line-through",
+                        !inGroup && !selected && "hover:bg-accent cursor-pointer",
+                        !inGroup && selected && "ring-1 ring-offset-1 ring-primary font-semibold cursor-pointer",
+                      ),
+                      highlighted: (inGroup && !markedForRemoval) || selected,
+                    };
+                  }}
+                  onDayClick={(key) => {
+                    const inGroup = alreadyGrouped.has(key);
+                    const markedForRemoval = tagRemoveDays.has(key);
+                    if (inGroup) {
+                      const canRemove = alreadyGrouped.size - tagRemoveDays.size > 1 || markedForRemoval;
+                      if (!canRemove) return;
+                      setTagRemoveDays((prev) => {
+                        const next = new Set(prev);
+                        next.has(key) ? next.delete(key) : next.add(key);
+                        return next;
+                      });
+                    } else {
+                      setTagAddDays((prev) => {
+                        const next = new Set(prev);
+                        next.has(key) ? next.delete(key) : next.add(key);
+                        return next;
+                      });
+                    }
+                  }}
+                />
+              );
+            })()}
           </div>
 
-          {/* Content */}
-          <motion.div
-            className="px-6 py-5 space-y-5"
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDayModalSwipe}
-          >
-            <AnimatePresence
-              mode="wait"
-              initial={false}
-              custom={swipeDirectionRef.current}
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setTagAddDays(new Set());
+                setTagRemoveDays(new Set());
+                setEditingTag(false);
+                setEditTagDialogOpen(false);
+              }}
+              className="flex-1"
             >
-              <motion.div
-                key={
-                  selectedDate
-                    ? format(selectedDate, "yyyy-MM-dd")
-                    : "none"
-                }
-                custom={swipeDirectionRef.current}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{
-                  duration: 0.3,
-                  ease: "easeInOut",
-                }}
-              >
-                {/* Color/Tag Section - Show if day has a color */}
-                {selectedDate &&
-                  entries[format(selectedDate, "yyyy-MM-dd")]
-                    ?.color && (
-                    <div className="space-y-3 mb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                            <Palette className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-                          </div>
-                          <Label>
-                            {t("calendar.colorTag")}
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setDeleteConfirmOpen(true)
-                            }
-                            className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex-1"
-                          >
-                            <X className="h-2 w-2" />
-                            {t("calendar.removeTag")}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {!editingTag ? (
-                        <>
-                          {/* Tag Display */}
-                          <div
-                            className="min-h-12 rounded-lg border flex flex-col justify-center px-4 py-2 relative group"
-                            style={{
-                              backgroundColor: entries[
-                                format(
-                                  selectedDate,
-                                  "yyyy-MM-dd",
-                                )
-                              ]?.color
-                                ? getColorForTheme(
-                                    entries[
-                                      format(
-                                        selectedDate,
-                                        "yyyy-MM-dd",
-                                      )
-                                    ].color,
-                                    isDarkMode,
-                                  )
-                                : undefined,
-                              borderColor: entries[
-                                format(
-                                  selectedDate,
-                                  "yyyy-MM-dd",
-                                )
-                              ]?.color
-                                ? getColorForTheme(
-                                    entries[
-                                      format(
-                                        selectedDate,
-                                        "yyyy-MM-dd",
-                                      )
-                                    ].color,
-                                    isDarkMode,
-                                  )
-                                : undefined,
-                            }}
-                          >
-                            <span
-                              className="text-sm font-semibold pr-10"
-                              style={{
-                                color:
-                                  entries[
-                                    format(
-                                      selectedDate,
-                                      "yyyy-MM-dd",
-                                    )
-                                  ]?.color &&
-                                  isLightColor(
-                                    getColorForTheme(
-                                      entries[
-                                        format(
-                                          selectedDate,
-                                          "yyyy-MM-dd",
-                                        )
-                                      ].color,
-                                      isDarkMode,
-                                    ),
-                                  )
-                                    ? "#111827"
-                                    : "#f3f4f6",
-                              }}
-                            >
-                              {entries[
-                                format(
-                                  selectedDate,
-                                  "yyyy-MM-dd",
-                                )
-                              ]?.tag || t("calendar.noTag")}
-                            </span>
-
-                            {/* Grouped Days List */}
-                            {(() => {
-                              const currentEntry =
-                                entries[
-                                  format(
-                                    selectedDate,
-                                    "yyyy-MM-dd",
-                                  )
-                                ];
-                              if (
-                                !currentEntry?.color ||
-                                !currentEntry?.tag
-                              )
-                                return null;
-
-                              const groupedDays =
-                                findGroupedDays(
-                                  currentEntry.color,
-                                  currentEntry.tag,
-                                );
-                              const dayRanges =
-                                formatDayRanges(groupedDays);
-
-                              if (groupedDays.length <= 1)
-                                return null;
-
-                              const textColor =
-                                currentEntry.color &&
-                                isLightColor(
-                                  getColorForTheme(
-                                    currentEntry.color,
-                                    isDarkMode,
-                                  ),
-                                )
-                                  ? "#6b7280"
-                                  : "#d1d5db";
-
-                              return (
-                                <div className="flex flex-wrap items-center gap-1.5 text-xs mt-1.5 pr-10">
-                                  <span
-                                    className="font-medium opacity-80"
-                                    style={{ color: textColor }}
-                                  >
-                                    Marked days:
-                                  </span>
-                                  {dayRanges.map(
-                                    (range, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="px-1.5 py-0.5 rounded text-xs font-medium"
-                                        style={{
-                                          backgroundColor:
-                                            currentEntry.color &&
-                                            isLightColor(
-                                              getColorForTheme(
-                                                currentEntry.color,
-                                                isDarkMode,
-                                              ),
-                                            )
-                                              ? "rgba(0,0,0,0.1)"
-                                              : "rgba(255,255,255,0.2)",
-                                          color: textColor,
-                                        }}
-                                      >
-                                        {range}
-                                      </span>
-                                    ),
-                                  )}
-                                </div>
-                              );
-                            })()}
-
-                            {/* Edit Icon Button */}
-                            <button
-                              onClick={startEditingTag}
-                              className="absolute right-2 top-2 h-8 w-8 rounded-lg flex items-center justify-center group-hover:opacity-100 transition-opacity hover:bg-white/20"
-                              style={{
-                                color:
-                                  entries[
-                                    format(
-                                      selectedDate,
-                                      "yyyy-MM-dd",
-                                    )
-                                  ]?.color &&
-                                  isLightColor(
-                                    getColorForTheme(
-                                      entries[
-                                        format(
-                                          selectedDate,
-                                          "yyyy-MM-dd",
-                                        )
-                                      ].color,
-                                      isDarkMode,
-                                    ),
-                                  )
-                                    ? "#111827"
-                                    : "#f3f4f6",
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* Tag Edit Mode */}
-                          <div className="space-y-3 flex flex-col gap-2 p-4 rounded-lg bg-accent">
-                            <Label
-                              htmlFor="days-selection"
-                              className="text-foreground"
-                            >
-                              {t("multiSelect.tagLabel")}
-                            </Label>
-                            <Input
-                              id="days-selection"
-                              value={tempTagText}
-                              onChange={(e) =>
-                                setTempTagText(e.target.value)
-                              }
-                              placeholder="Tag"
-                              maxLength={50}
-                            />
-
-                            {/* Color Picker */}
-                            <div className="grid grid-cols-4 gap-2">
-                              {COLORS.map((color) => (
-                                <Button
-                                  key={color.name}
-                                  onClick={() =>
-                                    setTempTagColor(color)
-                                  }
-                                  className={cn(
-                                    "h-10 rounded-lg border-2 transition-all",
-                                    tempTagColor.name ===
-                                      color.name &&
-                                      "ring-2 ring-blue-600 dark:ring-blue-500 ring-offset-2 dark:ring-offset-card",
-                                  )}
-                                  style={{
-                                    backgroundColor: isDarkMode
-                                      ? color.dark
-                                      : color.hex,
-                                    borderColor: isDarkMode
-                                      ? color.dark
-                                      : color.hex,
-                                  }}
-                                >
-                                  {tempTagColor.name ===
-                                    color.name && (
-                                    <Check
-                                      className="h-4 w-4 mx-auto"
-                                      style={{
-                                        color: isLightColor(
-                                          isDarkMode
-                                            ? color.dark
-                                            : color.hex,
-                                        )
-                                          ? "#111827"
-                                          : "#f3f4f6",
-                                      }}
-                                    />
-                                  )}
-                                </Button>
-                              ))}
-                            </div>
-
-                            {/* Edit Actions */}
-                            <div className="flex gap-2">
-                              <Button
-                                variant="secondary"
-                                onClick={() =>
-                                  setEditingTag(false)
-                                }
-                                className="flex-1"
-                                size="sm"
-                              >
-                                <X className="h-3 w-3 mr-1" />
-                                {t("calendar.cancel")}
-                              </Button>
-                              <Button
-                                onClick={updateGroupedTag}
-                                size="sm"
-                                className="flex-1"
-                              >
-                                <Check className="h-2 w-2 mr-1" />
-                                {t("calendar.apply")}
-                              </Button>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                <div className="space-y-5">
-                  {/* Pills Section - Pills Counter Type */}
-                  {pillsSettings.filter(
-                    (ps) => (ps.type || "pills") === "pills",
-                  ).length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                          <Pill className="h-4 w-4 text-purple-700 dark:text-purple-400" />
-                        </div>
-                        <Label>{t("calendar.pills")}</Label>
-                      </div>
-
-                      <div className="space-y-2">
-                        {pillsSettings
-                          .filter(
-                            (ps) =>
-                              (ps.type || "pills") === "pills",
-                          )
-                          .map((pillSetting) => {
-                            const pillDosage = pills.find(
-                              (p) =>
-                                p.pillId === pillSetting.id,
-                            );
-                            const isSelected = !!pillDosage;
-                            const currentDosage =
-                              pillDosage?.dosage ||
-                              pillSetting.defaultDosage;
-
-                            return (
-                              <div
-                                key={pillSetting.id}
-                                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
-                              >
-                                {/* Checkbox */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (isSelected) {
-                                      // Remove pill
-                                      setPills(
-                                        pills.filter(
-                                          (p) =>
-                                            p.pillId !==
-                                            pillSetting.id,
-                                        ),
-                                      );
-                                    } else {
-                                      // Add pill with default dosage
-                                      setPills([
-                                        ...pills,
-                                        {
-                                          pillId:
-                                            pillSetting.id,
-                                          dosage:
-                                            pillSetting.defaultDosage,
-                                        },
-                                      ]);
-                                    }
-                                  }}
-                                  className={cn(
-                                    "h-7 w-7 rounded-lg border-2 flex items-center justify-center transition-colors",
-                                    isSelected
-                                      ? "bg-blue-600"
-                                      : "border-gray-300 dark:border-gray-600",
-                                  )}
-                                >
-                                  {isSelected && (
-                                    <Check className="h-4 w-4 text-white" />
-                                  )}
-                                </button>
-
-                                {/* Color indicator */}
-                                {pillSetting.color && (
-                                  <div
-                                    className="h-4 w-4 rounded-full border border-gray-300 dark:border-gray-600"
-                                    style={{
-                                      backgroundColor:
-                                        pillSetting.color,
-                                    }}
-                                  />
-                                )}
-
-                                {/* Pill name */}
-                                <span
-                                  className={cn(
-                                    "flex-1 text-sm font-medium",
-                                    !isSelected &&
-                                      "text-muted-foreground",
-                                  )}
-                                >
-                                  {pillSetting.name}
-                                </span>
-
-                                {/* Dosage input */}
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.5"
-                                    value={currentDosage}
-                                    onChange={(e) => {
-                                      const newDosage =
-                                        parseFloat(
-                                          e.target.value,
-                                        ) || 0;
-                                      // If not selected, add the pill first
-                                      if (!isSelected) {
-                                        setPills([
-                                          ...pills,
-                                          {
-                                            pillId:
-                                              pillSetting.id,
-                                            dosage: newDosage,
-                                          },
-                                        ]);
-                                      } else {
-                                        setPills(
-                                          pills.map((p) =>
-                                            p.pillId ===
-                                            pillSetting.id
-                                              ? {
-                                                  ...p,
-                                                  dosage:
-                                                    newDosage,
-                                                }
-                                              : p,
-                                          ),
-                                        );
-                                      }
-                                    }}
-                                    className="w-20 h-8 text-sm"
-                                  />
-                                  <span className="text-xs text-muted-foreground">
-                                    {t("calendar.pillsUnit")}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Value Type Medications */}
-                  {pillsSettings
-                    .filter((ps) => ps.type === "value")
-                    .map((valueSetting) => {
-                      const pillDosage = pills.find(
-                        (p) => p.pillId === valueSetting.id,
-                      );
-                      const currentValue =
-                        pillDosage?.dosage?.toString() || "";
-
-                      return (
-                        <div
-                          key={valueSetting.id}
-                          className="flex flex-row items-center justify-center gap-4 space-between"
-                        >
-                          <div className="flex items-center flex-row gap-2 flex-1">
-                            <div
-                              className="h-8 w-8 rounded-full flex items-center justify-center"
-                              style={{
-                                backgroundColor:
-                                  valueSetting.color
-                                    ? `${valueSetting.color}20`
-                                    : "#dcfce7",
-                              }}
-                            >
-                              <Droplet
-                                className="h-4 w-4"
-                                style={{
-                                  color:
-                                    valueSetting.color ||
-                                    "#16a34a",
-                                }}
-                              />
-                            </div>
-                            <Label
-                              htmlFor={`value-${valueSetting.id}`}
-                            >
-                              {valueSetting.name}
-                            </Label>
-                          </div>
-                          <Input
-                            id={`value-${valueSetting.id}`}
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            className="flex-1"
-                            value={currentValue}
-                            onChange={(e) => {
-                              const newValue =
-                                parseFloat(e.target.value) || 0;
-                              const existingPill = pills.find(
-                                (p) =>
-                                  p.pillId === valueSetting.id,
-                              );
-                              if (existingPill) {
-                                setPills(
-                                  pills.map((p) =>
-                                    p.pillId === valueSetting.id
-                                      ? {
-                                          ...p,
-                                          dosage: newValue,
-                                        }
-                                      : p,
-                                  ),
-                                );
-                              } else {
-                                setPills([
-                                  ...pills,
-                                  {
-                                    pillId: valueSetting.id,
-                                    dosage: newValue,
-                                  },
-                                ]);
-                              }
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-
-                  {/* Ad-Hoc Medications Section */}
-                  {(pillsSettings.length > 0 ||
-                    adHocMeds.length > 0) && (
-                    <div className="space-y-3 py-4 border-y-1 border-border">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                            <Plus className="h-4 w-4 text-amber-700 dark:text-amber-400" />
-                          </div>
-                          <Label>
-                            {t("calendar.otherMedications") ||
-                              "Other Medications"}
-                          </Label>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setAddAdHocDialogOpen(true)
-                          }
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          {t("calendar.addMed") || "Add"}
-                        </Button>
-                      </div>
-
-                      {/* Display ad-hoc medications */}
-                      {adHocMeds.length > 0 && (
-                        <div className="space-y-2">
-                          {adHocMeds.map((med) => (
-                            <div
-                              key={med.id}
-                              className="flex items-center gap-3 p-3 border rounded-lg transition-colors"
-                            >
-                              {" "}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleRemoveAdHocMed(med.id)
-                                }
-                                className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <div className="text-sm font-medium text-foreground">
-                                    {med.name}
-                                  </div>
-                                  {med.notificationEnabled && (
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-                                      <Bell className="h-3 w-3 text-indigo-700 dark:text-indigo-400" />
-                                      <span className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">
-                                        {med.notificationTime}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {med.dosage}{" "}
-                                  {t(
-                                    `calendar.units.${med.unit}`,
-                                  ) || med.unit}
-                                </div>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleEditAdHocMed(med)
-                                  }
-                                  className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Legacy INR Section - Only show if no medications configured */}
-                  {pillsSettings.length === 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                          <Droplet className="h-4 w-4 text-green-700 dark:text-green-400" />
-                        </div>
-                        <Label htmlFor="amount">INR</Label>
-                      </div>
-                      <Input
-                        id="amount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) =>
-                          setAmount(e.target.value)
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Note Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center pt-4 gap-2">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                      <svg
-                        className="h-4 w-4 text-blue-700 dark:text-blue-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                    </div>
-                    <Label htmlFor="note">
-                      {t("calendar.note")}
-                    </Label>
-                  </div>
-                  <Textarea
-                    id="note"
-                    placeholder={t("day.notePlaceholder")}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-                {/* Footer Actions */}
-                <div className="flex gap-3 mt-4">
-                  <Button
-                    onClick={handleSave}
-                    className="flex-1"
-                  >
-                    {t("day.saveChanges")}
-                  </Button>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
+              <X className="h-3 w-3 mr-1" />
+              {t("calendar.cancel")}
+            </Button>
+            <Button onClick={updateGroupedTag} className="flex-1">
+              <Check className="h-3 w-3 mr-1" />
+              {t("calendar.apply")}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Multi-select Color Dialog */}
-      <Dialog
-        open={multiSelectDialogOpen}
-        onOpenChange={setMultiSelectDialogOpen}
-      >
-        <DialogContent
-          size="small"
-          className="bg-card border-border"
-        >
+      {/* Note Dialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent size="small">
           <DialogHeader>
-            <DialogTitle className="text-foreground">
-              {t("multiSelect.title", {
-                count: selectedDates.size,
-              })}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {t("multiSelect.description")}
-            </DialogDescription>
+            <DialogTitle className="text-foreground">{t("calendar.note")}</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Selected Days Display */}
-            <div className="space-y-2">
-              <Label className="text-foreground text-sm font-medium">
-                {t("multiSelect.selectedDays")}
-              </Label>
-              <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg border border-border max-h-32 overflow-y-auto">
-                {Array.from(selectedDates)
-                  .sort()
-                  .map((dateStr) => (
-                    <Badge
-                      key={dateStr}
-                      variant="secondary"
-                      className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-                    >
-                      {format(new Date(dateStr), "MMM d", {
-                        locale: dateLocale,
-                      })}
-                    </Badge>
-                  ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-foreground">
-                {t("multiSelect.selectColor")}
-              </Label>
-              <div className="grid grid-cols-4 gap-2">
-                {COLORS.map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() => setSelectedColor(color)}
-                    className={cn(
-                      "h-12 rounded-lg border-2 transition-all",
-                      selectedColor.name === color.name &&
-                        "ring-2 ring-blue-600 dark:ring-blue-500 ring-offset-2 dark:ring-offset-card",
-                    )}
-                    style={{
-                      backgroundColor: isDarkMode
-                        ? color.dark
-                        : color.hex,
-                      borderColor: isDarkMode
-                        ? color.dark
-                        : color.hex,
-                    }}
-                  >
-                    {selectedColor.name === color.name && (
-                      <Check
-                        className="h-5 w-5 mx-auto"
-                        style={{
-                          color: isLightColor(
-                            isDarkMode ? color.dark : color.hex,
-                          )
-                            ? "#111827"
-                            : "#f3f4f6",
-                        }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="multi-tag"
-                className="text-foreground"
+          <Textarea
+            placeholder={t("day.notePlaceholder")}
+            value={tempNote}
+            onChange={(e) => setTempNote(e.target.value)}
+            rows={5}
+            className="resize-none"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            {tempNote && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setNote("");
+                  setNoteDialogOpen(false);
+                }}
+                className="text-destructive hover:text-destructive"
               >
-                {t("multiSelect.tagLabel")}
-              </Label>
-              <Input
-                id="multi-tag"
-                placeholder={t("multiSelect.tagPlaceholder")}
-                value={multiTag}
-                onChange={(e) => setMultiTag(e.target.value)}
-                maxLength={20}
-                className="bg-input-background border-border text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                {t("calendar.removeTag")}
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => setNoteDialogOpen(false)}
+              className="flex-1"
+            >
+              {t("calendar.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                setNote(tempNote);
+                setNoteDialogOpen(false);
+              }}
+              className="flex-1"
+            >
+              {t("calendar.apply") || "OK"}
+            </Button>
           </div>
-
-          <Button
-            onClick={applyMultiSelectColors}
-            className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
-          >
-            {t("calendar.apply")}
-          </Button>
         </DialogContent>
       </Dialog>
 
@@ -3121,7 +2463,6 @@ export function CalendarView({
       >
         <DialogContent
           size="small"
-          className="bg-card border-border"
         >
           <DialogHeader>
             <DialogTitle className="text-foreground">
@@ -3329,7 +2670,6 @@ export function CalendarView({
         open={profileOpen}
         onOpenChange={setProfileOpen}
         accessToken={accessToken}
-        projectId={projectId}
         anonKey={anonKey}
         onLogout={onLogout}
         onNavigateToTerms={onNavigateToTerms}
@@ -3413,7 +2753,11 @@ export function CalendarView({
             </div>
 
             <div className="flex flex-col gap-4">
-              <Button variant="secondary" size="sm" href="../">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => navigate("/")}
+              >
                 {t("about.visitHomepage")}
               </Button>
               <Button

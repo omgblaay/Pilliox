@@ -61,7 +61,7 @@ export function SubscriptionPaywall({
 
   if (loading) {
     // Don't show loading spinner if user has access (trial or active subscription)
-    if (status?.hasAccess) {
+    if (status?.hasAccess || status?.subscription?.status === 'active' || status?.subscription?.status === 'trialing') {
       return null;
     }
 
@@ -72,12 +72,8 @@ export function SubscriptionPaywall({
     );
   }
 
-  // Don't show paywall if user has access OR has a subscription ID
-  // (even if status hasn't synced yet from Stripe)
-  if (
-    status?.hasAccess ||
-    status?.subscription?.stripeSubscriptionId
-  ) {
+  // Don't show paywall if user has access or subscription is active.
+  if (status?.hasAccess || status?.subscription?.status === 'active' || status?.subscription?.status === 'trialing') {
     return null;
   }
 
@@ -135,11 +131,7 @@ export function SubscriptionPaywall({
           className="w-full"
           onClick={async () => {
             try {
-              // If user has an active subscription, open portal instead of checkout
-              if (
-                status?.subscription?.status === "active" ||
-                status?.subscription?.stripeSubscriptionId
-              ) {
+              if (status?.subscription?.status === "active") {
                 await openPortal();
               } else {
                 await openCheckout();
@@ -149,8 +141,7 @@ export function SubscriptionPaywall({
             }
           }}
         >
-          {status?.subscription?.status === "active" ||
-          status?.subscription?.stripeSubscriptionId
+          {status?.subscription?.status === "active"
             ? t("subscription.manageSubscription")
             : t("subscription.subscribeNow")}
         </Button>

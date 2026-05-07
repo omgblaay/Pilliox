@@ -1,3 +1,5 @@
+import { add } from "date-fns";
+
 export default {
   app: {
     name: "Pilliox",
@@ -8,6 +10,7 @@ export default {
     medications: "Medikamente",
     profile: "Profil",
     settings: "Einstellungen",
+    addDays: "Tage hinzufügen",
   },
   landing: {
     header: {
@@ -190,7 +193,10 @@ export default {
     unit: "Einheit",
     tablets: "Tabletten",
     capsules: "Kapseln",
-    drops: "Tropfen",
+    drops: "Tropfen",    
+    save: "Speichern",
+    delete: "Löschen",
+    cancel: "Abbrechen",
     // Unit translations
     units: {
       mg: "mg",
@@ -210,7 +216,6 @@ export default {
     notificationTime: "Erinnerungszeit",
     notificationDesc: "Sie erhalten zu dieser Zeit eine Erinnerung, Ihr Medikament einzunehmen.",
     note: "Notiz",
-    cancel: "Abbrechen",
     apply: "Anwenden",
     loading: "Laden...",
     colorTag: "Farbe & Tag",
@@ -248,7 +253,7 @@ export default {
     settings: "Einstellungen",
     profile: "Profil",
     preferences: "Präferenzen",
-    weekStartsOnMonday: "Woche beginnt am Montag",
+    weekStartsOnMonday: "Woche beginnt am:",
     mondayFirst: "Montag ist der erste Tag",
     sundayFirst: "Sonntag ist der erste Tag",
     changePassword: "Passwort ändern",
@@ -275,7 +280,7 @@ export default {
       title: "Kalender",
     },
     weekStart: {
-      title: "Woche beginnt am Montag",
+      title: "Woche beginnt am:",
       description: "Ändern Sie den Wochenanfangstag",
       monday: "Mo",
       sunday: "So",
@@ -463,6 +468,11 @@ export default {
     allDaysDescription:
       "Tag von allen Tagen mit derselben Farbe und Beschriftung entfernen",
     cancel: "Abbrechen",
+  },
+  dataRange: {
+    thisMonth: "Dieser Monat",
+    thisYear: "Dieses Jahr",
+    range: "Datumsbereich",
   },
   about: {
     title: "Über Pilliox",

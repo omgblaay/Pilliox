@@ -80,40 +80,7 @@ export function SubscriptionPage() {
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         {/* Current Status Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Card className="p-6 bg-input-background border-1">
-            <div className="flex items-start gap-4">
-              <div className="p-3 border-1 rounded-full">
-                <Crown className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-foreground mb-1">
-                  {isActive
-                    ? t("subscription.statusActive") ||
-                      "Premium Active"
-                    : isTrialing
-                      ? t("subscription.statusTrial") ||
-                        "Free Trial"
-                      : t("subscription.statusInactive") ||
-                        "No Active Subscription"}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {isTrialing && trialEndsAt
-                    ? `${t("subscription.trialEndsOn") || "Trial ends on"} ${formatDate(status.trialEndsAt)}`
-                    : isActive
-                      ? t("subscription.premiumAccess") ||
-                        "Full access to all features"
-                      : t("subscription.upgradeToPremium") ||
-                        "Upgrade to unlock all features"}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+
 
         {/* Subscription Details Card - Only show if active or trialing */}
         {(isActive || isTrialing) && (

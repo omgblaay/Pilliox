@@ -1,5 +1,17 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { fetchWithTokenRefresh } from "../../utils/api-client";
+import {
+  format,
+  addDays,
+  startOfDay,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  getDay,
+  isAfter,
+} from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +39,22 @@ import {
   Bell,
   Clock,
   ArrowLeft,
+  CalendarDays,
+  Loader2,
 } from "lucide-react";
+import { cn } from "./ui/utils";
+import { ColorPicker } from "./ColorPicker";
 import { toast } from "sonner";
 import {
   projectId,
   publicAnonKey,
 } from "../../../utils/supabase/info";
 import { useNotifications } from "../hooks/useNotifications";
+
+interface PillDosage {
+  pillId: string;
+  dosage: number;
+}
 
 export interface PillSetting {
   id: string;
@@ -91,6 +112,22 @@ export function PillsSettings({
     useState<PillSetting | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  // Fill-days state
+  const [fillTargetPill, setFillTargetPill] = useState<PillSetting | null>(null);
+  const [fillWeekdays, setFillWeekdays] = useState<Set<number>>(new Set());
+  const [fillRange, setFillRange] = useState<"month" | "year" | "custom">("month");
+  const [fillFrom, setFillFrom] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [fillTo, setFillTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [filling, setFilling] = useState(false);
+
+  const openFillDialog = (pill: PillSetting) => {
+    setFillTargetPill(pill);
+    setFillWeekdays(new Set());
+    setFillRange("month");
+    setFillFrom(format(new Date(), "yyyy-MM-dd"));
+    setFillTo(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  };
+
   useEffect(() => {
     if (open && userId) {
       loadPillsSettings();
@@ -108,14 +145,8 @@ export function PillsSettings({
 
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-            "X-User-Token": accessToken,
-          },
-        },
       );
 
       if (response.ok) {
@@ -155,14 +186,12 @@ export function PillsSettings({
         }
       }
 
-      const response = await fetch(
+      const response = await fetchWithTokenRefresh(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${publicAnonKey}`,
-            "X-User-Token": accessToken,
           },
           body: JSON.stringify({ pills }),
         },
@@ -217,6 +246,93 @@ export function PillsSettings({
     setPills(pills.filter((pill) => pill.id !== id));
   };
 
+  const handleFillDays = async () => {
+    if (!fillTargetPill) return;
+    const editingPill = fillTargetPill;
+    setFilling(true);
+    try {
+      const now = new Date();
+      let fromDate: Date;
+      let toDate: Date;
+      if (fillRange === "month") {
+        fromDate = startOfMonth(now);
+        toDate = endOfMonth(now);
+      } else if (fillRange === "year") {
+        fromDate = startOfYear(now);
+        toDate = endOfYear(now);
+      } else {
+        fromDate = new Date(fillFrom);
+        toDate = new Date(fillTo);
+        if (isAfter(fromDate, toDate)) {
+          toast.error("Start date must be before end date");
+          return;
+        }
+      }
+
+      // Build list of target dates respecting weekday filter
+      const targetDates: string[] = [];
+      let cur = startOfDay(fromDate);
+      const end = startOfDay(toDate);
+      while (!isAfter(cur, end)) {
+        const dow = getDay(cur); // 0=Sun…6=Sat
+        if (fillWeekdays.size === 0 || fillWeekdays.has(dow)) {
+          targetDates.push(format(cur, "yyyy-MM-dd"));
+        }
+        cur = addDays(cur, 1);
+      }
+
+      // Group by month
+      const byMonth: Record<string, string[]> = {};
+      targetDates.forEach((d) => {
+        const mk = d.slice(0, 7);
+        (byMonth[mk] ??= []).push(d);
+      });
+
+      let totalFilled = 0;
+      for (const [monthKey, dates] of Object.entries(byMonth)) {
+        // Fetch existing entries
+        let monthEntries: Record<string, any> = {};
+        try {
+          const res = await fetchWithTokenRefresh(
+            `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`,
+          );
+          if (res.ok) monthEntries = (await res.json()).entries ?? {};
+        } catch {}
+
+        const newEntries = { ...monthEntries };
+        for (const dateStr of dates) {
+          const existing = newEntries[dateStr] ?? { amount: "", note: "" };
+          let pillsArr: PillDosage[] = [];
+          try { pillsArr = existing.pills ? JSON.parse(existing.pills) : []; } catch {}
+          if (!pillsArr.some((p) => p.pillId === editingPill.id)) {
+            pillsArr.push({ pillId: editingPill.id, dosage: editingPill.defaultDosage });
+            newEntries[dateStr] = { ...existing, pills: JSON.stringify(pillsArr) };
+            totalFilled++;
+          }
+        }
+
+        await fetchWithTokenRefresh(
+          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entries: newEntries }),
+          },
+        );
+      }
+
+      toast.success(
+        totalFilled > 0
+          ? `Filled ${totalFilled} empty day${totalFilled !== 1 ? "s" : ""} with ${editingPill.name}`
+          : `All selected days already have ${editingPill.name} logged`,
+      );
+    } catch {
+      toast.error("Failed to fill days");
+    } finally {
+      setFilling(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -232,7 +348,7 @@ export function PillsSettings({
             <DialogDescription className="sr-only">
               {t("pillsSettings.description")}
             </DialogDescription>
-          </DialogHeader>
+          </DialogHeader> 
 
           <div>
             {loading ? (
@@ -291,6 +407,20 @@ export function PillsSettings({
                         {pill.notificationsEnabled && (
                           <Bell className="h-4 w-4 text-purple-600" />
                         )}
+
+                        {/* Fill days button */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFillDialog(pill);
+                          }}
+                        >
+                          <CalendarDays className="size-4" />
+                          Fill
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -359,7 +489,7 @@ export function PillsSettings({
           <DialogHeader className="flex-row gap-6 items-center">
             {" "}
             <Button
-              variant="icon"
+              size="icon"
               className="flex-0"
               onClick={() => setEditModalOpen(false)}
             >
@@ -420,32 +550,19 @@ export function PillsSettings({
                 {/* Color */}
                 <div className="space-y-2 flex-1">
                   <Label>{t("pillsSettings.color")}</Label>
-                  <div className="flex flex-wrap gap-1 w-full">
-                    {PILL_COLORS.map((color) => (
-                      <button
-                        key={color.value}
-                        type="button"
-                        onClick={() => {
-                          updatePill(editingPill.id, {
-                            color: color.value,
-                          });
-                          setEditingPill({
-                            ...editingPill,
-                            color: color.value,
-                          });
-                        }}
-                        className={`flex-1 min-w-0 h-10 cursor-pointer rounded-full border-2 transition-all ${
-                          editingPill.color === color.value
-                            ? "border-black-1000 scale-110"
-                            : "border-none"
-                        }`}
-                        style={{
-                          backgroundColor: color.value,
-                        }}
-                        title={color.name}
-                      />
-                    ))}
-                  </div>
+                  <ColorPicker
+                    colors={PILL_COLORS.map((c) => ({ name: c.name, value: c.value }))}
+                    selectedColor={
+                      PILL_COLORS.find((c) => c.value === editingPill.color)
+                        ? { name: PILL_COLORS.find((c) => c.value === editingPill.color)!.name, value: editingPill.color }
+                        : { name: "", value: editingPill.color }
+                    }
+                    onSelect={(color) => {
+                      updatePill(editingPill.id, { color: color.value });
+                      setEditingPill({ ...editingPill, color: color.value! });
+                    }}
+                    variant="circle"
+                  />
                 </div>
               </div>
               <div className="flex flex-col h-auto gap-5 md:flex-row">
@@ -677,6 +794,105 @@ export function PillsSettings({
             >
               <Save className="h-5 w-5" strokeWidth={2} />
               {t("pillsSettings.saveChanges") || "Save"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fill Days Dialog */}
+      <Dialog open={!!fillTargetPill} onOpenChange={(o) => !o && setFillTargetPill(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="size-2 text-muted-foreground" />
+              dsadsadsadasFill empty daydsdss — {fillTargetPill?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Fill empty calendar days with the default dosage for this medication
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Weekday picker */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">
+                {fillWeekdays.size === 0 ? "Every day of the week" : "Only on selected days"}
+              </Label>
+              <div className="flex gap-1.5">
+                {([t("days.mon"), t("days.tue"), t("days.wed"), t("days.thu"), t("days.fri"), t("days.sat"), t("days.sun")] as const).map((label, i) => {
+                  const dow = i === 6 ? 0 : i + 1;
+                  const active = fillWeekdays.has(dow);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() =>
+                        setFillWeekdays((prev) => {
+                          const next = new Set(prev);
+                          next.has(dow) ? next.delete(dow) : next.add(dow);
+                          return next;
+                        })
+                      }
+                      className={cn(
+                        "flex-1 h-9 rounded-lg text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-accent hover:bg-accent/70 text-muted-foreground",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Range selector */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Date range</Label>
+              <div className="flex gap-1.5">
+                {(["month", "year", "custom"] as const).map((r) => (
+                  <Button
+                    key={r}
+                    type="button"
+                    size="sm"
+                    variant="tabGroup"
+                    className="flex-1"
+                    onClick={() => {
+                      setFillRange(r);
+                      if (r === "month") {
+                        setFillFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+                        setFillTo(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+                      } else if (r === "year") {
+                        setFillFrom(format(startOfYear(new Date()), "yyyy-MM-dd"));
+                        setFillTo(format(endOfYear(new Date()), "yyyy-MM-dd"));
+                      }
+                    }}
+                  >
+                    {r === "month" ? "This month" : r === "year" ? "This year" : "Custom range"}
+                  </Button>
+                ))}
+              </div>
+              {fillRange === "custom" && (
+                <div className="flex gap-2 pt-1">
+                  <Input type="date" value={fillFrom} onChange={(e) => setFillFrom(e.target.value)} className="flex-1" />
+                  <Input type="date" value={fillTo} onChange={(e) => setFillTo(e.target.value)} className="flex-1" />
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="button"
+              className="w-full"
+              disabled={filling}
+              onClick={handleFillDays}
+            >
+              {filling ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CalendarDays className="size-4" />
+              )}
+              {filling ? "Filling days…" : `Fill empty days with ${fillTargetPill?.defaultDosage} ${(fillTargetPill?.type || "pills") === "pills" ? "pill(s)" : "dose"} per day`}
             </Button>
           </div>
         </DialogContent>

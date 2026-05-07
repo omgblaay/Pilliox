@@ -1,0 +1,2268 @@
+import { Hono } from 'npm:hono@4';
+import { cors } from 'npm:hono/cors';
+import { logger } from 'npm:hono/logger';
+import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
+
+const app = new Hono();
+
+// Hardcode the Supabase credentials so we don't need environment variables
+const SUPABASE_URL = 'https://svlxczytgstimushobmu.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTQ0MzE4MSwiZXhwIjoyMDg1MDE5MTgxfQ.xGsuWAbGM-sNLqkArm4wm64RS3qEDcQl1-8wuXvc_VE';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2bHhjenl0Z3N0aW11c2hvYm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDMxODEsImV4cCI6MjA4NTAxOTE4MX0.zdauijLfW37nFobgwnTdGvvUAG7aAMqUoj1YyYFzDbU';
+
+// Create a Supabase client for database operations with service role
+// Service role bypasses RLS policies automatically
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
+// KV Store functions (inline, no need for separate file)
+// Service role client automatically bypasses RLS
+const kvSet = async (key: string, value: any): Promise<void> => {
+  const { error } = await supabase
+    .from("kv_store_c7e1f966")
+    .upsert({ key, value }, { 
+      onConflict: 'key',
+      ignoreDuplicates: false 
+    });
+  if (error) {
+    // Silently fail on RLS errors - auth works without KV
+    if (error.code === '42501') {
+      // RLS policy violation - expected when RLS is not disabled
+      throw new Error('KV_RLS_ERROR'); // Special error code to catch
+    }
+    console.error(`KV Set Error for key "${key}":`, error);
+    throw new Error(error.message);
+  }
+};
+
+const kvGet = async (key: string): Promise<any> => {
+  const { data, error } = await supabase
+    .from("kv_store_c7e1f966")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+  if (error) {
+    // Silently fail on RLS errors
+    if (error.code === '42501') {
+      throw new Error('KV_RLS_ERROR');
+    }
+    console.error(`KV Get Error for key "${key}":`, error);
+    throw new Error(error.message);
+  }
+  return data?.value;
+};
+
+const kvDel = async (key: string): Promise<void> => {
+  const { error } = await supabase
+    .from("kv_store_c7e1f966")
+    .delete()
+    .eq("key", key);
+  if (error) {
+    // Silently fail on RLS errors
+    if (error.code === '42501') {
+      throw new Error('KV_RLS_ERROR');
+    }
+    console.error(`KV Del Error for key "${key}":`, error);
+    throw new Error(error.message);
+  }
+};
+
+const kvGetByPrefix = async (prefix: string): Promise<any[]> => {
+  const { data, error } = await supabase
+    .from("kv_store_c7e1f966")
+    .select("key, value")
+    .like("key", prefix + "%");
+  if (error) {
+    // Silently fail on RLS errors
+    if (error.code === '42501') {
+      throw new Error('KV_RLS_ERROR');
+    }
+    console.error(`KV GetByPrefix Error for prefix "${prefix}":`, error);
+    throw new Error(error.message);
+  }
+  return data?.map((d) => d.value) ?? [];
+};
+
+// Helper to handle KV operations that might fail due to RLS
+// Returns null/default value on RLS errors instead of throwing
+async function safeKvOperation<T>(
+  operation: () => Promise<T>,
+  defaultValue: T = null as any
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (error.message === 'KV_RLS_ERROR') {
+      // Silently return default value on RLS errors
+      return defaultValue;
+    }
+    // Re-throw other errors
+    throw error;
+  }
+}
+
+// Middleware
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-Token'],
+  exposeHeaders: ['Content-Length', 'X-Request-Id'],
+  maxAge: 86400,
+  credentials: false,
+}));
+
+// Helper function to retry failed requests with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 200
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if error is a connection reset or network error
+      const isNetworkError = 
+        error?.message?.includes('connection reset') ||
+        error?.message?.includes('connection error') ||
+        error?.message?.includes('ECONNRESET') ||
+        error?.message?.includes('fetch failed') ||
+        error?.message?.includes('client error');
+      
+      // If it's the last attempt or not a network error, throw immediately
+      if (attempt === maxRetries - 1 || !isNetworkError) {
+        throw error;
+      }
+      
+      // Wait with exponential backoff before retrying
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms due to: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
+// Helper function to get user from token (supports both OAuth and email/password)
+async function getUserFromToken(accessToken: string): Promise<{ id: string; email: string; name: string } | null> {
+  console.log('[getUserFromToken] Starting token validation...');
+  
+  // First, try to validate as Supabase OAuth token using the SERVICE ROLE to verify the JWT
+  try {
+    console.log('[getUserFromToken] Attempting OAuth token validation...');
+    // Wrap the auth call with retry logic for connection errors
+    const { data, error } = await retryWithBackoff(
+      () => supabase.auth.getUser(accessToken),
+      3, // Reduced to 3 retries for faster failure
+      100 // Start with 100ms delay
+    );
+    
+    if (error) {
+      console.log('[getUserFromToken] OAuth token validation failed:', error.message);
+      // OAuth token validation failed, continue to email/password check
+    } else if (data?.user) {
+      console.log('[getUserFromToken] OAuth token valid for user:', data.user.id);
+      // IMPORTANT: Check if this email already exists as an email/password account
+      // If so, use that account's ID to maintain data continuity
+      const email = data.user.email || '';
+      const existingUser = await findUserByEmail(email);
+      
+      if (existingUser) {
+        console.log('[getUserFromToken] Found existing email/password account for OAuth user');
+        return existingUser;
+      }
+      
+      // Otherwise, use the OAuth user ID
+      return {
+        id: data.user.id,
+        email: email,
+        name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || ''
+      };
+    }
+  } catch (oauthError: any) {
+    // OAuth validation exception - log but don't fail completely
+    // This can happen during transient network issues
+    console.log('[getUserFromToken] OAuth validation exception (will try email/password):', oauthError.message);
+  }
+  
+  console.log('[getUserFromToken] OAuth validation failed, trying email/password token...');
+  
+  // If not OAuth, try email/password token (user ID)
+  let user = users.get(accessToken);
+  if (!user) {
+    console.log('[getUserFromToken] User not in memory, checking KV store...');
+    try {
+      const userData = await safeKvOperation(() => kvGet(`user:${accessToken}`));
+      if (userData) {
+        console.log('[getUserFromToken] Found user in KV store:', userData.id);
+        user = userData;
+        users.set(accessToken, userData);
+      } else {
+        console.log('[getUserFromToken] User not found in KV store');
+      }
+    } catch (kvError: any) {
+      console.warn('[getUserFromToken] KV unavailable:', kvError.message);
+      // User might not be found if not in memory and KV is down
+    }
+  } else {
+    console.log('[getUserFromToken] User found in memory:', user.id);
+  }
+  
+  if (user) {
+    return { id: user.id, email: user.email, name: user.name };
+  }
+  
+  console.log('[getUserFromToken] Token validation failed - no user found');
+  return null;
+}
+
+// Helper function to find user by email in the email/password accounts
+async function findUserByEmail(email: string): Promise<{ id: string; email: string; name: string } | null> {
+  // Check in-memory store first
+  for (const [id, user] of users.entries()) {
+    if (user.email.toLowerCase() === email.toLowerCase()) {
+      return { id: user.id, email: user.email, name: user.name };
+    }
+  }
+  
+  // Try KV store if available (non-critical)
+  try {
+    const userKeys = await kvGetByPrefix('user:');
+    for (const userData of userKeys) {
+      if (userData.email.toLowerCase() === email.toLowerCase()) {
+        // Load into memory for future use
+        users.set(userData.id, userData);
+        return { id: userData.id, email: userData.email, name: userData.name };
+      }
+    }
+  } catch (kvError: any) {
+    console.warn('KV unavailable in findUserByEmail:', kvError.message);
+    // If KV is down, we can only find users in memory
+  }
+  
+  return null;
+}
+
+// Simple in-memory user store for demo (you can replace with real auth later)
+const users = new Map<string, { email: string; password: string; name: string; id: string }>();
+
+// ====== STRIPE WEBHOOK - MUST BE FIRST (before any middleware) ======
+// This endpoint needs to be public and accept requests from Stripe without authentication
+app.post('/make-server-c7e1f966/subscription/webhook', async (c) => {
+  try {
+    const body = await c.req.text();
+    const signature = c.req.header('stripe-signature');
+    const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+
+    let event;
+    try {
+      event = JSON.parse(body);
+    } catch (parseError: any) {
+      return c.json({ error: 'Invalid JSON' }, 400);
+    }
+    
+    // Handle different event types
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        console.log('=== HANDLING CHECKOUT.SESSION.COMPLETED ===');
+        const session = event.data.object;
+        const userId = session.metadata?.userId;
+        
+        console.log('Checkout data:', {
+          userId,
+          customer: session.customer,
+          subscription: session.subscription
+        });
+        
+        if (userId) {
+          try {
+            // Fetch the subscription details from Stripe immediately
+            const subscriptionId = session.subscription;
+            
+            if (subscriptionId && STRIPE_SECRET_KEY) {
+              console.log('Fetching subscription details from Stripe:', subscriptionId);
+              const subResponse = await fetch(
+                `https://api.stripe.com/v1/subscriptions/${subscriptionId}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+                  },
+                }
+              );
+              
+              if (subResponse.ok) {
+                const subscription = await subResponse.json();
+                console.log('Fetched subscription:', {
+                  id: subscription.id,
+                  status: subscription.status,
+                  currentPeriodEnd: subscription.current_period_end,
+                });
+                
+                // Save complete subscription data
+                const subData = await kvGet(`subscription:${userId}`) || {};
+                subData.stripeCustomerId = session.customer;
+                subData.stripeSubscriptionId = subscriptionId;
+                subData.status = subscription.status;
+                subData.currentPeriodEnd = subscription.current_period_end * 1000;
+                subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+                await kvSet(`subscription:${userId}`, subData);
+                console.log(`✅ Checkout completed with full subscription data for user ${userId}`);
+              } else {
+                console.log('Failed to fetch subscription details, saving basic data');
+                const subData = await kvGet(`subscription:${userId}`) || {};
+                subData.stripeCustomerId = session.customer;
+                subData.stripeSubscriptionId = subscriptionId;
+                await kvSet(`subscription:${userId}`, subData);
+              }
+            } else {
+              // Fallback: save basic data
+              const subData = await kvGet(`subscription:${userId}`) || {};
+              subData.stripeCustomerId = session.customer;
+              subData.stripeSubscriptionId = session.subscription;
+              await kvSet(`subscription:${userId}`, subData);
+              console.log(`✅ Checkout completed for user ${userId} (basic data)`);
+            }
+          } catch (kvError: any) {
+            console.log('ERROR: Failed to save checkout data:', kvError.message);
+          }
+        } else {
+          console.log('WARNING: No userId in checkout session metadata');
+        }
+        break;
+      }
+      
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        console.log('=== HANDLING SUBSCRIPTION EVENT ===');
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        console.log('Subscription data:', {
+          type: event.type,
+          customer: customerId,
+          status: subscription.status,
+          subscriptionId: subscription.id
+        });
+        
+        try {
+          // Find user by customer ID - search through all subscription keys
+          const { data: allKeys, error: selectError } = await supabase
+            .from('kv_store_c7e1f966')
+            .select('key, value')
+            .like('key', 'subscription:%');
+          
+          if (selectError) {
+            console.log('ERROR: Failed to query subscriptions:', selectError.message);
+            break;
+          }
+          
+          console.log(`Found ${allKeys?.length || 0} subscription records`);
+          
+          if (allKeys) {
+            let userFound = false;
+            for (const row of allKeys) {
+              const subData = row.value;
+              console.log('Checking subscription record:', {
+                key: row.key,
+                stripeCustomerId: subData.stripeCustomerId
+              });
+              
+              if (subData.stripeCustomerId === customerId) {
+                const userId = row.key.replace('subscription:', '');
+                console.log(`Found matching user: ${userId}`);
+                
+                // Update subscription data
+                subData.status = subscription.status;
+                subData.currentPeriodEnd = subscription.current_period_end * 1000;
+                subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+                subData.stripeSubscriptionId = subscription.id;
+                
+                await kvSet(`subscription:${userId}`, subData);
+                console.log(`✅ Subscription updated for user ${userId}: ${subscription.status}`);
+                userFound = true;
+                break;
+              }
+            }
+            
+            if (!userFound) {
+              console.log('WARNING: No user found for customer:', customerId);
+            }
+          }
+        } catch (dbError: any) {
+          console.log('ERROR: Database error in subscription update:', dbError.message);
+        }
+        break;
+      }
+      
+      case 'customer.subscription.deleted': {
+        console.log('=== HANDLING SUBSCRIPTION DELETED ===');
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        console.log('Subscription deleted - customer:', customerId);
+        
+        try {
+          // Find user by customer ID and mark subscription as cancelled
+          const { data: allKeys, error: selectError } = await supabase
+            .from('kv_store_c7e1f966')
+            .select('key, value')
+            .like('key', 'subscription:%');
+          
+          if (selectError) {
+            console.log('ERROR: Failed to query subscriptions:', selectError.message);
+            break;
+          }
+          
+          if (allKeys) {
+            for (const row of allKeys) {
+              const subData = row.value;
+              if (subData.stripeCustomerId === customerId) {
+                const userId = row.key.replace('subscription:', '');
+                
+                subData.status = 'cancelled';
+                subData.currentPeriodEnd = null;
+                
+                await kvSet(`subscription:${userId}`, subData);
+                console.log(`✅ Subscription cancelled for user ${userId}`);
+                break;
+              }
+            }
+          }
+        } catch (dbError: any) {
+          console.log('ERROR: Database error in subscription deletion:', dbError.message);
+        }
+        break;
+      }
+      
+      default:
+        console.log('Unhandled webhook event type:', event.type);
+    }
+    
+    console.log('=== WEBHOOK COMPLETED SUCCESSFULLY ===');
+    return c.json({ received: true });
+  } catch (error: any) {
+    console.log('=== WEBHOOK ERROR ===');
+    console.log('Error message:', error.message);
+    console.log('Error stack:', error.stack);
+    return c.json({ error: 'Webhook failed', details: error.message }, 400);
+  }
+});
+
+// Health check
+app.get('/make-server-c7e1f966/health', (c) => {
+  return c.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    version: '1.4.3',
+    message: 'Fresh calendar server is running with enhanced logging!',
+    env: {
+      hasStripeSecretKey: !!Deno.env.get('STRIPE_SECRET_KEY'),
+      hasStripePublishableKey: !!Deno.env.get('STRIPE_PUBLISHABLE_KEY'),
+      hasStripeWebhookSecret: !!Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+      stripeSecretKeyPrefix: Deno.env.get('STRIPE_SECRET_KEY')?.substring(0, 10),
+    }
+  });
+});
+
+// Simple signup - creates a user using Supabase Auth
+app.post('/make-server-c7e1f966/signup', async (c) => {
+  try {
+    const { email, password, name } = await c.req.json();
+    
+    if (!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400);
+    }
+    
+    if (password.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log(`[signup] Attempting to create user in Supabase Auth: ${email}`);
+    
+    // Create user in Supabase Auth
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: email,
+      password: password,
+      user_metadata: { name: name || '' },
+      // Automatically confirm the user's email since an email server hasn't been configured
+      email_confirm: true
+    });
+    
+    if (error) {
+      console.log(`[signup] ⚠️ Signup failed: ${error.message} (code: ${error.code || 'unknown'})`);
+      if (error.message.includes('already registered')) {
+        return c.json({ error: 'User already exists' }, 400);
+      }
+      return c.json({ error: `Signup failed: ${error.message}` }, 400);
+    }
+    
+    if (!data.user) {
+      console.log(`[signup] ⚠️ No user returned from Supabase Auth`);
+      return c.json({ error: 'Failed to create user' }, 500);
+    }
+    
+    const userId = data.user.id;
+    console.log(`✅ [signup] User created successfully in Supabase Auth with ID: ${userId}`);
+    
+    // Sign in the user immediately to get a proper session token
+    console.log(`[signup] Signing in the newly created user...`);
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (signInError || !signInData.session) {
+      console.log(`[signup] ⚠️ Auto-signin failed after signup: ${signInError?.message || 'No session'}, using fallback token`);
+      // Fallback: use userId as token
+      const accessToken = userId;
+      const userData = { email, password: '', name: name || '', id: userId };
+      users.set(userId, userData);
+      users.set(accessToken, userData);
+      await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+      await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
+      
+      return c.json({ 
+        user: { id: userId, email, name: name || '' },
+        access_token: accessToken
+      });
+    }
+    
+    const accessToken = signInData.session.access_token;
+    const userName = signInData.user.user_metadata?.name || name || '';
+    
+    // Add to in-memory store for quick access - store by both userId AND access_token
+    const userData = { email, password: '', name: userName, id: userId };
+    users.set(userId, userData);
+    users.set(accessToken, userData);
+    
+    // Try to store in KV for extra features (non-critical, silently fails on RLS)
+    await safeKvOperation(() => kvSet(`user:${userId}`, userData));
+    await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
+    
+    console.log(`✅ [signup] Signup complete for user: ${userId} with proper session token`);
+    
+    return c.json({ 
+      user: { id: userId, email, name: userName },
+      access_token: accessToken
+    });
+  } catch (error: any) {
+    console.log(`[signup] 🔴 Unexpected error: ${error.message}`);
+    return c.json({ error: `Signup failed: ${error.message}` }, 500);
+  }
+});
+
+// Simple login - validates credentials using Supabase Auth
+app.post('/make-server-c7e1f966/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json();
+    
+    console.log(`[login] Login attempt for email: ${email}`);
+    console.log(`[login] 🔍 Checking user existence and authentication method...`);
+    
+    if (!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400);
+    }
+    
+    // First check if user exists and is OAuth-only
+    const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    console.log(`[login] 📋 Retrieved ${userData?.users?.length || 0} users from database`);
+    
+    if (!listError && userData) {
+      const user = userData.users.find(u => u.email === email);
+      
+      // If user doesn't exist at all, return specific error
+      if (!user) {
+        console.log(`[login] ⚠️ User ${email} does not exist in database.`);
+        console.log(`[login] 🔴 Returning user_not_found error (404)`);
+        return c.json({ 
+          error: 'No account found with this email address. Please sign up first.',
+          code: 'user_not_found',
+          suggestion: 'Click the "Sign Up" tab to create a new account.'
+        }, 404);
+      }
+      
+      console.log(`[login] ✅ User ${email} exists in database`);
+      
+      // If user exists but is OAuth-only
+      if (user) {
+        const hasEmailProvider = user.app_metadata?.provider === 'email' || 
+                                 user.identities?.some(id => id.provider === 'email');
+        console.log(`[login] 🔐 Email authentication available: ${hasEmailProvider}`);
+        
+        if (!hasEmailProvider) {
+          console.log(`[login] ⚠️ User ${email} is OAuth-only (registered via Google/Facebook)`);
+          console.log(`[login] 🔴 Returning oauth_only_account error (401)`);
+          return c.json({ 
+            error: 'This account was created with Google or Facebook. Please use those login methods.',
+            code: 'oauth_only_account',
+            suggestion: 'Please use the "Continue with Google" or "Continue with Facebook" button.'
+          }, 401);
+        }
+      }
+    }
+    
+    console.log(`[login] 🚀 Attempting authentication with Supabase...`);
+    
+    // Use Supabase Auth for authentication
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      console.log(`[login] ⚠️ Authentication failed: ${error.message} (code: ${error.code})`);
+      
+      // Provide more detailed error messages
+      if (error.code === 'invalid_credentials') {
+        // We already checked above that user exists (lines 583-591)
+        // So this must be a wrong password
+        console.log(`[login] ❌ Wrong password for ${email}.`);
+        return c.json({ 
+          error: 'Incorrect password. Please try again or use "Forgot Password" to reset.',
+          code: 'wrong_password',
+        }, 401);
+      }
+      
+      if (error.code === 'email_not_confirmed') {
+        console.log(`[login] ⚠️ Email not confirmed for ${email}`);
+        return c.json({ 
+          error: 'Email not confirmed. Please check your email for confirmation link.',
+          code: 'email_not_confirmed'
+        }, 401);
+      }
+      
+      console.log(`[login] ❌ Authentication error: ${error.code || 'unknown'}`);
+      return c.json({ 
+        error: 'Invalid email or password',
+        code: error.code || 'auth_error'
+      }, 401);
+    }
+    
+    if (!data.session || !data.user) {
+      console.error(`[login] No session or user returned from Supabase`);
+      return c.json({ error: 'Invalid email or password' }, 401);
+    }
+    
+    console.log(`✅ [login] Successful login for user: ${data.user.id} (${email})`);
+    
+    const userId = data.user.id;
+    const userName = data.user.user_metadata?.name || '';
+    const accessToken = data.session.access_token;
+    
+    // Create user data object from Supabase Auth (primary source)
+    const userData2 = {
+      id: userId,
+      email: email,
+      name: userName,
+      password: ''
+    };
+    
+    // Add to in-memory store for quick access
+    // Store by both userId AND access_token for flexibility
+    users.set(userId, userData2);
+    users.set(accessToken, userData2);
+    
+    // Optionally try to sync with KV store (non-critical, silently fails on RLS)
+    const kvData = await safeKvOperation(() => kvGet(`user:${userId}`));
+    if (!kvData) {
+      await safeKvOperation(() => kvSet(`user:${userId}`, userData2));
+    }
+    
+    // Also store by access_token in KV for token-based lookups
+    await safeKvOperation(() => kvSet(`user:${accessToken}`, userData2));
+    
+    console.log(`✅ [login] User data stored in memory and KV for userId: ${userId}`);
+    
+    return c.json({ 
+      user: { id: userId, email, name: userData2.name },
+      access_token: accessToken
+    });
+  } catch (error: any) {
+    console.log(`[login] 🔴 Unexpected error: ${error.message}`);
+    return c.json({ error: 'Login failed' }, 500);
+  }
+});
+
+// Verify token (for debugging)
+app.get('/make-server-c7e1f966/verify', async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'No token provided' }, 401);
+    }
+    
+    // Check if user exists
+    let user = users.get(accessToken);
+    
+    if (!user) {
+      // Try loading from KV
+      const userData = await kvGet(`user:${accessToken}`);
+      if (userData) {
+        user = userData;
+        users.set(accessToken, userData);
+      }
+    }
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    return c.json({ 
+      user: { id: user.id, email: user.email, name: user.name },
+      valid: true
+    });
+  } catch (error) {
+    return c.json({ error: 'Verification failed' }, 500);
+  }
+});
+
+// Check if user exists by email
+app.post('/make-server-c7e1f966/check-email', async (c) => {
+  try {
+    const { email } = await c.req.json();
+    
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+    
+    console.log(`[check-email] Checking if user exists: ${email}`);
+    
+    // Use Supabase Admin to check if user exists
+    const { data, error } = await supabase.auth.admin.listUsers();
+    
+    if (error) {
+      console.error(`[check-email] Error listing users:`, error);
+      return c.json({ exists: false, error: 'Unable to check email' }, 500);
+    }
+    
+    const user = data.users.find(u => u.email === email);
+    const userExists = !!user;
+    
+    // Check if user has a password set (not OAuth-only)
+    let isOAuthOnly = false;
+    if (user) {
+      // If user has no email provider in identities, they're OAuth only
+      // OR if they only have oauth providers and no email provider
+      const hasEmailProvider = user.app_metadata?.provider === 'email' || 
+                               user.identities?.some(id => id.provider === 'email');
+      isOAuthOnly = !hasEmailProvider;
+      
+      console.log(`[check-email] User ${email} - OAuth only: ${isOAuthOnly}, provider: ${user.app_metadata?.provider}, identities:`, user.identities?.map(i => i.provider));
+    }
+    
+    console.log(`[check-email] User ${email} exists: ${userExists}, isOAuthOnly: ${isOAuthOnly}`);
+    
+    return c.json({ 
+      exists: userExists, 
+      email,
+      isOAuthOnly 
+    });
+  } catch (error: any) {
+    console.error(`[check-email] Unexpected error:`, error);
+    return c.json({ exists: false, error: 'Failed to check email' }, 500);
+  }
+});
+
+
+
+// Get calendar entries for a specific month
+app.get('/make-server-c7e1f966/calendar/:month', async (c) => {
+  try {
+    // IMPORTANT: Prioritize X-User-Token over Authorization header
+    // (Authorization header might contain anon key from frontend)
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const month = c.req.param('month');
+    const key = `calendar:${user.id}:${month}`;
+    const entries = await kvGet(key);
+    
+    return c.json({ entries: entries || {} });
+  } catch (error) {
+    return c.json({ error: 'Failed to get calendar entries' }, 500);
+  }
+});
+
+// Save calendar entries for a specific month
+app.post('/make-server-c7e1f966/calendar/:month', async (c) => {
+  try {
+    // IMPORTANT: Prioritize X-User-Token over Authorization header
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const month = c.req.param('month');
+    const { entries } = await c.req.json();
+    const key = `calendar:${user.id}:${month}`;
+    
+    await kvSet(key, entries);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to save calendar entries' }, 500);
+  }
+});
+
+// Clear all data for a user
+app.delete('/make-server-c7e1f966/user/data', async (c) => {
+  try {
+    // Get user token from custom header instead of Authorization
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('Clear data error: No access token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('Clear data error: Invalid user token');
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    console.log(`Clearing all calendar data for user: ${user.id}`);
+    
+    // Delete all calendar entries - query keys directly from database
+    const { data: calendarKeys, error } = await supabase
+      .from("kv_store_c7e1f966")
+      .select("key")
+      .like("key", `calendar:${user.id}:%`);
+    
+    if (error) {
+      console.error('Error querying calendar keys:', error);
+      return c.json({ error: 'Failed to query calendar data' }, 500);
+    }
+    
+    console.log(`Found ${calendarKeys?.length || 0} calendar entries to delete`);
+    
+    if (calendarKeys && calendarKeys.length > 0) {
+      for (const row of calendarKeys) {
+        console.log(`Deleting calendar key: ${row.key}`);
+        await kvDel(row.key);
+      }
+    }
+    
+    console.log('Calendar data cleared successfully');
+    return c.json({ success: true, message: 'All calendar data cleared', deleted: calendarKeys?.length || 0 });
+  } catch (error) {
+    console.error('Error clearing calendar data:', error);
+    return c.json({ error: 'Failed to clear data', details: String(error) }, 500);
+  }
+});
+
+// Get user settings
+app.get('/make-server-c7e1f966/settings', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[settings] Error: No access token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    console.log('[settings] Verifying user token (first 20 chars):', accessToken.substring(0, 20) + '...');
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[settings] Error: Invalid user token - getUserFromToken returned null');
+      console.log('[settings] User needs to log out and log back in to refresh their session');
+      return c.json({ 
+        error: 'Invalid token',
+        message: 'Your session is invalid. Please log out and log back in.',
+        requiresReauth: true 
+      }, 401);
+    }
+    
+    console.log(`[settings] Loading settings for user: ${user.id}`);
+    
+    // Get user settings from KV store with safe operation
+    const settings = await safeKvOperation(
+      () => kvGet(`settings:${user.id}`),
+      {
+        weekStartsOnMonday: true,
+        theme: 'system',
+        viewMode: 'month'
+      }
+    );
+    
+    console.log(`[settings] Settings loaded successfully for user: ${user.id}`);
+    
+    return c.json({ 
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        name: user.name 
+      },
+      settings 
+    });
+  } catch (error: any) {
+    console.error('[settings] Error:', error.message, error.stack);
+    return c.json({ error: 'Failed to get settings', details: error.message }, 500);
+  }
+});
+
+// Update user profile
+app.post('/make-server-c7e1f966/profile', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const { name } = await c.req.json();
+    
+    // Update user data in KV store
+    const userData = await kvGet(`user:${user.id}`);
+    if (userData) {
+      userData.name = name;
+      await kvSet(`user:${user.id}`, userData);
+    }
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to update profile' }, 500);
+  }
+});
+
+// Update user settings
+app.post('/make-server-c7e1f966/settings', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const { weekStartsOnMonday, theme, viewMode } = await c.req.json();
+    
+    // Update settings
+    const settings = {
+      weekStartsOnMonday: weekStartsOnMonday ?? true,
+      theme: theme || 'system',
+      viewMode: viewMode || 'month'
+    };
+    
+    await kvSet(`settings:${user.id}`, settings);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to update settings' }, 500);
+  }
+});
+
+// Helper function to check if a string is a valid UUID
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+// ====== PASSWORD MANAGEMENT ======
+
+// Check if user has a password set (or is OAuth-only)
+app.get('/make-server-c7e1f966/auth/has-password', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Check if user has email provider in Supabase Auth
+    const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError || !userData) {
+      return c.json({ hasPassword: false, isOAuthOnly: true });
+    }
+    
+    const supabaseUser = userData.users.find(u => u.email === user.email);
+    if (!supabaseUser) {
+      return c.json({ hasPassword: false, isOAuthOnly: false });
+    }
+    
+    // Check if user has email provider (means they have a password)
+    const hasEmailProvider = supabaseUser.app_metadata?.provider === 'email' || 
+                             supabaseUser.identities?.some(id => id.provider === 'email');
+    
+    return c.json({ 
+      hasPassword: hasEmailProvider,
+      isOAuthOnly: !hasEmailProvider 
+    });
+  } catch (error: any) {
+    console.log('[has-password] 🔴 Error:', error.message);
+    return c.json({ error: 'Failed to check password status' }, 500);
+  }
+});
+
+// Forgot password - send reset OTP
+app.post('/make-server-c7e1f966/auth/forgot-password', async (c) => {
+  try {
+    const { email } = await c.req.json();
+    
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+    
+    console.log(`[forgot-password] OTP request for: ${email}`);
+    
+    // Check if user exists first
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    const userExists = userData?.users?.some(u => u.email === email);
+    
+    if (!userExists) {
+      console.log(`[forgot-password] User not found: ${email}`);
+      // Don't reveal if user exists - return success anyway
+      return c.json({ 
+        message: 'If an account with that email exists, a password reset code has been sent.'
+      });
+    }
+    
+    // Generate 6-digit OTP (000000-999999)
+    const otp = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    
+    // Store OTP in KV with 60 min expiry
+    const otpKey = `password_reset_otp:${email}`;
+    const otpData = {
+      otp,
+      email,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 60 * 60 * 1000, // 60 minutes
+    };
+    
+    try {
+      await kvSet(otpKey, otpData);
+      console.log(`[forgot-password] OTP stored for ${email}: ${otp}`);
+    } catch (error: any) {
+      console.log('[forgot-password] ⚠️ Failed to store OTP:', error.message);
+      return c.json({ error: 'Failed to generate reset code' }, 500);
+    }
+    
+    // Send email with OTP using Supabase Auth
+    const supabaseClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
+    // Use resetPasswordForEmail - OTP will be in URL parameter
+    const { error: emailError } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: `https://www.pilliox.com/forgot-password?otp=${otp}`,
+    });
+    
+    if (emailError) {
+      console.log('[forgot-password] ⚠️ Email send error:', emailError.message);
+    }
+    
+    console.log('[forgot-password] OTP email sent via Supabase');
+    
+    return c.json({ 
+      message: 'If an account with that email exists, a password reset code has been sent.',
+      // For testing - remove in production
+      debug: { otp } 
+    });
+  } catch (error: any) {
+    console.log('[forgot-password] 🔴 Unexpected error:', error.message);
+    return c.json({ 
+      message: 'If an account with that email exists, a password reset code has been sent.' 
+    });
+  }
+});
+
+// Verify OTP and reset password
+app.post('/make-server-c7e1f966/auth/verify-reset-otp', async (c) => {
+  try {
+    const { email, otp, newPassword } = await c.req.json();
+    
+    if (!email || !otp || !newPassword) {
+      return c.json({ error: 'Email, OTP, and new password are required' }, 400);
+    }
+    
+    if (newPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log(`[verify-reset-otp] Verifying OTP for: ${email}`);
+    
+    // Get stored OTP
+    const otpKey = `password_reset_otp:${email}`;
+    let storedData;
+    
+    try {
+      storedData = await kvGet(otpKey);
+    } catch (error: any) {
+      console.log('[verify-reset-otp] ⚠️ Failed to get OTP:', error.message);
+      return c.json({ error: 'Invalid or expired code' }, 400);
+    }
+    
+    if (!storedData) {
+      console.log('[verify-reset-otp] No OTP found for email');
+      return c.json({ error: 'Invalid or expired code' }, 400);
+    }
+    
+    // Check expiry
+    if (Date.now() > storedData.expiresAt) {
+      console.log('[verify-reset-otp] OTP expired');
+      await kvDel(otpKey); // Clean up
+      return c.json({ error: 'Code has expired. Please request a new one.' }, 400);
+    }
+    
+    // Verify OTP
+    if (storedData.otp !== otp) {
+      console.log('[verify-reset-otp] OTP mismatch');
+      return c.json({ error: 'Invalid code' }, 400);
+    }
+    
+    console.log('[verify-reset-otp] OTP verified, updating password');
+    
+    // Get user by email
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    const user = userData?.users?.find(u => u.email === email);
+    
+    if (!user) {
+      console.error('[verify-reset-otp] User not found');
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Update password using admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      user.id,
+      { password: newPassword }
+    );
+    
+    if (updateError) {
+      console.log('[verify-reset-otp] ⚠️ Password update error:', updateError.message);
+      return c.json({ error: 'Failed to update password' }, 500);
+    }
+    
+    // Delete OTP after successful reset
+    await kvDel(otpKey);
+    
+    console.log('[verify-reset-otp] Password reset successful');
+    
+    return c.json({ 
+      message: 'Password reset successful. You can now log in with your new password.'
+    });
+  } catch (error: any) {
+    console.log('[verify-reset-otp] 🔴 Unexpected error:', error.message);
+    return c.json({ error: 'Failed to reset password' }, 500);
+  }
+});
+
+// Reset password with token from email
+app.post('/make-server-c7e1f966/auth/reset-password', async (c) => {
+  try {
+    const { token, newPassword } = await c.req.json();
+    
+    if (!token || !newPassword) {
+      return c.json({ error: 'Token and new password are required' }, 400);
+    }
+    
+    if (newPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log('[reset-password] Attempting to reset password with token');
+    
+    // Verify token and update password
+    const { error } = await supabase.auth.admin.updateUserById(
+      token,
+      { password: newPassword }
+    );
+    
+    if (error) {
+      console.log('[reset-password] ⚠️ Error:', error.message);
+      return c.json({ error: 'Invalid or expired reset token' }, 400);
+    }
+    
+    console.log('✅ [reset-password] Password reset successful');
+    
+    return c.json({ message: 'Password reset successful. You can now log in with your new password.' });
+  } catch (error: any) {
+    console.log('[reset-password] 🔴 Unexpected error:', error.message);
+    return c.json({ error: 'Failed to reset password' }, 500);
+  }
+});
+
+// Change password (for logged-in users)
+app.post('/make-server-c7e1f966/change-password', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const { currentPassword, newPassword } = await c.req.json();
+    
+    if (!newPassword || newPassword.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+    
+    console.log(`[change-password] Request for user: ${user.email}`);
+    
+    // Find user in Supabase Auth
+    const { data: userData, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError || !userData) {
+      return c.json({ error: 'Failed to verify account' }, 500);
+    }
+    
+    const supabaseUser = userData.users.find(u => u.email === user.email);
+    if (!supabaseUser) {
+      console.log(`[change-password] User ${user.email} not found in Supabase Auth.`);
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Check if user has email provider (has password set)
+    const hasEmailProvider = supabaseUser.app_metadata?.provider === 'email' || 
+                             supabaseUser.identities?.some(id => id.provider === 'email');
+    
+    // If user already has a password, validate current password
+    if (hasEmailProvider) {
+      if (!currentPassword) {
+        return c.json({ error: 'Current password is required' }, 400);
+      }
+      
+      // Verify current password
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      
+      if (verifyError) {
+        console.log('[change-password] Current password verification failed');
+        return c.json({ error: 'Current password is incorrect' }, 401);
+      }
+    }
+    
+    // Update password in Supabase Auth
+    const { error } = await supabase.auth.admin.updateUserById(
+      supabaseUser.id,
+      { password: newPassword }
+    );
+    
+    if (error) {
+      console.log('[change-password] ⚠️ Failed to update password:', error.message);
+      return c.json({ error: 'Failed to change password: ' + error.message }, 500);
+    }
+    
+    // If this was an OAuth-only user, we need to add email provider
+    if (!hasEmailProvider) {
+      console.log(`✅ [change-password] Password set for OAuth user ${user.email}`);
+      return c.json({ 
+        success: true,
+        message: 'Password set successfully! You can now log in with email and password.' 
+      });
+    }
+    
+    console.log(`✅ [change-password] Password changed for ${user.email}`);
+    
+    return c.json({ 
+      success: true,
+      message: 'Password changed successfully' 
+    });
+  } catch (error: any) {
+    console.log('[change-password] 🔴 Unexpected error:', error.message);
+    return c.json({ error: 'Failed to change password: ' + error.message }, 500);
+  }
+});
+
+// Delete account
+app.delete('/make-server-c7e1f966/account', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // Verify user using the helper function
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    // Delete all user data
+    await kvDel(`user:${user.id}`);
+    await kvDel(`settings:${user.id}`);
+    
+    // Delete all calendar entries
+    const allKeys = await kvGetByPrefix(`calendar:${user.id}:`);
+    for (const key of allKeys) {
+      await kvDel(`calendar:${user.id}:${key}`);
+    }
+    
+    // Remove from memory
+    users.delete(user.id);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to delete account' }, 500);
+  }
+});
+
+// Clear subscription data (for testing/switching from test to live Stripe)
+app.post('/make-server-c7e1f966/subscription/reset', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    console.log(`[subscription/reset] Clearing subscription data for user: ${user.id}`);
+    
+    // Get current subscription data to log what we're clearing
+    const currentData = await kvGet(`subscription:${user.id}`);
+    console.log(`[subscription/reset] Current data:`, {
+      hasCustomerId: !!currentData?.stripeCustomerId,
+      customerId: currentData?.stripeCustomerId,
+      hasSubscriptionId: !!currentData?.stripeSubscriptionId,
+    });
+    
+    // Delete subscription data completely - this will force creation of new customer
+    await kvDel(`subscription:${user.id}`);
+    
+    console.log(`[subscription/reset] ✅ Subscription data cleared for user: ${user.id}`);
+    
+    return c.json({ 
+      success: true, 
+      message: 'Subscription data cleared. New customer will be created on next checkout.',
+      clearedCustomerId: currentData?.stripeCustomerId,
+    });
+  } catch (error: any) {
+    console.error('[subscription/reset] Error:', error.message);
+    return c.json({ error: 'Failed to reset subscription' }, 500);
+  }
+});
+
+// ====== SUBSCRIPTION ROUTES ======
+
+// Get subscription status
+app.get('/make-server-c7e1f966/subscription/status', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    console.log('[subscription/status] Request received, token present:', !!accessToken);
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    console.log('[subscription/status] User found:', !!user, user?.email);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    // Get subscription data from KV store
+    const subData = await kvGet(`subscription:${user.id}`) || {};
+    
+    console.log('[subscription/status] Subscription data from KV:', {
+      hasData: Object.keys(subData).length > 0,
+      status: subData.status,
+      hasCustomerId: !!subData.stripeCustomerId,
+      hasSubscriptionId: !!subData.stripeSubscriptionId,
+      currentPeriodEnd: subData.currentPeriodEnd,
+      signupDate: subData.signupDate,
+      trialEnd: subData.trialEnd
+    });
+    
+    const now = Date.now();
+    const trialEnd = subData.trialEnd || (subData.signupDate ? subData.signupDate + (3 * 24 * 60 * 60 * 1000) : now + (3 * 24 * 60 * 60 * 1000));
+    
+    // Check if trial is active
+    const isTrialActive = now < trialEnd;
+    
+    // Check if subscription is active ('trialing' also grants access)
+    const isSubscriptionActive = (subData.status === 'active' || subData.status === 'trialing') && subData.currentPeriodEnd && now < subData.currentPeriodEnd;
+    
+    console.log('[subscription/status] Calculated values:', {
+      now: new Date(now).toISOString(),
+      trialEnd: new Date(trialEnd).toISOString(),
+      isTrialActive,
+      isSubscriptionActive,
+      hasAccess: isTrialActive || isSubscriptionActive
+    });
+    
+    // If first time, set signup date
+    if (!subData.signupDate) {
+      subData.signupDate = now;
+      subData.trialEnd = trialEnd;
+      await kvSet(`subscription:${user.id}`, subData);
+      console.log('[subscription/status] First time user - set signup date and trial end');
+    }
+    
+    const response = {
+      hasAccess: isTrialActive || isSubscriptionActive,
+      isTrialActive,
+      trialEndsAt: trialEnd,
+      trialDaysLeft: Math.max(0, Math.ceil((trialEnd - now) / (24 * 60 * 60 * 1000))),
+      subscription: {
+        status: subData.status || 'none',
+        currentPeriodEnd: subData.currentPeriodEnd,
+        cancelAtPeriodEnd: subData.cancelAtPeriodEnd || false,
+        stripeCustomerId: subData.stripeCustomerId,
+        stripeSubscriptionId: subData.stripeSubscriptionId,
+      }
+    };
+    
+    console.log('[subscription/status] Returning response:', response);
+    
+    return c.json(response);
+  } catch (error: any) {
+    console.log('Error getting subscription status:', error.message);
+    return c.json({ error: 'Failed to get subscription status' }, 500);
+  }
+});
+
+// Create Stripe checkout session
+app.post('/make-server-c7e1f966/subscription/create-checkout', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];;
+    
+    console.log('Create checkout - accessToken present:', !!accessToken);
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    console.log('Create checkout - user found:', !!user);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    console.log('Create checkout - Stripe key present:', !!STRIPE_SECRET_KEY);
+    console.log('Create checkout - Stripe key prefix:', STRIPE_SECRET_KEY?.substring(0, 7));
+    console.log('Create checkout - Stripe key type:', STRIPE_SECRET_KEY?.includes('_test_') ? 'TEST' : STRIPE_SECRET_KEY?.includes('_live_') ? 'LIVE' : 'UNKNOWN');
+    
+    if (!STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    // Get subscription data
+    let subData = await kvGet(`subscription:${user.id}`) || {};
+    
+    console.log('Create checkout - existing subscription:', {
+      hasCustomerId: !!subData.stripeCustomerId,
+      hasSubscriptionId: !!subData.stripeSubscriptionId,
+      status: subData.status
+    });
+    
+    // Check if user already has an active subscription
+    if (subData.stripeSubscriptionId) {
+      console.log('Checking existing subscription status...');
+      
+      // Fetch current subscription from Stripe
+      const stripeResponse = await fetch(
+        `https://api.stripe.com/v1/subscriptions/${subData.stripeSubscriptionId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+          },
+        }
+      );
+      
+      if (stripeResponse.ok) {
+        const subscription = await stripeResponse.json();
+        console.log('Existing subscription status:', subscription.status);
+        
+        // If subscription is active or trialing, don't create a new one
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
+          return c.json({ 
+            error: 'You already have an active subscription',
+            existingSubscription: true,
+            status: subscription.status
+          }, 400);
+        }
+      }
+    }
+    
+    // Get or create Stripe customer
+    let customerId = subData.stripeCustomerId;
+    
+    console.log('Create checkout - existing customerId:', customerId);
+    
+    if (!customerId) {
+      // Create Stripe customer
+      console.log('Creating new Stripe customer for:', user.email);
+      const customerResponse = await fetch('https://api.stripe.com/v1/customers', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          email: user.email,
+          'metadata[userId]': user.id
+        })
+      });
+      
+      if (!customerResponse.ok) {
+        const errorData = await customerResponse.text();
+        console.log('Error creating Stripe customer:', errorData);
+        return c.json({ error: 'Failed to create customer', details: errorData }, 500);
+      }
+      
+      const customer = await customerResponse.json();
+      customerId = customer.id;
+      
+      console.log('Created Stripe customer:', customerId);
+      
+      subData.stripeCustomerId = customerId;
+      await kvSet(`subscription:${user.id}`, subData);
+    } else {
+      // Verify existing customer is valid in current mode (test vs live)
+      console.log('Verifying existing customer in current Stripe mode...');
+      const verifyResponse = await fetch(`https://api.stripe.com/v1/customers/${customerId}`, {
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        },
+      });
+      
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json();
+        
+        // Check if customer exists in wrong mode (test customer with live key or vice versa)
+        if (errorData.error?.code === 'resource_missing' && 
+            errorData.error?.message?.includes('similar object exists in')) {
+          console.log('Customer exists in wrong mode (test vs live). Creating new customer...');
+          
+          // Clear old customer ID and create new one
+          subData.stripeCustomerId = null;
+          subData.stripeSubscriptionId = null;
+          
+          // Create new customer in current mode
+          const newCustomerResponse = await fetch('https://api.stripe.com/v1/customers', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              email: user.email,
+              'metadata[userId]': user.id
+            })
+          });
+          
+          if (!newCustomerResponse.ok) {
+            const newErrorData = await newCustomerResponse.text();
+            console.log('Error creating new customer:', newErrorData);
+            return c.json({ error: 'Failed to create customer', details: newErrorData }, 500);
+          }
+          
+          const newCustomer = await newCustomerResponse.json();
+          customerId = newCustomer.id;
+          
+          console.log('Created new customer in correct mode:', customerId);
+          
+          subData.stripeCustomerId = customerId;
+          await kvSet(`subscription:${user.id}`, subData);
+        } else {
+          // Other error - return it
+          console.log('Error verifying customer:', JSON.stringify(errorData));
+          return c.json({ error: 'Invalid customer', details: JSON.stringify(errorData) }, 400);
+        }
+      } else {
+        console.log('Existing customer is valid in current mode');
+      }
+    }
+    
+    // Create checkout session
+    const { returnUrl } = await c.req.json();
+    
+    console.log('Creating checkout session with returnUrl:', returnUrl);
+    
+    const checkoutResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        customer: customerId,
+        'line_items[0][price_data][currency]': 'eur',
+        'line_items[0][price_data][product_data][name]': 'Pilliox Premium',
+        'line_items[0][price_data][product_data][description]': 'Monthly subscription for INR tracking',
+        'line_items[0][price_data][recurring][interval]': 'month',
+        'line_items[0][price_data][unit_amount]': '299', // €2.99 in cents
+        'line_items[0][quantity]': '1',
+        mode: 'subscription',
+        success_url: `${returnUrl || 'https://pilliox.com'}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: returnUrl || 'https://pilliox.com',
+        'metadata[userId]': user.id,
+      })
+    });
+    
+    if (!checkoutResponse.ok) {
+      const errorData = await checkoutResponse.text();
+      console.log('Error creating checkout session:', errorData);
+      return c.json({ error: 'Failed to create checkout session', details: errorData }, 500);
+    }
+    
+    const session = await checkoutResponse.json();
+    
+    return c.json({ 
+      sessionId: session.id,
+      url: session.url 
+    });
+  } catch (error: any) {
+    console.log('Error creating checkout session:', error.message);
+    return c.json({ error: 'Failed to create checkout session' }, 500);
+  }
+});
+
+// Create customer portal session
+app.post('/make-server-c7e1f966/subscription/create-portal', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    if (!STRIPE_SECRET_KEY) {
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    const subData = await kvGet(`subscription:${user.id}`);
+    
+    if (!subData || !subData.stripeCustomerId) {
+      return c.json({ error: 'No subscription found' }, 404);
+    }
+    
+    const { returnUrl } = await c.req.json();
+    
+    // Create portal session
+    const portalResponse = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        customer: subData.stripeCustomerId,
+        return_url: returnUrl || 'https://pilliox.com',
+      })
+    });
+    
+    if (!portalResponse.ok) {
+      const errorData = await portalResponse.text();
+      console.log('Error creating portal session:', errorData);
+      return c.json({ error: 'Failed to create portal session' }, 500);
+    }
+    
+    const portal = await portalResponse.json();
+    
+    return c.json({ url: portal.url });
+  } catch (error: any) {
+    console.log('Error creating portal session:', error.message);
+    return c.json({ error: 'Failed to create portal session' }, 500);
+  }
+});
+
+// Manually sync subscription status from Stripe
+app.post('/make-server-c7e1f966/subscription/sync', async (c) => {
+  console.log('[SYNC BACKEND] === Sync endpoint called ===');
+  
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    console.log('[SYNC BACKEND] Headers:', {
+      hasXUserToken: !!c.req.header('X-User-Token'),
+      hasAuthHeader: !!c.req.header('Authorization'),
+      accessTokenLength: accessToken?.length
+    });
+    
+    if (!accessToken) {
+      console.log('[SYNC BACKEND] ERROR: No access token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    console.log('[SYNC BACKEND] User from token:', user ? `${user.id} (${user.email})` : 'null');
+    
+    if (!user) {
+      console.log('[SYNC BACKEND] ERROR: Invalid token');
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+    
+    if (!STRIPE_SECRET_KEY) {
+      console.log('[SYNC BACKEND] ERROR: Stripe not configured');
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+    
+    const subData = await kvGet(`subscription:${user.id}`);
+    
+    console.log('[SYNC BACKEND] Subscription data:', {
+      hasSubData: !!subData,
+      stripeSubscriptionId: subData?.stripeSubscriptionId
+    });
+    
+    // If no subscription ID stored but we have a customer ID, search Stripe directly
+    if (!subData?.stripeSubscriptionId && subData?.stripeCustomerId) {
+      console.log('[SYNC BACKEND] No subscription ID stored — searching Stripe by customer:', subData.stripeCustomerId);
+      const listResponse = await fetch(
+        `https://api.stripe.com/v1/subscriptions?customer=${subData.stripeCustomerId}&limit=5`,
+        { headers: { 'Authorization': `Bearer ${STRIPE_SECRET_KEY}` } }
+      );
+
+      if (listResponse.ok) {
+        const list = await listResponse.json();
+        const found = list.data?.find((s: any) => s.status === 'active' || s.status === 'trialing');
+        if (found) {
+          console.log('[SYNC BACKEND] Found subscription via customer lookup:', found.id, found.status);
+          subData.stripeSubscriptionId = found.id;
+          subData.status = found.status;
+          subData.currentPeriodEnd = found.current_period_end * 1000;
+          subData.cancelAtPeriodEnd = found.cancel_at_period_end;
+          await kvSet(`subscription:${user.id}`, subData);
+          return c.json({ success: true, status: found.status });
+        }
+      }
+    }
+
+    if (!subData?.stripeSubscriptionId) {
+      console.log('[SYNC BACKEND] No subscription found for user');
+      return c.json({ success: false, status: 'none', message: 'No active subscription found' }, 404);
+    }
+
+    console.log('[SYNC BACKEND] Fetching from Stripe:', subData.stripeSubscriptionId);
+
+    // Fetch subscription from Stripe
+    const stripeResponse = await fetch(
+      `https://api.stripe.com/v1/subscriptions/${subData.stripeSubscriptionId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        },
+      }
+    );
+
+    console.log('[SYNC BACKEND] Stripe response status:', stripeResponse.status);
+
+    if (!stripeResponse.ok) {
+      const errorData = await stripeResponse.text();
+      console.log('[SYNC BACKEND] ERROR from Stripe:', errorData);
+
+      if (stripeResponse.status === 404) {
+        console.log('[SYNC BACKEND] Subscription not found in Stripe - clearing local data');
+        subData.status = 'cancelled';
+        subData.currentPeriodEnd = null;
+        subData.cancelAtPeriodEnd = false;
+        subData.stripeSubscriptionId = null;
+        await kvSet(`subscription:${user.id}`, subData);
+        return c.json({ success: false, status: 'cancelled', message: 'Subscription cancelled' }, 404);
+      }
+
+      return c.json({ error: 'Failed to fetch subscription' }, 500);
+    }
+
+    const subscription = await stripeResponse.json();
+
+    console.log('[SYNC BACKEND] Stripe subscription:', {
+      id: subscription.id,
+      status: subscription.status,
+      currentPeriodEnd: subscription.current_period_end
+    });
+
+    // Update subscription data
+    subData.status = subscription.status;
+    subData.currentPeriodEnd = subscription.current_period_end * 1000;
+    subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+
+    await kvSet(`subscription:${user.id}`, subData);
+
+    console.log(`[SYNC BACKEND] ✅ Subscription synced for user ${user.id}: ${subscription.status}`);
+
+    return c.json({ success: true, status: subscription.status });
+  } catch (error: any) {
+    console.log('[SYNC BACKEND] ERROR Exception:', error.message, error.stack);
+    return c.json({ error: 'Failed to sync subscription' }, 500);
+  }
+});
+
+// Complete checkout - fetch session details from Stripe after successful payment
+app.post('/make-server-c7e1f966/subscription/complete-checkout', async (c) => {
+  console.log('[COMPLETE CHECKOUT] === Complete checkout endpoint called ===');
+  
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[COMPLETE CHECKOUT] ERROR: No access token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[COMPLETE CHECKOUT] ERROR: Invalid token');
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+    
+    const body = await c.req.json();
+    const { sessionId, customerId: bodyCustomerId } = body;
+
+    const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+
+    if (!STRIPE_SECRET_KEY) {
+      console.log('[COMPLETE CHECKOUT] ERROR: Stripe not configured');
+      return c.json({ error: 'Stripe not configured' }, 500);
+    }
+
+    // --- Path A: lookup by customerId (no session required) ---
+    // Used by Force Sync when no session_id is available but customer is known.
+    const subData = await kvGet(`subscription:${user.id}`) || {};
+    const resolvedCustomerId = bodyCustomerId || subData.stripeCustomerId;
+
+    if (!sessionId && resolvedCustomerId) {
+      console.log('[COMPLETE CHECKOUT] No sessionId — looking up subscriptions for customer:', resolvedCustomerId);
+      const listRes = await fetch(
+        `https://api.stripe.com/v1/subscriptions?customer=${resolvedCustomerId}&limit=5`,
+        { headers: { 'Authorization': `Bearer ${STRIPE_SECRET_KEY}` } }
+      );
+      if (!listRes.ok) {
+        return c.json({ error: 'Failed to list subscriptions' }, 500);
+      }
+      const list = await listRes.json();
+      const found = list.data?.find((s: any) => s.status === 'active' || s.status === 'trialing');
+      if (!found) {
+        return c.json({ error: 'No active subscription found for customer' }, 404);
+      }
+      subData.stripeCustomerId = resolvedCustomerId;
+      subData.stripeSubscriptionId = found.id;
+      subData.status = found.status;
+      subData.currentPeriodEnd = found.current_period_end * 1000;
+      subData.cancelAtPeriodEnd = found.cancel_at_period_end;
+      await kvSet(`subscription:${user.id}`, subData);
+      console.log(`[COMPLETE CHECKOUT] ✅ Activated via customer lookup: ${found.status}`);
+      return c.json({ success: true });
+    }
+
+    // --- Path B: lookup by sessionId (normal post-checkout flow) ---
+    if (!sessionId) {
+      return c.json({ error: 'sessionId or customerId is required' }, 400);
+    }
+
+    console.log('[COMPLETE CHECKOUT] Session ID:', sessionId);
+
+    // Fetch checkout session from Stripe
+    console.log('[COMPLETE CHECKOUT] Fetching session from Stripe...');
+    const sessionResponse = await fetch(
+      `https://api.stripe.com/v1/checkout/sessions/${sessionId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+        },
+      }
+    );
+
+    if (!sessionResponse.ok) {
+      const errorData = await sessionResponse.text();
+      console.log('[COMPLETE CHECKOUT] ERROR from Stripe:', errorData);
+      return c.json({ error: 'Failed to fetch checkout session' }, 500);
+    }
+
+    const session = await sessionResponse.json();
+
+    console.log('[COMPLETE CHECKOUT] Checkout session:', {
+      customer: session.customer,
+      subscription: session.subscription,
+      status: session.status
+    });
+
+    // Update subscription data
+    subData.stripeCustomerId = session.customer;
+    subData.stripeSubscriptionId = session.subscription;
+
+    await kvSet(`subscription:${user.id}`, subData);
+
+    console.log(`[COMPLETE CHECKOUT] ✅ Subscription IDs saved for user ${user.id}`);
+
+    // Now fetch and update subscription status
+    if (session.subscription) {
+      const subResponse = await fetch(
+        `https://api.stripe.com/v1/subscriptions/${session.subscription}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+          },
+        }
+      );
+
+      if (subResponse.ok) {
+        const subscription = await subResponse.json();
+        subData.status = subscription.status;
+        subData.currentPeriodEnd = subscription.current_period_end * 1000;
+        subData.cancelAtPeriodEnd = subscription.cancel_at_period_end;
+        await kvSet(`subscription:${user.id}`, subData);
+
+        console.log(`[COMPLETE CHECKOUT] ✅ Subscription status updated: ${subscription.status}`);
+      }
+    }
+
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.log('[COMPLETE CHECKOUT] ERROR Exception:', error.message);
+    return c.json({ error: 'Failed to complete checkout' }, 500);
+  }
+});
+
+// Get pills settings
+app.get('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
+  try {
+    // IMPORTANT: Prioritize X-User-Token over Authorization header
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS GET] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    console.log('[PILLS SETTINGS GET] Validating token...');
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS GET] Invalid token - getUserFromToken returned null');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    
+    console.log('[PILLS SETTINGS GET] User from token:', user.id);
+    console.log('[PILLS SETTINGS GET] UserId from URL:', userId);
+    
+    // Verify user can only access their own settings
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS GET] User trying to access another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const settings = await kvGet(`pills_settings:${userId}`);
+    
+    console.log('[PILLS SETTINGS GET] Settings loaded:', settings ? 'found' : 'not found');
+    
+    return c.json({ pills: settings || [] });
+  } catch (error) {
+    console.log('[PILLS SETTINGS GET] ERROR:', error.message);
+    return c.json({ error: 'Failed to get pills settings' }, 500);
+  }
+});
+
+// Update pills settings
+app.put('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
+  try {
+    // IMPORTANT: Prioritize X-User-Token over Authorization header
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS UPDATE] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS UPDATE] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    
+    // Verify user can only update their own settings
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS UPDATE] User trying to update another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const body = await c.req.json();
+    const { pills } = body;
+    
+    if (!Array.isArray(pills)) {
+      return c.json({ error: 'Invalid pills data' }, 400);
+    }
+    
+    // Validate pills data
+    for (const pill of pills) {
+      if (!pill.id || !pill.name || typeof pill.defaultDosage !== 'number') {
+        return c.json({ error: 'Invalid pill data format' }, 400);
+      }
+    }
+    
+    await kvSet(`pills_settings:${userId}`, pills);
+    
+    console.log(`[PILLS SETTINGS UPDATE] Saved settings for user ${userId}:`, pills.length, 'medications');
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.log('[PILLS SETTINGS UPDATE] ERROR:', error.message);
+    return c.json({ error: 'Failed to update pills settings' }, 500);
+  }
+});
+
+// Add a single medication
+app.post('/make-server-c7e1f966/pills-settings/:userId', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS POST] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS POST] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS POST] User trying to update another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const newPill = await c.req.json();
+    
+    // Validate pill data
+    if (!newPill.id || !newPill.name || typeof newPill.defaultDosage !== 'number') {
+      return c.json({ error: 'Invalid pill data format' }, 400);
+    }
+    
+    // Get existing pills
+    const existingPills = await kvGet(`pills_settings:${userId}`) || [];
+    
+    // Add new pill
+    const updatedPills = [...existingPills, newPill];
+    
+    await kvSet(`pills_settings:${userId}`, updatedPills);
+    
+    console.log(`[PILLS SETTINGS POST] Added medication for user ${userId}`);
+    
+    return c.json({ success: true, pill: newPill });
+  } catch (error) {
+    console.log('[PILLS SETTINGS POST] ERROR:', error.message);
+    return c.json({ error: 'Failed to add medication' }, 500);
+  }
+});
+
+// Update a single medication
+app.put('/make-server-c7e1f966/pills-settings/:userId/:pillId', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS UPDATE SINGLE] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS UPDATE SINGLE] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    const pillId = c.req.param('pillId');
+    
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS UPDATE SINGLE] User trying to update another user settings');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    const updatedPill = await c.req.json();
+    
+    // Validate pill data
+    if (!updatedPill.id || !updatedPill.name || typeof updatedPill.defaultDosage !== 'number') {
+      return c.json({ error: 'Invalid pill data format' }, 400);
+    }
+    
+    // Get existing pills
+    const existingPills = await kvGet(`pills_settings:${userId}`) || [];
+    
+    // Find and update the pill
+    const pillIndex = existingPills.findIndex((p: any) => p.id === pillId);
+    
+    if (pillIndex === -1) {
+      return c.json({ error: 'Medication not found' }, 404);
+    }
+    
+    existingPills[pillIndex] = updatedPill;
+    
+    await kvSet(`pills_settings:${userId}`, existingPills);
+    
+    console.log(`[PILLS SETTINGS UPDATE SINGLE] Updated medication ${pillId} for user ${userId}`);
+    
+    return c.json({ success: true, pill: updatedPill });
+  } catch (error) {
+    console.log('[PILLS SETTINGS UPDATE SINGLE] ERROR:', error.message);
+    return c.json({ error: 'Failed to update medication' }, 500);
+  }
+});
+
+// Delete a single medication
+app.delete('/make-server-c7e1f966/pills-settings/:userId/:pillId', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    
+    if (!accessToken) {
+      console.log('[PILLS SETTINGS DELETE] No token provided');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const user = await getUserFromToken(accessToken);
+    
+    if (!user) {
+      console.log('[PILLS SETTINGS DELETE] Invalid token');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const userId = c.req.param('userId');
+    const pillId = c.req.param('pillId');
+    
+    if (user.id !== userId) {
+      console.log('[PILLS SETTINGS DELETE] User trying to delete another user medication');
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+    
+    // Get existing pills
+    const existingPills = await kvGet(`pills_settings:${userId}`) || [];
+    
+    // Find the pill
+    const pillIndex = existingPills.findIndex((p: any) => p.id === pillId);
+    
+    if (pillIndex === -1) {
+      return c.json({ error: 'Medication not found' }, 404);
+    }
+    
+    // Remove the pill
+    const updatedPills = existingPills.filter((p: any) => p.id !== pillId);
+    
+    await kvSet(`pills_settings:${userId}`, updatedPills);
+    
+    // Also delete all calendar entries for this pill
+    const { data: calendarKeys, error } = await supabase
+      .from("kv_store_c7e1f966")
+      .select("key, value")
+      .like("key", `calendar:${userId}:%`);
+    
+    if (!error && calendarKeys) {
+      for (const row of calendarKeys) {
+        const entries = row.value;
+        let modified = false;
+        
+        // Remove entries for this pill from each day
+        for (const day in entries) {
+          if (entries[day] && entries[day][pillId]) {
+            delete entries[day][pillId];
+            modified = true;
+          }
+        }
+        
+        // Update the calendar month if modified
+        if (modified) {
+          await kvSet(row.key, entries);
+        }
+      }
+    }
+    
+    console.log(`[PILLS SETTINGS DELETE] Deleted medication ${pillId} and its calendar entries for user ${userId}`);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.log('[PILLS SETTINGS DELETE] ERROR:', error.message);
+    return c.json({ error: 'Failed to delete medication' }, 500);
+  }
+});
+
+Deno.serve(app.fetch);
