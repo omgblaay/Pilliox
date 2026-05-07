@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
 import { Check, X } from "lucide-react";
-import { ColorPicker } from "./ColorPicker";
+import { ColorPicker, COLORS } from "./ColorPicker";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -16,16 +16,6 @@ import { Label } from "./ui/label";
 import { cn } from "./ui/utils";
 import { MiniDayPicker } from "./MiniDayPicker";
 
-export const COLORS = [
-  { name: "Blue", value: "bg-blue-100 border-blue-300 text-blue-700", dark: "#1E3A8A", hex: "#DBEAFE" },
-  { name: "Green", value: "bg-green-100 border-green-300 text-green-700", dark: "#065F46", hex: "#D1FAE5" },
-  { name: "Purple", value: "bg-purple-100 border-purple-300 text-purple-700", dark: "#6B21A8", hex: "#F3E8FF" },
-  { name: "Pink", value: "bg-pink-100 border-pink-300 text-pink-700", dark: "#9F1239", hex: "#FCE7F3" },
-  { name: "Yellow", value: "bg-yellow-100 border-yellow-300 text-yellow-700", dark: "#92400E", hex: "#FEF3C7" },
-  { name: "Orange", value: "bg-orange-100 border-orange-300 text-orange-700", dark: "#9A3412", hex: "#FFEDD5" },
-  { name: "Red", value: "bg-red-100 border-red-300 text-red-700", dark: "#991B1B", hex: "#FEE2E2" },
-  { name: "Indigo", value: "bg-indigo-100 border-indigo-300 text-indigo-700", dark: "#3730A3", hex: "#E0E7FF" },
-];
 
 
 interface MarkDaysDialogProps {
@@ -93,7 +83,6 @@ export function MarkDaysDialog({
 
           {/* Color Picker */}
           <ColorPicker
-            colors={COLORS}
             selectedColor={selectedColor}
             onSelect={(color) => setSelectedColor(color as typeof COLORS[0])}
             isDarkMode={isDarkMode}

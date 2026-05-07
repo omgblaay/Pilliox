@@ -48,6 +48,7 @@ export function AuthForm({
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
+  const [signupDateOfBirth, setSignupDateOfBirth] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +107,7 @@ export function AuthForm({
             email: signupEmail,
             password: signupPassword,
             name: signupName,
+            dateOfBirth: signupDateOfBirth || undefined,
           }),
         },
       );
@@ -430,6 +432,27 @@ export function AuthForm({
                     setSignupName(e.target.value)
                   }
                   autoComplete="name"
+                />
+              </div>
+
+              {/* Date of Birth Field */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="signup-dob"
+                  className="text-gray-900 dark:text-white text-sm font-medium"
+                >
+                  {t("auth.dateOfBirth") || "Date of Birth"}{" "}
+                  <span className="text-gray-400 dark:text-[#888] font-normal">
+                    ({t("common.optional") || "optional"})
+                  </span>
+                </label>
+                <Input
+                  id="signup-dob"
+                  type="date"
+                  value={signupDateOfBirth}
+                  onChange={(e) => setSignupDateOfBirth(e.target.value)}
+                  autoComplete="bday"
+                  max={new Date().toISOString().split("T")[0]}
                 />
               </div>
 

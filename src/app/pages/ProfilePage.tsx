@@ -43,7 +43,10 @@ export function ProfilePage({
 }: ProfilePageProps) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [savedName, setSavedName] = useState("");
+  const [savedDateOfBirth, setSavedDateOfBirth] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [stats, setStats] = useState({
     totalEntries: 0,
@@ -109,6 +112,9 @@ export function ProfilePage({
       if (data.user?.name) {
         setName(data.user.name);
       }
+      if (data.user?.dateOfBirth) {
+        setDateOfBirth(data.user.dateOfBirth);
+      }
     } catch (error) {
       console.error("Failed to load profile:", error);
     }
@@ -146,11 +152,13 @@ export function ProfilePage({
             Authorization: `Bearer ${anonKey}`,
             "X-User-Token": accessToken,
           },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, dateOfBirth: dateOfBirth || undefined }),
         },
       );
 
       if (response.ok) {
+        setSavedName(name);
+        setSavedDateOfBirth(dateOfBirth);
         setIsEditing(false);
       }
     } catch (error) {
@@ -330,24 +338,38 @@ export function ProfilePage({
               </div>
               <div className="flex-1">
                 {isEditing ? (
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={
-                      t("profile.namePlaceholder") ||
-                      "Your name"
-                    }
-                    className="font-semibold text-lg"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={
+                        t("profile.namePlaceholder") || "Your name"
+                      }
+                      className="font-semibold text-lg"
+                    />
+                    <Input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
+                      placeholder={t("profile.dateOfBirth") || "Date of birth (optional)"}
+                    />
+                  </div>
                 ) : (
                   <h2 className="text-xl font-bold text-foreground">
                     {name || t("profile.noName") || "User"}
                   </h2>
                 )}
                 <p className="small flex gap-2 items-center mt-2">
-                  <Mail className="w-4 h-4" />
+                  <Mail className="size-4" />
                   {userEmail}
                 </p>
+                {!isEditing && dateOfBirth && (
+                  <p className="small flex gap-2 items-center mt-1">
+                    <Calendar className="size-4"/>
+                    {new Date(dateOfBirth).toLocaleDateString()}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -365,8 +387,9 @@ export function ProfilePage({
                 <Button
                   variant="outline"
                   onClick={() => {
+                    setName(savedName);
+                    setDateOfBirth(savedDateOfBirth);
                     setIsEditing(false);
-                    loadProfile();
                   }}
                   className="flex-1"
                 >
@@ -375,7 +398,11 @@ export function ProfilePage({
               </div>
             ) : (
               <Button
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  setSavedName(name);
+                  setSavedDateOfBirth(dateOfBirth);
+                  setIsEditing(true);
+                }}
                 variant="outline"
                 className="w-full"
               >
@@ -394,7 +421,7 @@ export function ProfilePage({
           <Card className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <Calendar/>
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">

@@ -20,8 +20,8 @@ interface DayProps {
 }
 
 interface HighlightColor {
-  hex: string;
-  dark: string;
+  hex?: string;
+  dark?: string;
 }
 
 interface MiniDayPickerProps {
@@ -58,7 +58,7 @@ export function MiniDayPicker({
   getDayProps,
   onDayClick,
 }: MiniDayPickerProps) {
-  const highlightBg = isDarkMode ? highlightColor.dark : highlightColor.hex;
+  const highlightBg = (isDarkMode ? highlightColor.dark : highlightColor.hex) ?? highlightColor.hex ?? highlightColor.dark ?? "#DBEAFE";
   const highlightText = isLightColor(highlightBg) ? TEXT_ON_LIGHT : TEXT_ON_DARK;
   const { t } = useTranslation();
   const dayHeaders = weekStartsOnMonday

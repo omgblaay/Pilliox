@@ -35,10 +35,7 @@ import {
   Settings as SettingsIcon,
   User,
   Pencil,
-  Calendar,
-  CalendarDays,
   Menu,
-  Info,
   Home,
   Crown,
   Bell,
@@ -62,6 +59,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { AboutModal } from "./AboutModal";
+import { SidebarMenu } from "./SidebarMenu";
 import { AdHocMedicationDialog, type AdHocMedicationData } from "./AdHocMedicationDialog";
 import {
   Select,
@@ -82,9 +80,9 @@ import { BottomNavigation } from "./BottomNavigation";
 import { Logo } from "../components/Logo";
 import { fetchWithTokenRefresh } from "../../utils/api-client";
 import { MiniDayPicker } from "./MiniDayPicker";
-import { ColorPicker } from "./ColorPicker";
+import { ColorPicker, COLORS } from "./ColorPicker";
 import { EditDayDialog } from "./EditDayDialog";
-import { MarkDaysDialog, COLORS as MARK_COLORS } from "./MarkDaysDialog";
+import { MarkDaysDialog } from "./MarkDaysDialog";
 
 interface PillDosage {
   pillId: string;
@@ -121,9 +119,6 @@ interface CalendarViewProps {
   anonKey: string;
 }
 
-const COLORS = MARK_COLORS;
-
-
 // Helper function to get the appropriate color for the current theme
 function getColorForTheme(
   storedColor: string,
@@ -133,9 +128,9 @@ function getColorForTheme(
 
   // Find if this is a known light color and return its dark variant
   const colorObj = COLORS.find(
-    (c) => c.hex.toLowerCase() === storedColor.toLowerCase(),
+    (c) => c.hex?.toLowerCase() === storedColor.toLowerCase(),
   );
-  return colorObj ? colorObj.dark : storedColor;
+  return colorObj ? (colorObj.dark ?? storedColor) : storedColor;
 }
 
 export function CalendarView({
@@ -1011,7 +1006,7 @@ export function CalendarView({
     return Object.keys(entries).filter((dateKey) => {
       const entry = entries[dateKey];
       return (
-        entry.color === currentColor && entry.tag === currentTag
+        entry.color === currentColor && (entry.tag ?? "") === (currentTag ?? "")
       );
     });
   };
@@ -1076,12 +1071,12 @@ export function CalendarView({
 
     const dateKey = format(selectedDate, "yyyy-MM-dd");
     const currentEntry = entries[dateKey];
-    if (!currentEntry?.color || !currentEntry?.tag) return;
+    if (!currentEntry?.color) return;
 
-    // Find all days with the same color and tag
+    // Find all days with the same color and tag (tag may be empty string)
     const groupedDays = findGroupedDays(
       currentEntry.color,
-      currentEntry.tag,
+      currentEntry.tag ?? "",
     );
 
     // Update all grouped days plus any newly added days, minus removed ones
@@ -1104,7 +1099,7 @@ export function CalendarView({
     allDaysToUpdate.forEach((dayKey) => {
       newEntries[dayKey] = {
         ...newEntries[dayKey],
-        tag: tempTagText,
+        tag: tempTagText || undefined,
         color: tempTagColor.hex,
       };
     });
@@ -1129,7 +1124,7 @@ export function CalendarView({
     // Find the color object from the hex value
     const colorObj = COLORS.find(
       (c) =>
-        c.hex.toLowerCase() ===
+        c.hex?.toLowerCase() ===
         currentEntry.color?.toLowerCase(),
     );
     setTempTagColor(colorObj || COLORS[0]);
@@ -1227,196 +1222,18 @@ export function CalendarView({
       )}
 
       {/* Mobile Sidebar Menu */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            {/* Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 z-50 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-
-            {/* Sidebar */}
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{
-                type: "spring",
-                damping: 30,
-                stiffness: 300,
-              }}
-              className="fixed top-0 left-0 h-full w-[280px] bg-card border-r border-border z-50 lg:hidden overflow-y-auto"
-            >
-              {/* Sidebar Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <Logo />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-full"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </Button>
-              </div>
-
-              {/* Menu Items */}
-              <div className="p-4 flex flex-col items-strech space-y-1">
-                {/* View Mode Section */}
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setViewMode("week");
-                    saveViewMode("week");
-                    setSidebarOpen(false);
-                  }}
-                  className={cn(
-                    "justify-start",
-                    viewMode === "week"
-                      ? "bg-blue-500/10 text-blue-400"
-                      : "",
-                  )}
-                >
-                  <Calendar className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("calendar.weekView")}
-                  </span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setViewMode("month");
-                    saveViewMode("month");
-                    setSidebarOpen(false);
-                  }}
-                  className={cn(
-                    "justify-start",
-                    viewMode === "month"
-                      ? "bg-blue-500/10 text-blue-400"
-                      : "",
-                  )}
-                >
-                  <CalendarDays className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("calendar.monthView")}
-                  </span>
-                </Button>
-
-                {/* Separator */}
-                <div className="h-px bg-border my-2" />
-
-                {/* Mark Days */}
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={() => {
-                    setMultiSelectMode(true);
-                    setSidebarOpen(false);
-                  }}
-                >
-                  <Palette className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("calendar.markDays")}
-                  </span>
-                </Button>
-
-                {/* Separator */}
-                <div className="h-px bg-border my-2" />
-
-                {/* Settings Section */}
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={() => {
-                    navigate("/app/profile");
-                    setSidebarOpen(false);
-                  }}
-                >
-                  <User className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("profile.title")}
-                  </span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={() => {
-                    if (userId) {
-                      navigate("/medications", {
-                        replace: true,
-                      });
-                      setSidebarOpen(false);
-                    } else {
-                      console.error(
-                        "Cannot open pills settings: userId not loaded yet",
-                      );
-                    }
-                  }}
-                  disabled={!userId}
-                >
-                  <Pill className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("pillsSettings.title")}
-                  </span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={() => {
-                    navigate("/app/settings");
-                    setSidebarOpen(false);
-                  }}
-                >
-                  <SettingsIcon className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("settings.title")}
-                  </span>
-                </Button>
-{/* Separator 
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={() => {
-                    setSidebarOpen(false);
-                    navigate("/app/subscription");
-                  }}
-                >
-                  <Crown className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("subscription.title") || "Subscription"}
-                  </span>
-                </Button>*/}
-
-                {/* Separator */}
-                <div className="h-px bg-border my-2" />
-
-                {/* About App */}
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={() => {
-                    setAboutOpen(true);
-                    setSidebarOpen(false);
-                  }}
-                >
-                  <Info className="h-5 w-5" />
-                  <span className="text-[15px] font-medium">
-                    {t("about.title")}
-                  </span>
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <SidebarMenu
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        viewMode={viewMode}
+        onViewModeChange={(mode) => {
+          setViewMode(mode);
+          saveViewMode(mode);
+        }}
+        onMarkDays={() => setMultiSelectMode(true)}
+        onAbout={() => setAboutOpen(true)}
+        userId={userId}
+      />
 
       {/* Header */}
       <div>
@@ -2277,7 +2094,6 @@ export function CalendarView({
 
             {/* Color Picker */}
             <ColorPicker
-              colors={COLORS}
               selectedColor={tempTagColor}
               onSelect={(color) => setTempTagColor(color as typeof COLORS[0])}
               isDarkMode={isDarkMode}
@@ -2288,8 +2104,8 @@ export function CalendarView({
               const dateKey = format(selectedDate, "yyyy-MM-dd");
               const currentEntry = entries[dateKey];
               const alreadyGrouped = new Set(
-                currentEntry?.color && currentEntry?.tag
-                  ? findGroupedDays(currentEntry.color, currentEntry.tag)
+                currentEntry?.color
+                  ? findGroupedDays(currentEntry.color, currentEntry.tag ?? "")
                   : [dateKey],
               );
               return (

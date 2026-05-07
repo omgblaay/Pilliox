@@ -12,10 +12,12 @@ import {
   ArrowLeft,
   Monitor,
   Shield,
+  Info,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { BottomNavigation } from "../components/BottomNavigation";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { AboutModal } from "../components/AboutModal";
 
 interface SettingsPageProps {
   accessToken: string;
@@ -41,6 +43,7 @@ export function SettingsPage({
   >("system");
   const [weekStartsOnMonday, setWeekStartsOnMonday] =
     useState(true);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -161,16 +164,8 @@ export function SettingsPage({
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <Moon className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">
+                  <Moon className="text-muted-foreground" />
                       {t("settings.theme.title") || "Theme"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t("settings.theme.description") ||
-                        "Choose your color scheme"}
-                    </p>
-                  </div>
                 </div>
               </div>
               <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
@@ -182,7 +177,7 @@ export function SettingsPage({
                     theme === "light" ? "active" : "inactive"
                   }
                 >
-                  <Sun className="w-5 h-5" />
+                  <Sun className="size-5" />
                   {t("settings.theme.light") || "Light"}
                 </Button>
                 <Button
@@ -193,7 +188,7 @@ export function SettingsPage({
                     theme === "dark" ? "active" : "inactive"
                   }
                 >
-                  <Moon className="w-5 h-5" />
+                  <Moon className="size-5" />
                   {t("settings.theme.dark") || "Dark"}
                 </Button>
                 <Button
@@ -204,7 +199,7 @@ export function SettingsPage({
                     theme === "system" ? "active" : "inactive"
                   }
                 >
-                  <Monitor className="w-5 h-5" />
+                  <Monitor className="size-5" />
                   {t("settings.theme.system") || "System"}
                 </Button>
               </div>
@@ -215,18 +210,14 @@ export function SettingsPage({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Globe className="size-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">
                       {t("settings.language.title") ||
                         "Language"}
-                    </p>
-                  </div>
                 </div>
                 <LanguageSelector variant="outline" />
               </div>
             </div>
             {/* Calendar First Day */}
-                        <div className="p-4 flex items-center justify-between">
+           <div className="p-4 flex flex-col  sm:flex-row sm:items-center gap-4 justify-between">
               <div>
                 <p className="font-medium text-foreground mx-[0px] mt-[0px] mb-[8px]">
                   {t("settings.weekStart.title") ||
@@ -267,15 +258,12 @@ export function SettingsPage({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            {t("settings.legal.title") || "Legal"}
-          </h2>
           <Card className="divide-y divide-border">
             <Button
               variant="menuItem"
               onClick={onNavigateToTerms}
             >
-                <FileText className="w-5 h-5 text-muted-foreground" />
+                <FileText/>
                   {t("settings.termsOfService") ||
                     "Terms of Service"}
             </Button>
@@ -284,13 +272,17 @@ export function SettingsPage({
               variant="menuItem"
               onClick={onNavigateToPrivacy}
             >
-              <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium text-foreground">
+                <Shield/>
                   {t("settings.privacyPolicy") ||
                     "Privacy Policy"}
-                </span>
-              </div>
+            </Button>
+            <Button
+              variant="menuItem"
+              onClick={() => setAboutOpen(true)}
+            >
+                <Info />
+                  {t("about.title") ||
+                    "About Pilliox"}
             </Button>
           </Card>
         </motion.div>
@@ -303,13 +295,15 @@ export function SettingsPage({
           className="text-center pt-4 pb-2"
         >
           <p className="text-xs text-muted-foreground">
-            Pilliox v1.6.0
+            Pilliox v1.8.0
           </p>
         </motion.div>
       </div>
 
       {/* Bottom Navigation */}
       <BottomNavigation />
+
+      <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   );
 }
