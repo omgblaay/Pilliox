@@ -159,7 +159,7 @@ export default {
     sessionExpired:
       "Your session has expired. Please request a new reset link.",
     passwordResetFailed: "Password Reset Failed",
-    orContinueWith: "Or continue with",
+    orContinueWith: "Or",
     bySigningUp: "By continuing, you agree to our",
     and: "and",
     termsOfService: "Terms of Service",
@@ -362,6 +362,7 @@ export default {
       security: "Security",
     },
     emailNotEditable: "Email cannot be changed",
+    dateOfBirth: "Date of birth",
     namePlaceholder: "Your name",
     noName: "User",
     editProfile: "Edit Profile",
