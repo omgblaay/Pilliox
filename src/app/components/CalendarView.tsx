@@ -1998,7 +1998,7 @@ export function CalendarView({
                                           <div
                                             key={pillSetting.id}
                                             style={{ borderColor: pillSetting.color || "#a855f7", color: pillSetting.color || "#a855f7" }}
-                                            className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md whitespace-nowrap border border-dashed opacity-40"
+                                            className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md whitespace-nowrap border border-dashed opacity-90"
                                           >
                                             <Pill className="h-3 w-3" />
                                             <span>
@@ -2356,7 +2356,7 @@ export function CalendarView({
                     return {
                       className: cn(
                         inGroup && !markedForRemoval && "cursor-pointer font-semibold",
-                        inGroup && markedForRemoval && "cursor-pointer opacity-40 line-through",
+                        inGroup && markedForRemoval && "cursor-pointer opacity-90 line-through",
                         !inGroup && !selected && "hover:bg-accent cursor-pointer",
                         !inGroup && selected && "ring-1 ring-offset-1 ring-primary font-semibold cursor-pointer",
                       ),
