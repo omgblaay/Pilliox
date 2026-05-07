@@ -207,21 +207,18 @@ export function EditDayDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="small" className="!p-0 gap-0 overflow-hidden">
+      <DialogContent size="small">
         {/* Header */}
-        <DialogHeader className="px-6 h-16 flex-row items-center space-between to-card">
-          <DialogTitle className="flex-1">
+        <DialogHeader>
+          <DialogTitle className="flex-1 ">
             {t("calendar.day", { count: selectedDates.size })}
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            {t("day.description")}
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="px-[24px] py-[10px] bg-accent to-card border-t border-b border-border">
-          <div className="flex items-center justify-between gap-2">
+        <div className="px-2 py-4 rounded-full bg-accent">
+          <div className="flex rounded-full items-center justify-between gap-2">
             <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
-              <ChevronLeft className="h-4 w-4 text-foreground" />
+              <ChevronLeft/>
             </Button>
             <motion.div
               className="flex-1 overflow-hidden"
@@ -246,14 +243,13 @@ export function EditDayDialog({
               </AnimatePresence>
             </motion.div>
             <Button variant="ghost" size="icon" onClick={navigateToNextDay}>
-              <ChevronRight className="size-4 text-foreground" />
+              <ChevronRight/>
             </Button>
           </div>
         </div>
 
         {/* Content */}
         <motion.div
-          className="px-6 py-5 space-y-5"
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
@@ -387,7 +383,7 @@ export function EditDayDialog({
                             ? pillDosage!.dosage
                             : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
                           return (
-                            <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                            <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-750  hover:bg-muted/30 transition-colors">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -399,8 +395,8 @@ export function EditDayDialog({
                                   }
                                 }}
                                 className={cn(
-                                  "h-7 w-7 rounded-lg border-2 flex items-center justify-center transition-colors",
-                                  isSelected ? "bg-blue-600" : "border-gray-300 dark:border-gray-600",
+                                  "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
+                                  isSelected ? "bg-blue-600" : "border-gray-400 dark:border-gray-600",
                                 )}
                               >
                                 {isSelected && <Check className="h-4 w-4 text-white" />}
@@ -411,7 +407,7 @@ export function EditDayDialog({
                               <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
                                 {pillSetting.name}
                               </span>
-                              <div className="flex items-center border rounded-md overflow-hidden h-12">
+                              <div className="flex items-center border border-[#4d4c54] rounded-md overflow-hidden h-12">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -521,7 +517,7 @@ export function EditDayDialog({
                         <Label>{t("calendar.otherMedications") || "Other Medications"}</Label>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => setAddAdHocDialogOpen(true)}>
-                        <Plus className="h-3 w-3 mr-1" />
+                        <Plus className="size-4 mr-1" />
                         {t("calendar.addMed") || "Add"}
                       </Button>
                     </div>
