@@ -42,6 +42,7 @@ export function ProfilePage({
   onLogout,
 }: ProfilePageProps) {
   const { t } = useTranslation();
+  const PROFILE_CACHE_KEY = "pilliox_profile_cache";
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -98,6 +99,16 @@ export function ProfilePage({
   };
 
   const loadProfile = async () => {
+    // Restore from local cache immediately so the UI isn't blank on revisit
+    try {
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (cached) {
+        const { name: cachedName, dateOfBirth: cachedDob } = JSON.parse(cached);
+        if (cachedName) setName(cachedName);
+        if (cachedDob) setDateOfBirth(cachedDob);
+      }
+    } catch {}
+
     try {
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/settings`,
@@ -109,12 +120,10 @@ export function ProfilePage({
         },
       );
       const data = await response.json();
-      if (data.user?.name) {
-        setName(data.user.name);
-      }
-      if (data.user?.dateOfBirth) {
-        setDateOfBirth(data.user.dateOfBirth);
-      }
+      // Server values take priority over cache when present
+      if (data.user?.name) setName(data.user.name);
+      const serverDob = data.user?.dateOfBirth ?? data.user?.date_of_birth;
+      if (serverDob) setDateOfBirth(serverDob.split("T")[0]);
     } catch (error) {
       console.error("Failed to load profile:", error);
     }
@@ -160,6 +169,9 @@ export function ProfilePage({
         setSavedName(name);
         setSavedDateOfBirth(dateOfBirth);
         setIsEditing(false);
+        try {
+          localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ name, dateOfBirth }));
+        } catch {}
       }
     } catch (error) {
       console.error("Failed to save profile:", error);
@@ -338,7 +350,7 @@ export function ProfilePage({
               </div>
               <div className="flex-1">
                 {isEditing ? (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col md:flex-row gap-4">
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
