@@ -321,7 +321,7 @@ class NotificationService {
 
     const scheduledIds: number[] = [];
     const maxNotifications = 30;
-    const minDelayMs = 2 * 60 * 1000; // 2 minutes minimum
+    const minDelayMs = 30 * 1000; // 30 seconds minimum
 
     // Cancel existing web notifications for this pill
     await this.cancelWebNotificationsForPill(pill.id);
@@ -408,7 +408,7 @@ class NotificationService {
    */
   private async showWebNotificationById(title: string, body: string, notificationId: number, pillId: string): Promise<void> {
     if (!('Notification' in window) || Notification.permission !== 'granted') {
-      console.warn('Cannot show notification: permission not granted');
+      console.warn('[NotificationService] Cannot show notification: permission not granted');
       return;
     }
 
@@ -421,9 +421,10 @@ class NotificationService {
       data: { pillId, notificationId, url: '/' },
     };
 
-    // Chrome silently drops new Notification() when a service worker controls the page.
-    // Use ServiceWorkerRegistration.showNotification() when a SW is active.
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    // Always prefer SW notifications when a service worker is registered.
+    // navigator.serviceWorker.controller is null on first load (before claim()),
+    // but navigator.serviceWorker.ready resolves as soon as an active SW exists.
+    if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
         await registration.showNotification(title, options);
@@ -544,6 +545,57 @@ class NotificationService {
     } catch (error) {
       console.error('Failed to remove notification from storage:', error);
     }
+  }
+
+  /**
+   * Schedule a single one-time notification for a specific date and time.
+   * Used for ad-hoc medications that have a reminder set for a particular day.
+   */
+  async scheduleOneTimeNotification(
+    id: string,
+    scheduledDate: Date,
+    title: string,
+    body: string,
+  ): Promise<void> {
+    const hasPermission = await this.ensurePermissions();
+    if (!hasPermission) return;
+
+    if (this.isNativePlatform) {
+      if (scheduledDate <= new Date()) return;
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: Math.abs(id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2147483647,
+          title,
+          body,
+          schedule: { at: scheduledDate },
+          channelId: this.NOTIFICATION_CHANNEL.id,
+        }],
+      });
+      return;
+    }
+
+    const delay = scheduledDate.getTime() - Date.now();
+    if (delay < 30_000 || delay > MAX_TIMEOUT_MS) return;
+
+    const notificationId = Math.abs(id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2147483647;
+
+    // Cancel any existing one for this id
+    const existing = this.scheduledWebNotifications.find(n => n.id === notificationId);
+    if (existing) {
+      clearTimeout(existing.timeoutId);
+      this.scheduledWebNotifications = this.scheduledWebNotifications.filter(n => n.id !== notificationId);
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void this.showWebNotificationById(title, body, notificationId, id);
+      this.scheduledWebNotifications = this.scheduledWebNotifications.filter(n => n.id !== notificationId);
+      this.removeNotificationFromStorage(notificationId);
+    }, delay);
+
+    this.scheduledWebNotifications.push({ id: notificationId, pillId: id, scheduledTime: scheduledDate, timeoutId });
+
+    const stored: StoredWebNotification = { id: notificationId, pillId: id, title, body, scheduledTime: scheduledDate.toISOString() };
+    this.saveWebNotificationsToStorage([stored], id);
   }
 
   /**
@@ -682,16 +734,12 @@ class NotificationService {
           ],
         });
       } else {
-        // Web: Show immediate browser notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('💊 Test Notification', {
-            body: 'If you can see this, notifications are working!',
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            requireInteraction: false,
-            vibrate: [200, 100, 200],
-          });
-        }
+        await this.showWebNotificationById(
+          '💊 Test Notification',
+          'If you can see this, notifications are working!',
+          999999,
+          'test',
+        );
       }
     } catch (error) {
       console.error('Failed to send test notification:', error);

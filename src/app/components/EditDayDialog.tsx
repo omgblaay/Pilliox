@@ -215,7 +215,7 @@ export function EditDayDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-2 py-4 rounded-full bg-accent">
+        <div className="px-2 py-2 rounded-full bg-accent">
           <div className="flex rounded-full items-center justify-between gap-2">
             <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
               <ChevronLeft/>
@@ -512,12 +512,12 @@ export function EditDayDialog({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                          <Plus className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                          <Pill className="size-4 text-amber-700 dark:text-amber-400" />
                         </div>
                         <Label>{t("calendar.otherMedications") || "Other Medications"}</Label>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setAddAdHocDialogOpen(true)}>
-                        <Plus className="size-4 mr-1" />
+                      <Button variant="secondary" size="sm" onClick={() => setAddAdHocDialogOpen(true)}>
+                        <Plus className="size-4" />
                         {t("calendar.addMed") || "Add"}
                       </Button>
                     </div>
@@ -531,11 +531,12 @@ export function EditDayDialog({
                               onClick={() => handleRemoveAdHocMed(med.id)}
                               className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="size-4" />
                             </Button>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <div className="text-sm font-medium text-foreground">{med.name}</div>
+                                {med.name} – 
+                                <span className="text-gray-500">{med.dosage} {t(`calendar.units.${med.unit}`) || med.unit}</span>
                                 {med.notificationEnabled && (
                                   <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
                                     <Bell className="h-3 w-3 text-indigo-700 dark:text-indigo-400" />
@@ -543,17 +544,14 @@ export function EditDayDialog({
                                   </div>
                                 )}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {med.dosage} {t(`calendar.units.${med.unit}`) || med.unit}
-                              </div>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditAdHocMed(med)}
-                              className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
+                              className="h-10 w-10 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
                             >
-                              <Pencil className="h-3.5 w-3.5" />
+                              <Pencil className="size-4" />
                             </Button>
                           </div>
                         ))}

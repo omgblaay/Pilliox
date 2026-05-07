@@ -83,6 +83,7 @@ import { MiniDayPicker } from "./MiniDayPicker";
 import { ColorPicker, COLORS } from "./ColorPicker";
 import { EditDayDialog } from "./EditDayDialog";
 import { MarkDaysDialog } from "./MarkDaysDialog";
+import { notificationService } from "../services/notificationService";
 
 interface PillDosage {
   pillId: string;
@@ -751,6 +752,8 @@ export function CalendarView({
   };
 
   const handleAdHocSave = (data: AdHocMedicationData, editingId: string | null) => {
+    const medId = editingId ?? `adhoc_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
     if (editingId) {
       setAdHocMeds(
         adHocMeds.map((med) =>
@@ -758,12 +761,20 @@ export function CalendarView({
         ),
       );
     } else {
-      const newMed: AdHocMedication = {
-        id: `adhoc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...data,
-      };
+      const newMed: AdHocMedication = { id: medId, ...data };
       setAdHocMeds([...adHocMeds, newMed]);
     }
+
+    // Schedule notification for this specific day if enabled
+    if (data.notificationEnabled && data.notificationTime && selectedDate) {
+      const [hours, minutes] = data.notificationTime.split(':').map(Number);
+      const scheduledDate = new Date(selectedDate);
+      scheduledDate.setHours(hours, minutes, 0, 0);
+      const title = `💊 ${data.name}`;
+      const body = `Time to take ${data.dosage} ${data.unit}`;
+      void notificationService.scheduleOneTimeNotification(medId, scheduledDate, title, body);
+    }
+
     setEditingAdHocMed(null);
     setAddAdHocDialogOpen(false);
   };
