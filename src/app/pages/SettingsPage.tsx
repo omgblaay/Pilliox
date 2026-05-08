@@ -161,7 +161,7 @@ export function SettingsPage({
             {/* Theme */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
+                <div className="flex text-foreground items-center gap-3">
                   <Moon className="text-muted-foreground" />
                       {t("settings.theme.title") || "Theme"}
                 </div>
@@ -206,7 +206,7 @@ export function SettingsPage({
             {/* Language */}
             <div className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center text-foreground gap-3">
                   <Globe className="size-5 text-muted-foreground" />
                       {t("settings.language.title") ||
                         "Language"}
@@ -221,7 +221,7 @@ export function SettingsPage({
                   {t("settings.weekStart.title") ||
                     "Week starts on Monday"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground">
                   {t("settings.weekStart.description") ||
                     "Change calendar week start day"}
                 </p>

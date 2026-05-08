@@ -144,65 +144,39 @@ export function AuthForm({
     } catch (err: any) {
       setError(
         err.message ||
-          "Signup failed. Please check console for details.",
+        "Signup failed. Please check console for details.",
       );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleOAuthLogin = async (provider: "google" | "facebook") => {
     setError("");
     setIsLoading(true);
 
     try {
       const supabase = getSupabaseClient();
 
-      const { data, error } =
-        await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: `${window.location.origin}/app`,
-            skipBrowserRedirect: false,
-            queryParams: {
-              access_type: "offline",
-              prompt: "consent",
-            },
-          },
-        });
-
-      if (error) {
-        setError(error.message);
-        setIsLoading(false);
-      }
-      // If successful, user will be redirected to Google
-    } catch (err: any) {
-      setError(err.message || "Google login failed");
-      setIsLoading(false);
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const supabase = getSupabaseClient();
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "facebook",
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
         options: {
           redirectTo: `${window.location.origin}/app`,
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) {
         setError(error.message);
         setIsLoading(false);
+        return;
       }
-      // If successful, user will be redirected
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: any) {
-      setError(err.message || "Facebook login failed");
+      setError(err.message || `${provider} login failed`);
       setIsLoading(false);
     }
   };
@@ -276,19 +250,15 @@ export function AuthForm({
 
         {/* Right Side - Auth Card */}
         <div className="flex-1 md:h-auto bg-popover p-4 md:p-8 flex flex-col gap-4">
-          {/* Logo and Tagline */}
 
-          <div className="flex spece-between w-auto">
-            <div className="inline-flex flex-col items-start gap-2 flex-1 w-auto">
-              <div className="h-[40px] w-[120px]">
-                <Logo className="h-[40px] w-[120px]" />
-              </div>
+
+          <div className="flex w-full">
+            {/* Logo */}
+            <div className="flex-1">
+            <Logo className="h-[40px] w-[120px] flex-0" />
             </div>
-
             {/* Language Selector */}
-            <div className="flex-0 justify-center">
-              <LanguageSelector variant="ghost" />
-            </div>
+            <LanguageSelector variant="ghost" className="flex-0" />
           </div>
 
           {/* Tab Buttons */}
@@ -325,7 +295,7 @@ export function AuthForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleGoogleLogin}
+                onClick={() => handleOAuthLogin("google")}
                 disabled={isLoading}
                 className="flex-1"
               >
@@ -354,7 +324,7 @@ export function AuthForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleFacebookLogin}
+                onClick={() => handleOAuthLogin("facebook")}
                 disabled={isLoading}
                 className="flex-1"
               >
@@ -367,9 +337,9 @@ export function AuthForm({
                 </svg>
                 Facebook
               </Button>
-              
+
             </div>
-                        {/* Divider with "OR" text */}
+            {/* Divider with "OR" text */}
             <div className="relative flex items-center justify-center py-2">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
@@ -473,7 +443,7 @@ export function AuthForm({
           )}
 
           {/* Signup Form */}
-      
+
           {activeTab === "signup" && (
             <form
               onSubmit={handleSignup}

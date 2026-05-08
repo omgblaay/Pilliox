@@ -105,7 +105,7 @@ function AppRoutes() {
             }
 
             // Only process session and log in user for non-recovery events
-            if (session?.access_token && session?.user?.email) {
+            if (session?.access_token) {
               // IMPORTANT: Skip auto-login if we're on the reset-password page
               // This prevents the user from being logged in while resetting their password
               const currentPath = window.location.pathname;
@@ -113,16 +113,16 @@ function AppRoutes() {
                 return;
               }
 
+              // OAuth providers (e.g. Google) may surface email via user_metadata
+              const email =
+                session.user.email ??
+                (session.user.user_metadata?.email as string | undefined) ??
+                "";
+
               setAccessToken(session.access_token);
-              setUserEmail(session.user.email);
-              localStorage.setItem(
-                "accessToken",
-                session.access_token,
-              );
-              localStorage.setItem(
-                "userEmail",
-                session.user.email,
-              );
+              setUserEmail(email);
+              localStorage.setItem("accessToken", session.access_token);
+              localStorage.setItem("userEmail", email);
 
               // Emit custom event to notify subscription hook
               window.dispatchEvent(new Event("userLoggedIn"));
@@ -197,10 +197,8 @@ function AppRoutes() {
               localStorage.removeItem("userEmail");
               setIsLoading(false);
               navigate("/auth");
-            } else if (
-              !session &&
-              event !== "INITIAL_SESSION"
-            ) {
+            } else if (event !== "INITIAL_SESSION") {
+              // Covers: no session, or session without email — always unblock the spinner
               setIsLoading(false);
             }
           },
@@ -216,17 +214,13 @@ function AppRoutes() {
 
         if (error) {
           setIsLoading(false);
-        } else if (
-          session?.access_token &&
-          session?.user?.email
-        ) {
+        } else if (session?.access_token) {
           const currentPath = window.location.pathname;
 
-          // CRITICAL: Check if this is a recovery session by checking user metadata
-          // Recovery sessions have app_metadata with provider = 'email' and recovery = true
-          // OR they might have recovery_token set
-          const userMetadata = session.user.app_metadata || {};
-          const userFactors = session.user.factors || [];
+          const sessionEmail =
+            session.user.email ??
+            (session.user.user_metadata?.email as string | undefined) ??
+            "";
 
           // Check AMR (Authentication Method Reference) for recovery
           const hasRecoveryAmr = (session.user as any).amr?.some(
@@ -234,56 +228,42 @@ function AppRoutes() {
               a.method === "recovery" || a.method === "otp",
           );
 
-          // If AMR contains 'recovery' or 'otp', this is a recovery session
           if (hasRecoveryAmr && currentPath === "/") {
             navigate("/reset-password");
             setIsLoading(false);
             return;
           }
 
-          // Check if we're on root and session is fresh (just created)
+          // If session is brand new and we're on root, wait for auth event
           const sessionCreatedAt = new Date(
             session.user.created_at ||
               session.user.confirmed_at ||
               0,
           ).getTime();
-          const now = Date.now();
-          const sessionAgeSeconds =
-            (now - sessionCreatedAt) / 1000;
+          const sessionAgeSeconds = (Date.now() - sessionCreatedAt) / 1000;
 
-          // If session is brand new and we're on root, wait for auth event
           if (currentPath === "/" && sessionAgeSeconds < 10) {
             setTimeout(() => {
-              // Check again after 2 seconds
               supabase.auth
                 .getSession()
                 .then(({ data: { session: newSession } }) => {
                   if (newSession) {
-                    const hasRecovery =
-                      (newSession.user as any).amr?.some(
-                        (a: any) =>
-                          a.method === "recovery" ||
-                          a.method === "otp",
-                      );
+                    const hasRecovery = (newSession.user as any).amr?.some(
+                      (a: any) => a.method === "recovery" || a.method === "otp",
+                    );
                     if (hasRecovery) {
                       navigate("/reset-password");
                     } else {
-                      // Normal session, proceed with login
+                      const email =
+                        newSession.user.email ??
+                        (newSession.user.user_metadata?.email as string | undefined) ??
+                        "";
                       setAccessToken(newSession.access_token);
-                      setUserEmail(newSession.user.email!);
-                      localStorage.setItem(
-                        "accessToken",
-                        newSession.access_token,
-                      );
-                      localStorage.setItem(
-                        "userEmail",
-                        newSession.user.email!,
-                      );
+                      setUserEmail(email);
+                      localStorage.setItem("accessToken", newSession.access_token);
+                      localStorage.setItem("userEmail", email);
 
-                      const onboardingCompleted =
-                        localStorage.getItem(
-                          "pilliox_onboarding_completed",
-                        );
+                      const onboardingCompleted = localStorage.getItem("pilliox_onboarding_completed");
                       if (!onboardingCompleted) {
                         navigate("/app/onboarding");
                       } else {
@@ -299,12 +279,9 @@ function AppRoutes() {
 
           // Regular session login
           setAccessToken(session.access_token);
-          setUserEmail(session.user.email);
-          localStorage.setItem(
-            "accessToken",
-            session.access_token,
-          );
-          localStorage.setItem("userEmail", session.user.email);
+          setUserEmail(sessionEmail);
+          localStorage.setItem("accessToken", session.access_token);
+          localStorage.setItem("userEmail", sessionEmail);
           setIsLoading(false);
         } else {
           // No active Supabase session — clear any stale localStorage auth data.
