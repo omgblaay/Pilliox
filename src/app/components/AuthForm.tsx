@@ -221,7 +221,7 @@ export function AuthForm({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate("/landing")}
+        onClick={() => navigate("/home")}
         className="mx-auto"
       >
         <ArrowLeft className="w-4 h-4" />

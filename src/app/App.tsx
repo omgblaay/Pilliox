@@ -425,7 +425,16 @@ function AppRoutes() {
             )
           }
         />
-        <Route path="/landing" element={<LandingPage />} />
+        <Route
+          path="/home"
+          element={
+            accessToken ? (
+              <Navigate to="/app" replace />
+            ) : (
+              <LandingPage />
+            )
+          }
+        />
         <Route
           path="/docs/terms"
           element={
@@ -469,10 +478,6 @@ function AppRoutes() {
           }
         />
         {/* Alias routes for backward compatibility */}
-        <Route
-          path="/home"
-          element={<Navigate to="/app" replace />}
-        />
         <Route
           path="/medications"
           element={<Navigate to="/app/medications" replace />}

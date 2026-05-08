@@ -67,7 +67,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
           <div className="flex flex-col gap-4">
             <Button
               variant="secondary"
-              onClick={() => navigate("/landing")}
+              onClick={() => navigate("/home")}
             >
               {t("about.visitHomepage")}
             </Button>

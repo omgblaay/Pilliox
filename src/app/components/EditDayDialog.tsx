@@ -129,6 +129,8 @@ interface EditDayDialogProps {
   formatDialogDate: (date: Date) => string;
   startEditingTag: () => void;
   handleSave: () => void;
+  onCancel: () => void;
+  onClearDay: () => void;
   handleRemoveAdHocMed: (id: string) => void;
   handleEditAdHocMed: (med: AdHocMedication) => void;
   // i18n locale for date formatting
@@ -162,6 +164,8 @@ export function EditDayDialog({
   formatDialogDate,
   startEditingTag,
   handleSave,
+  onCancel,
+  onClearDay,
   handleRemoveAdHocMed,
   handleEditAdHocMed,
   dateLocale,
@@ -218,7 +222,7 @@ export function EditDayDialog({
         <div className="px-2 py-2 rounded-full bg-accent">
           <div className="flex rounded-full items-center justify-between gap-2">
             <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
-              <ChevronLeft/>
+              <ChevronLeft />
             </Button>
             <motion.div
               className="flex-1 overflow-hidden"
@@ -243,7 +247,7 @@ export function EditDayDialog({
               </AnimatePresence>
             </motion.div>
             <Button variant="ghost" size="icon" onClick={navigateToNextDay}>
-              <ChevronRight/>
+              <ChevronRight />
             </Button>
           </div>
         </div>
@@ -288,7 +292,7 @@ export function EditDayDialog({
 
                   {/* Tag Display */}
                   <div
-                    className="min-h-12 rounded-lg border flex flex-col justify-center px-4 py-2 relative group"
+                    className="min-h-12 rounded-lg border flex items-center px-4 py-2 relative group"
                     style={{
                       backgroundColor: selectedDate
                         ? entries[format(selectedDate, "yyyy-MM-dd")]?.color
@@ -303,11 +307,11 @@ export function EditDayDialog({
                     }}
                   >
                     <span
-                      className="text-sm font-semibold pr-10"
+                      className="text-sm mr-4"
                       style={{
                         color:
                           entries[format(selectedDate, "yyyy-MM-dd")]?.color &&
-                          isLightColor(getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")]?.color || "", isDarkMode))
+                            isLightColor(getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")]?.color || "", isDarkMode))
                             ? "#111827"
                             : "#f3f4f6",
                       }}
@@ -324,10 +328,7 @@ export function EditDayDialog({
                       if (groupedDays.length <= 1) return null;
                       const textColor = isLightColor(getColorForTheme(currentEntry.color, isDarkMode)) ? "#6b7280" : "#d1d5db";
                       return (
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs mt-1.5 pr-10">
-                          <span className="font-medium opacity-80" style={{ color: textColor }}>
-                            Marked days:
-                          </span>
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           {dayRanges.map((range, idx) => (
                             <span
                               key={idx}
@@ -352,7 +353,7 @@ export function EditDayDialog({
                       style={{
                         color:
                           entries[format(selectedDate, "yyyy-MM-dd")]?.color &&
-                          isLightColor(getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")]?.color || "", isDarkMode))
+                            isLightColor(getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")]?.color || "", isDarkMode))
                             ? "#111827"
                             : "#f3f4f6",
                       }}
@@ -366,96 +367,89 @@ export function EditDayDialog({
               <div className="space-y-5">
                 {/* Pills Section */}
                 {pillsSettings.filter((ps) => (ps.type || "pills") === "pills").length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                        <Pill className="h-4 w-4 text-purple-700 dark:text-purple-400" />
-                      </div>
-                      <Label>{t("calendar.pills")}</Label>
-                    </div>
-                    <div className="space-y-2">
-                      {pillsSettings
-                        .filter((ps) => (ps.type || "pills") === "pills")
-                        .map((pillSetting) => {
-                          const pillDosage = pills.find((p) => p.pillId === pillSetting.id);
-                          const isSelected = !!pillDosage;
-                          const currentDosage = isSelected
-                            ? pillDosage!.dosage
-                            : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
-                          return (
-                            <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-750  hover:bg-muted/30 transition-colors">
+
+                  <div className="space-y-2">
+                    {pillsSettings
+                      .filter((ps) => (ps.type || "pills") === "pills")
+                      .map((pillSetting) => {
+                        const pillDosage = pills.find((p) => p.pillId === pillSetting.id);
+                        const isSelected = !!pillDosage;
+                        const currentDosage = isSelected
+                          ? pillDosage!.dosage
+                          : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
+                        return (
+                          <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-750  hover:bg-muted/30 transition-colors">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: pillDosage!.dosage }));
+                                  setPills(pills.filter((p) => p.pillId !== pillSetting.id));
+                                } else {
+                                  setPills([...pills, { pillId: pillSetting.id, dosage: dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage }]);
+                                }
+                              }}
+                              className={cn(
+                                "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
+                                isSelected ? "bg-blue-600" : "border-gray-400 dark:border-gray-600",
+                              )}
+                            >
+                              {isSelected && <Check className="h-4 w-4 text-white" />}
+                            </button>
+                            {pillSetting.color && (
+                              <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: pillSetting.color }} />
+                            )}
+                            <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
+                              {pillSetting.name}
+                            </span>
+                            <div className="flex items-center border border-[#4d4c54] rounded-md overflow-hidden h-12">
                               <button
                                 type="button"
                                 onClick={() => {
+                                  const newDosage = Math.max(0, currentDosage - 0.5);
                                   if (isSelected) {
-                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: pillDosage!.dosage }));
-                                    setPills(pills.filter((p) => p.pillId !== pillSetting.id));
+                                    setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
                                   } else {
-                                    setPills([...pills, { pillId: pillSetting.id, dosage: dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage }]);
+                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
                                   }
                                 }}
-                                className={cn(
-                                  "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
-                                  isSelected ? "bg-blue-600" : "border-gray-400 dark:border-gray-600",
-                                )}
+                                className="px-4 h-full text-muted-foreground hover:bg-muted transition-colors"
                               >
-                                {isSelected && <Check className="h-4 w-4 text-white" />}
+                                <Minus className="size-4" />
                               </button>
-                              {pillSetting.color && (
-                                <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: pillSetting.color }} />
-                              )}
-                              <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
-                                {pillSetting.name}
-                              </span>
-                              <div className="flex items-center border border-[#4d4c54] rounded-md overflow-hidden h-12">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newDosage = Math.max(0, currentDosage - 0.5);
-                                    if (isSelected) {
-                                      setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
-                                    } else {
-                                      setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
-                                    }
-                                  }}
-                                  className="px-4 h-full text-muted-foreground hover:bg-muted transition-colors"
-                                >
-                                  <Minus className="size-4" />
-                                </button>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.25"
-                                  value={currentDosage}
-                                  onChange={(e) => {
-                                    const newDosage = parseFloat(e.target.value) || 0;
-                                    if (isSelected) {
-                                      setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
-                                    } else {
-                                      setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
-                                    }
-                                  }}
-                                  className="w-10 text-sm font-medium text-center bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newDosage = currentDosage + 0.5;
-                                    if (isSelected) {
-                                      setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
-                                    } else {
-                                      setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
-                                    }
-                                  }}
-                                  className="px-4 h-full text-muted-foreground hover:bg-muted transition-colors"
-                                >
-                                  <Plus className="size-4" />
-                                </button>
-                              </div>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.25"
+                                value={currentDosage}
+                                onChange={(e) => {
+                                  const newDosage = parseFloat(e.target.value) || 0;
+                                  if (isSelected) {
+                                    setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
+                                  } else {
+                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
+                                  }
+                                }}
+                                className="w-10 text-sm font-medium text-center bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newDosage = currentDosage + 0.5;
+                                  if (isSelected) {
+                                    setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
+                                  } else {
+                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
+                                  }
+                                }}
+                                className="px-4 h-full text-muted-foreground hover:bg-muted transition-colors"
+                              >
+                                <Plus className="size-4" />
+                              </button>
                             </div>
-                          );
-                        })}
-                    </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
 
@@ -464,14 +458,11 @@ export function EditDayDialog({
                   const pillDosage = pills.find((p) => p.pillId === valueSetting.id);
                   const currentValue = pillDosage?.dosage?.toString() || "";
                   return (
-                    <div key={valueSetting.id} className="flex flex-row items-center justify-center gap-4 space-between">
+                    <div key={valueSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-750  hover:bg-muted/30 transition-colors">
                       <div className="flex items-center flex-row gap-2 flex-1">
-                        <div
-                          className="h-8 w-8 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: valueSetting.color ? `${valueSetting.color}20` : "#dcfce7" }}
-                        >
-                          <Droplet className="h-4 w-4" style={{ color: valueSetting.color || "#16a34a" }} />
-                        </div>
+
+                        <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: valueSetting.color }} />
+
                         <Label htmlFor={`value-${valueSetting.id}`}>{valueSetting.name}</Label>
                       </div>
                       <div className="flex items-center gap-2 flex-1">
@@ -535,7 +526,7 @@ export function EditDayDialog({
                             </Button>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                {med.name} – 
+                                {med.name} –
                                 <span className="text-gray-500">{med.dosage} {t(`calendar.units.${med.unit}`) || med.unit}</span>
                                 {med.notificationEnabled && (
                                   <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
@@ -597,7 +588,13 @@ export function EditDayDialog({
                 )}
               </Button>
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-2 mt-4">
+                <Button variant="outline" onClick={onCancel} className="flex-1">
+                  {t("calendar.cancel") || "Cancel"}
+                </Button>
+                <Button variant="destructive"  onClick={onClearDay} className="flex-1">
+                  {t("day.delete") || "Clear"}
+                </Button>
                 <Button onClick={handleSave} className="flex-1">
                   {t("day.saveChanges")}
                 </Button>

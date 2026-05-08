@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
   format,
@@ -22,7 +22,6 @@ import { pl } from "date-fns/locale/pl";
 import {
   ChevronLeft,
   ChevronRight,
-  CalendarSync,
   ChevronDown,
   LogOut,
   Droplet,
@@ -32,6 +31,7 @@ import {
   Plus,
   Minus,
   Palette,
+  Tag,
   Settings as SettingsIcon,
   User,
   Pencil,
@@ -41,6 +41,7 @@ import {
   Bell,
   BellOff,
   Clock,
+  Flame,
 } from "lucide-react";
 import {
   motion,
@@ -688,6 +689,39 @@ export function CalendarView({
     setDosageOverrides({});
   };
 
+  const handleCancelEdit = () => {
+    if (!selectedDate) { setDialogOpen(false); return; }
+    const entry = entries[format(selectedDate, "yyyy-MM-dd")];
+    setAmount(entry?.amount || "");
+    setNote(entry?.note || "");
+    try { setPills(entry?.pills ? JSON.parse(entry.pills) : []); } catch { setPills([]); }
+    try { setDosageOverrides(entry?.pillDosageOverrides ? JSON.parse(entry.pillDosageOverrides) : {}); } catch { setDosageOverrides({}); }
+    try { setAdHocMeds(entry?.adHocMeds ? JSON.parse(entry.adHocMeds) : []); } catch { setAdHocMeds([]); }
+    setDialogOpen(false);
+  };
+
+  const handleClearDay = () => {
+    setAmount("");
+    setNote("");
+    setPills([]);
+    setAdHocMeds([]);
+    setDosageOverrides({});
+    // trigger save immediately with cleared state via a micro-task so state flushes
+    setTimeout(() => {
+      if (!selectedDate) return;
+      const dateKey = format(selectedDate, "yyyy-MM-dd");
+      const newEntries = { ...entries };
+      if (!newEntries[dateKey]?.color && !newEntries[dateKey]?.tag) {
+        delete newEntries[dateKey];
+      } else {
+        newEntries[dateKey] = { ...newEntries[dateKey], amount: "", note: "", pills: "", adHocMeds: "", pillDosageOverrides: "" };
+      }
+      setEntries(newEntries);
+      saveEntries(newEntries);
+      setDialogOpen(false);
+    }, 0);
+  };
+
   const handleRemoveColorTag = () => {
     if (!selectedDate) return;
 
@@ -1146,6 +1180,43 @@ export function CalendarView({
     setEditTagDialogOpen(true);
   };
 
+  // Next upcoming medication notification today
+  const upcomingNotification = useMemo(() => {
+    const now = new Date();
+    const candidates: { time: Date; name: string }[] = [];
+    for (const pill of pillsSettings) {
+      if (!pill.notificationsEnabled || !pill.notificationTime) continue;
+      const [h, m] = pill.notificationTime.split(':').map(Number);
+      const t = new Date();
+      t.setHours(h, m, 0, 0);
+      if (t.getTime() - now.getTime() > 0) candidates.push({ time: t, name: pill.name });
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => a.time.getTime() - b.time.getTime());
+    const next = candidates[0];
+    const diffMs = next.time.getTime() - now.getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    const label = diffMins < 60
+      ? `in ${diffMins} min`
+      : `in ${Math.floor(diffMins / 60)}h ${diffMins % 60}m`;
+    return { name: next.name, time: format(next.time, 'HH:mm'), label };
+  }, [pillsSettings]);
+
+  // Current streak: consecutive days with any entry going back from today
+  const streak = useMemo(() => {
+    let count = 0;
+    let date = new Date();
+    date.setHours(0, 0, 0, 0);
+    while (true) {
+      const key = format(date, 'yyyy-MM-dd');
+      const e = entries[key];
+      if (!e || (!e.amount && !e.pills && !e.adHocMeds)) break;
+      count++;
+      date = subDays(date, 1);
+    }
+    return count;
+  }, [entries]);
+
   // Calculate days based on view mode
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -1264,42 +1335,35 @@ export function CalendarView({
                 <Logo />
               </div>
             </div>
-            <div className="items-center hidden lg:flex gap-3">
-              {/*<Button
-                variant="outline"
-                size="icon"
-                className="h-12 w-12"
-                onClick={() => navigate("/app/subscription")}
-                title="Manage Subscription"
-              >
-                <Crown className="h-6 w-6" />
-              </Button>*/}
+            <div className="flex items-center gap-2">
 
-              {/* Desktop icons - hidden on mobile */}
+              {/* Desktop nav icons */}
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 hidden lg:flex"
+                className="h-9 w-9 hidden lg:flex"
                 onClick={() => navigate("/app/medications")}
-                title="Medication Settings"
+                title="Medications"
               >
-                <Pill className="h-6 w-6" />
+                <Pill className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12  hidden lg:flex"
+                className="h-9 w-9 hidden lg:flex"
                 onClick={() => navigate("/app/profile")}
+                title="Profile"
               >
-                <User className="h-6 w-6" />
+                <User className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 hidden lg:flex"
+                className="h-9 w-9 hidden lg:flex"
                 onClick={() => navigate("/app/settings")}
+                title="Settings"
               >
-                <SettingsIcon className="h-6 w-6" />
+                <SettingsIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -1310,93 +1374,57 @@ export function CalendarView({
       <div className="w-full lg:max-w-[800px] mx-auto px-4">
         {/* Calendar Card */}
         <div className="bg-white dark:bg-input-background rounded-2xl shadow-sm border border-border overflow-hidden">
-          {/* Month/Week Navigation */}
-          <div className="p-[12px] border-b border-border px-[12px] py-[8px]">
-            <div className="flex items-center justify-between gap-2">
-              {/* Left: Mark Days Button */}
-              <Button
-                onClick={handleMultiSelectStart}
-                variant="secondary"
-                size="sm"
-                disabled={multiSelectMode}
-                className="flex-1 hidden sm:flex"
-              >
-                <Palette className="size-5" />
-                {t("calendar.markDays")}
+          {/* Toolbar */}
+          <div className="px-3 py-2.5 border-b border-border flex items-center gap-2">
+            {/* Left: Tag days */}
+            <Button
+              onClick={handleMultiSelectStart}
+              variant="outline"
+              size="sm"
+              disabled={multiSelectMode}
+              className="gap-1.5 text-xs h-8 px-3"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              {t("calendar.markDays")}
+            </Button>
+
+            {/* Center: Date navigation */}
+            <div className="flex items-center gap-0.5 flex-1 justify-center">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePreviousMonth}>
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-
-              {/* Center: Date Navigation */}
-              <div className="flex items-center gap-2 flex-4 justify-center">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handlePreviousMonth}
+              <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                <motion.span
+                  key={format(currentMonth, "yyyy-MM-ww")}
+                  custom={swipeDirectionRef.current}
+                  variants={headerSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  className="text-sm font-semibold min-w-[110px] text-center whitespace-nowrap"
                 >
-                  <ChevronLeft className="size-5" />
-                </Button>
-                <motion.div
-                  className="overflow-hidden relative flex-1"
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={handleCalendarSwipe}
-                >
-                  <AnimatePresence
-                    mode="wait"
-                    initial={false}
-                    custom={swipeDirectionRef.current}
-                  >
-                    <motion.h2
-                      key={format(currentMonth, "yyyy-MM-ww")}
-                      custom={swipeDirectionRef.current}
-                      variants={headerSlideVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{
-                        duration: 0.3,
-                        ease: "easeInOut",
-                      }}
-                      className="text-sm font-normal text-center whitespace-nowrap"
-                    >
-                      {formatHeaderTitle(currentMonth)}
-                    </motion.h2>
-                  </AnimatePresence>
-                </motion.div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleNextMonth}
-                >
-                  <ChevronRight className="size-5" />
-                </Button>
-              </div>
-
-              {/* Right: Weekly/Monthly Preview Dropdown */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newMode =
-                    viewMode === "month" ? "week" : "month";
-                  setViewMode(newMode);
-                  saveViewMode(newMode);
-                }}
-                className="flex-1 justify-between hidden sm:flex"
-                title={
-                  viewMode === "month"
-                    ? t("calendar.weekView")
-                    : t("calendar.monthView")
-                }
-              >
-                <span className="text-sm font-medium text-foreground">
-                  {viewMode === "month"
-                    ? t("calendar.weeklyPreview")
-                    : t("calendar.monthlyPreview")}
-                </span>
-                <CalendarSync className="size-5 text-foreground" />
+                  {formatHeaderTitle(currentMonth)}
+                </motion.span>
+              </AnimatePresence>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextMonth}>
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Right: View toggle */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs h-8 px-3 whitespace-nowrap"
+              onClick={() => {
+                const newMode = viewMode === "month" ? "week" : "month";
+                setViewMode(newMode);
+                saveViewMode(newMode);
+              }}
+            >
+              {viewMode === "month" ? t("calendar.weekView") : t("calendar.monthView")}
+            </Button>
           </div>
 
           {/* Multi-select Controls */}
@@ -1431,6 +1459,21 @@ export function CalendarView({
                     {t("calendar.cancel")}
                   </Button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming notification pill */}
+          {upcomingNotification && (
+            <div className="px-3 pt-2 pb-0">
+              <div className="inline-flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 shadow-sm">
+                <div className="w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                  <Bell className="h-3 w-3 text-blue-500" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">
+                  {upcomingNotification.time} · {upcomingNotification.name}
+                </span>
+                <span className="text-xs text-muted-foreground">{upcomingNotification.label}</span>
               </div>
             </div>
           )}
@@ -1644,27 +1687,28 @@ export function CalendarView({
                       onClick={() => handleDayClick(day)}
                       className={cn(
                         viewMode === "week"
-                          ? "w-full min-h-[60px] flex flex-row"
-                          : "w-full min-h-18",
+                          ? "w-full min-h-[60px] flex flex-row cursor-pointer"
+                          : "w-full min-h-[90px] cursor-pointer",
                         "relative transition-all duration-200",
                         viewMode === "week"
                           ? "rounded-xl"
                           : roundedClass,
                         viewMode === "month" &&
-                          "flex flex-col items-center justify-center p-2",
+                          "flex flex-col items-start justify-start p-4",
                         viewMode === "week" &&
                           "items-center justify-start p-3 gap-3",
-                        "focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:ring-offset-1",
+                        "focus:outline-none bfocus:ring-2",
                         isToday &&
                           !hasColor &&
-                          "bg-blue-50 dark:bg-blue-950 border-2 border-blue-500 dark:border-blue-600",
+                          "border border-foreground/25 dark:border-blue-500/20 bg-blue-800/5",
                         !isToday &&
+                        "text-muted-foreground",
                           !hasColor &&
-                          "hover:bg-gray-200 dark:hover:bg-accent border-2 border-transparent",
+                          "hover:bg-black/5 dark:hover:bg-white/5 border border-transparent",
                         hasColor &&
                           "hover:opacity-80 border-2 border-transparent",
                         isSelected &&
-                          "ring-2 ring-blue-600 ring-offset-2",
+                          "ring-2 ring-blue-600 text-foreground",
                         // Add z-index for first day of tagged group to keep tag on top
                         hasColor &&
                           entry.tag &&
@@ -1684,7 +1728,7 @@ export function CalendarView({
                         <div className="flex items-center gap-2 w-full">
                           {/* Day name and number */}
                           <div className="flex items-center gap-2 min-w-[64px]">
-                            <span className="text-xs font-semibold w-[32px] text-muted-foreground uppercase text-left tracking-wide">
+                            <span className="text-xs font-semibold w-[32px] uppercase text-left tracking-wide">
                               {format(day, "EEE", {
                                 locale: dateLocale,
                               })}
@@ -1847,179 +1891,131 @@ export function CalendarView({
                           </div>
                         </div>
                       ) : (
-                        /* Month view: Column layout */
-                        <div
-                          className={cn(
-                            "flex flex-col items-center justify-center gap-1",
-                            isPartOfTaggedGroup && "mt-5",
+                        /* Month view: number top-left, badges bottom */
+                        <div className={cn("flex flex-col w-full h-full", isPartOfTaggedGroup && "mt-5")}>
+                          {/* Tag label spanning the group */}
+                          {hasColor && entry.tag && !hasSameColorTagAsPrev && (
+                            <div
+                              className={cn(
+                                "absolute top-0 left-0 text-[9px] font-semibold py-0.5 px-1.5 rounded-t-xl truncate z-50",
+                                isDarkMode ? "bg-white/20 text-white/80" : "bg-black/15 text-gray-800",
+                              )}
+                              style={{
+                                width: consecutiveDaysCount > 1
+                                  ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 1}px)`
+                                  : "100%",
+                              }}
+                            >
+                              {entry.tag}
+                            </div>
                           )}
-                        >
-                          {/* Tag Display - Show only once per consecutive group at the top center of first day */}
-                          {hasColor &&
-                            entry.tag &&
-                            !hasSameColorTagAsPrev && (
-                              <div
-                                className={cn(
-                                  "absolute top-0 left-0 text-[10px] font-semibold py-0.5 rounded-t-xl truncate z-50 text-left pl-2",
-                                  hasColor && !isDarkMode
-                                    ? "bg-black/20 text-gray-900"
-                                    : hasColor && isDarkMode
-                                      ? "bg-white/20 text-gray-300"
-                                      : "",
-                                )}
-                                style={{
-                                  width:
-                                    consecutiveDaysCount > 1
-                                      ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 3}px)`
-                                      : "100%",
-                                }}
-                                title={entry.tag}
-                              >
-                                {entry.tag}
-                              </div>
-                            )}
 
-                          {/* Day Number */}
+                          {/* Day number — top-left */}
                           <span
                             className={cn(
-                              "text-sm font-semibold leading-none",
-                              isToday &&
-                                !hasColor &&
-                                "text-blue-600 dark:text-blue-400",
-                              !isToday &&
-                                !hasColor &&
-                                "text-gray-700 dark:text-gray-300",
-                              hasColor &&
-                                "text-gray-900 dark:text-gray-300",
+                              "text-sm font-semibold leading-none self-start",
+                              isToday && !hasColor && "text-foreground",
+                              !isToday && !hasColor && "",
+                              hasColor && "text-gray-900 dark:text-white/80",
                             )}
                           >
                             {format(day, "d")}
-                            {/* Note Indicator - Show next to day number when note exists */}
                             {hasNote && (
-                              <span
-                                className={cn(
-                                  "inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle",
-                                  hasColor && !isDarkMode
-                                    ? "bg-gray-900/80"
-                                    : hasColor && isDarkMode
-                                      ? "bg-gray-300"
-                                      : !isDarkMode
-                                        ? "bg-blue-500"
-                                        : "bg-blue-400",
-                                )}
-                              />
+                              <span className={cn(
+                                "inline-block w-1 h-1 rounded-full ml-1 align-middle",
+                                hasColor ? (isDarkMode ? "bg-white/70" : "bg-black/50") : "bg-blue-400",
+                              )} />
                             )}
                           </span>
 
-                          {/* Individual Medications Display - Dots Only */}
-                          <div className="flex gap-1 items-center justify-center flex-wrap">
+                          {/* Spacer */}
+                          <div className="flex-1" />
+
+                          {/* Badges — bottom */}
+                          <div className="flex gap-1 flex-wrap">
                             {(() => {
                               let pillsData: PillDosage[] = [];
-                              try {
-                                pillsData = entry.pills ? JSON.parse(entry.pills) : [];
-                              } catch {}
+                              try { pillsData = entry.pills ? JSON.parse(entry.pills) : []; } catch {}
                               let entryOverrides: Record<string, number> = {};
-                              try {
-                                entryOverrides = entry.pillDosageOverrides ? JSON.parse(entry.pillDosageOverrides) : {};
-                              } catch {}
+                              try { entryOverrides = entry.pillDosageOverrides ? JSON.parse(entry.pillDosageOverrides) : {}; } catch {}
                               return (
                                 <>
                                   {pillsSettings
                                     .filter((ps) => (ps.type || "pills") === "pills")
                                     .map((pillSetting) => {
                                       const pill = pillsData.find((p) => p.pillId === pillSetting.id);
-                                      const isTaken = !!pill;
                                       const ghostDosage = entryOverrides[pillSetting.id] ?? pillSetting.defaultDosage;
-                                      if (isTaken) {
+                                      if (pill) {
                                         return (
-                                          <div
+                                          <span
                                             key={pillSetting.id}
-                                            className="text-[10px] font-semibold px-1 py-0.5 rounded text-white"
-                                            style={{ backgroundColor: pillSetting.color || "#a855f7" }}
-                                            title={`${pillSetting.name}: ${pill!.dosage}`}
+                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white leading-none font-[family-name:var(--font-geist-mono)]"
+                                            style={{ backgroundColor: pillSetting.color || "#3b82f6" }}
+                                            title={`${pillSetting.name}: ${pill.dosage}`}
                                           >
-                                            {pill!.dosage}
-                                          </div>
-                                        );
-                                      } else {
-                                        return (
-                                          <div
-                                            key={pillSetting.id}
-                                            className="text-[10px] font-semibold px-1 py-0.5 rounded border border-dashed opacity-90"
-                                            style={{ borderColor: pillSetting.color || "#a855f7", color: pillSetting.color || "#a855f7" }}
-                                            title={`${pillSetting.name}: ${ghostDosage}`}
-                                          >
-                                            {ghostDosage}
-                                          </div>
+                                            {pill.dosage}
+                                          </span>
                                         );
                                       }
+                                      return (
+                                        <span
+                                          key={pillSetting.id}
+                                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none border border-dashed font-[family-name:var(--font-geist-mono)]"
+                                          style={{ borderColor: pillSetting.color || "#3b82f6", color: pillSetting.color || "#3b82f6" }}
+                                          title={`${pillSetting.name}: ${ghostDosage}`}
+                                        >
+                                          {ghostDosage}
+                                        </span>
+                                      );
                                     })}
                                   {pillsData
                                     .filter((pill) => pillsSettings.find((ps) => ps.id === pill.pillId)?.type === "value")
                                     .map((pill) => {
-                                      const pillSetting = pillsSettings.find((ps) => ps.id === pill.pillId);
-                                      if (!pillSetting) return null;
+                                      const ps = pillsSettings.find((p) => p.id === pill.pillId);
+                                      if (!ps) return null;
                                       return (
-                                        <div
+                                        <span
                                           key={pill.pillId}
-                                          className="text-[10px] font-semibold px-1 py-0.5 rounded text-white"
-                                          style={{ backgroundColor: pillSetting.color || "#a855f7" }}
-                                          title={`${pillSetting.name}: ${pill.dosage}`}
+                                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white leading-none font-[family-name:var(--font-geist-mono)]"
+                                          style={{ backgroundColor: ps.color || "#3b82f6" }}
+                                          title={`${ps.name}: ${pill.dosage}`}
                                         >
                                           {pill.dosage}
-                                        </div>
+                                        </span>
                                       );
                                     })}
                                 </>
                               );
                             })()}
 
-                            {/* Ad-Hoc Medications Display - Colorless with Border */}
-                            {hasAdHocMeds &&
-                              (() => {
-                                const adHocMedsData: AdHocMedication[] =
-                                  JSON.parse(
-                                    entry.adHocMeds || "[]",
-                                  );
-                                return adHocMedsData.map(
-                                  (med) => {
-                                    return (
-                                      <div
-                                        key={med.id}
-                                        className="text-[10px] font-semibold px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-transparent"
-                                        title={`${med.name}: ${med.dosage}${med.unit}`}
-                                      >
-                                        {med.dosage} {med.unit}
-                                      </div>
-                                    );
-                                  },
-                                );
-                              })()}
-                          </div>
+                            {/* Ad-hoc medications */}
+                            {hasAdHocMeds && (() => {
+                              const meds: AdHocMedication[] = JSON.parse(entry.adHocMeds || "[]");
+                              return meds.map((med) => (
+                                <span
+                                  key={med.id}
+                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none border border-dashed border-muted-foreground text-muted-foreground font-[family-name:var(--font-geist-mono)]"
+                                  title={`${med.name}: ${med.dosage}${med.unit}`}
+                                >
+                                  {med.dosage}{med.unit}
+                                </span>
+                              ));
+                            })()}
 
-                          {/* Legacy INR Display - Only show if no pills data */}
-                          {hasAmount && !hasPills && (
-                            <div
-                              className={cn(
-                                "text-[10px] font-semibold px-1 py-0.5 rounded whitespace-nowrap",
-                                hasColor && !isDarkMode
-                                  ? "bg-black/20 text-gray-900"
-                                  : hasColor && isDarkMode
-                                    ? "bg-white/20 text-gray-300"
-                                    : !isDarkMode
-                                      ? "bg-green-100 text-green-700"
-                                      : "bg-green-900 text-green-100",
-                              )}
-                            >
-                              INR:
-                              {parseFloat(
-                                entry.amount,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 2,
-                              })}
-                            </div>
-                          )}
+                            {/* Legacy INR */}
+                            {hasAmount && !hasPills && (
+                              <span
+                                className={cn(
+                                  "text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none font-[family-name:var(--font-geist-mono)]",
+                                  hasColor
+                                    ? isDarkMode ? "bg-white/20 text-white" : "bg-black/15 text-gray-900"
+                                    : "bg-green-500/20 text-green-700 dark:text-green-400",
+                                )}
+                              >
+                                {parseFloat(entry.amount).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </button>
@@ -2059,6 +2055,8 @@ export function CalendarView({
         formatDialogDate={formatDialogDate}
         startEditingTag={startEditingTag}
         handleSave={handleSave}
+        onCancel={handleCancelEdit}
+        onClearDay={handleClearDay}
         handleRemoveAdHocMed={handleRemoveAdHocMed}
         handleEditAdHocMed={handleEditAdHocMed}
         dateLocale={dateLocale}
