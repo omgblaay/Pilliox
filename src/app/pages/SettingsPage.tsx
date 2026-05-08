@@ -68,7 +68,6 @@ export function SettingsPage({
         );
       }
     } catch (error) {
-      console.error("Failed to load settings:", error);
     }
   };
 
@@ -97,7 +96,6 @@ export function SettingsPage({
         },
       );
     } catch (error) {
-      console.error("Failed to save settings:", error);
     }
   };
 

@@ -42,7 +42,6 @@ export function NotificationPermissionBanner() {
         setDismissed(true);
       }
     } catch (error) {
-      console.error('Failed to request permissions:', error);
     } finally {
       setRequesting(false);
     }
@@ -53,7 +52,6 @@ export function NotificationPermissionBanner() {
     try {
       await notificationService.sendTestNotification();
     } catch (error) {
-      console.error('Failed to send test notification:', error);
     } finally {
       setTesting(false);
     }

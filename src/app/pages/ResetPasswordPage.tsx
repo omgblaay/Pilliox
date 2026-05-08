@@ -86,10 +86,6 @@ export function ResetPasswordPage() {
           })
           .then(({ error }) => {
             if (error) {
-              console.error(
-                "[ResetPassword] ❌ Failed to set session:",
-                error,
-              );
               setError(
                 "Invalid or expired reset link. Please request a new one.",
               );
@@ -100,12 +96,7 @@ export function ResetPasswordPage() {
     }
     // No valid recovery token found
     else {
-      console.error(
-        "[ResetPassword] ❌ No valid recovery token found in URL",
-      );
-      console.error(
-        "[ResetPassword] Expected ?token=...&type=recovery OR #access_token=...&type=recovery",
-      );
+
       setError(
         "Invalid or expired reset link. Please request a new one.",
       );
@@ -142,10 +133,6 @@ export function ResetPasswordPage() {
         });
 
       if (updateError) {
-        console.error(
-          "[ResetPassword] Update error:",
-          updateError,
-        );
         setError(
           updateError.message || "Failed to reset password",
         );
@@ -161,7 +148,6 @@ export function ResetPasswordPage() {
         navigate("/auth");
       }, 3000);
     } catch (err: any) {
-      console.error("[ResetPassword] Unexpected error:", err);
       setError(err.message || "Failed to reset password");
     } finally {
       setIsLoading(false);

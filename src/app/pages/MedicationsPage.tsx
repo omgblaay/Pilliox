@@ -189,12 +189,7 @@ export function MedicationsPage({
     const initNotifications = async () => {
       try {
         await notificationService.initialize();
-        console.log("Notification service initialized");
       } catch (error) {
-        console.error(
-          "Failed to initialize notifications:",
-          error,
-        );
       }
     };
 
@@ -216,19 +211,11 @@ export function MedicationsPage({
           setUserId(data.user.id || "");
         } else {
           const errorText = await response.text();
-          console.error(
-            "Failed to fetch user settings:",
-            response.status,
-            errorText,
-          );
 
           // Check if the error requires re-authentication
           try {
             const errorData = JSON.parse(errorText);
             if (errorData.requiresReauth) {
-              console.log(
-                "Session invalid - redirecting to login...",
-              );
               // Clear local storage and redirect to auth
               localStorage.removeItem("accessToken");
               localStorage.removeItem("userEmail");
@@ -239,7 +226,6 @@ export function MedicationsPage({
           }
         }
       } catch (error) {
-        console.error("Failed to fetch user ID:", error);
       }
     };
 
@@ -254,7 +240,6 @@ export function MedicationsPage({
         try {
           setMedications(JSON.parse(stored));
         } catch (e) {
-          console.error("Failed to parse medications:", e);
         }
       }
       setIsLoading(false);
@@ -272,9 +257,6 @@ export function MedicationsPage({
 
   const loadPillsSettings = async () => {
     if (!userId) {
-      console.error(
-        "Cannot load pills settings: userId is empty",
-      );
       return;
     }
 
@@ -288,10 +270,8 @@ export function MedicationsPage({
         const data = await response.json();
         setPills(data.pills || []);
       } else {
-        console.error("Failed to load pills settings");
       }
     } catch (error) {
-      console.error("Error loading pills settings:", error);
     } finally {
       setLoading(false);
     }
@@ -341,7 +321,6 @@ export function MedicationsPage({
       }
       return 0;
     } catch (error) {
-      console.error("Error checking calendar entries:", error);
       return 0;
     }
   };
@@ -406,7 +385,6 @@ export function MedicationsPage({
         toast.error(t("pillsSettings.deleteError"));
       }
     } catch (error) {
-      console.error("Error deleting medication:", error);
       toast.error(t("pillsSettings.deleteError"));
     } finally {
       setIsDeleting(false);
@@ -463,23 +441,13 @@ export function MedicationsPage({
             await notificationService.updatePillNotifications(
               editingPill,
             );
-            console.log(
-              `Notifications scheduled for ${editingPill.name}`,
-            );
           } else {
             // Cancel notifications if they were disabled
             await notificationService.cancelPillNotifications(
               editingPill.id,
             );
-            console.log(
-              `Notifications cancelled for ${editingPill.name}`,
-            );
           }
         } catch (notifError) {
-          console.error(
-            "Error managing notifications:",
-            notifError,
-          );
           // Don't fail the save if notifications fail
           toast.error(
             "Medication saved, but notification setup failed. Please check notification permissions.",
@@ -506,7 +474,6 @@ export function MedicationsPage({
         );
       }
     } catch (error) {
-      console.error("Error saving medication:", error);
       toast.error(
         t("pillsSettings.deleteError") ||
           "Failed to save medication",
@@ -1004,10 +971,6 @@ export function MedicationsPage({
                               }
                             })
                             .catch((error) => {
-                              console.error(
-                                "Permission request failed:",
-                                error,
-                              );
                               toast.error(
                                 "Failed to request notification permissions",
                               );

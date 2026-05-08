@@ -36,7 +36,6 @@ export async function fetchWithTokenRefresh(
 
   // If we get a 401, try to refresh the token and retry once
   if (response.status === 401 && retryCount === 0) {
-    console.log('[fetchWithTokenRefresh] Got 401, attempting to refresh token...');
     
     try {
       const supabase = getSupabaseClient();
@@ -48,8 +47,6 @@ export async function fetchWithTokenRefresh(
         // Save the fresh token
         localStorage.setItem('accessToken', session.access_token);
         token = session.access_token;
-        
-        console.log('[fetchWithTokenRefresh] Token refreshed via getSession, retrying...');
         // Retry the request with the fresh token
         return fetchWithTokenRefresh(url, options, retryCount + 1);
       } else {
@@ -58,14 +55,11 @@ export async function fetchWithTokenRefresh(
         if (refreshData?.session?.access_token) {
           localStorage.setItem('accessToken', refreshData.session.access_token);
           token = refreshData.session.access_token;
-          
-          console.log('[fetchWithTokenRefresh] Token refreshed via refreshSession, retrying...');
           // Retry the request with the fresh token
           return fetchWithTokenRefresh(url, options, retryCount + 1);
         }
       }
     } catch (error) {
-      console.warn('[fetchWithTokenRefresh] Failed to refresh token:', error);
       // Fall through to return the original 401 response
     }
   }

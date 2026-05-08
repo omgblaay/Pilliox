@@ -25,7 +25,6 @@ export function NotificationTestButton() {
           "Test notification sent!",
       );
     } catch (error) {
-      console.error("Failed to send test notification:", error);
       toast.error(
         t("notifications.testFailed") ||
           "Failed to send test notification",

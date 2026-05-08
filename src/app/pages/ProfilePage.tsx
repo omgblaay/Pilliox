@@ -92,7 +92,6 @@ export function ProfilePage({
         setIsOAuthOnly(data.isOAuthOnly);
       }
     } catch (error) {
-      console.error("Failed to check password status:", error);
     } finally {
       setIsLoadingPasswordStatus(false);
     }
@@ -125,7 +124,6 @@ export function ProfilePage({
       const serverDob = data.user?.dateOfBirth ?? data.user?.date_of_birth;
       if (serverDob) setDateOfBirth(serverDob.split("T")[0]);
     } catch (error) {
-      console.error("Failed to load profile:", error);
     }
   };
 
@@ -145,7 +143,6 @@ export function ProfilePage({
       }
       setStats((prev) => ({ ...prev, totalEntries }));
     } catch (error) {
-      console.error("Failed to load stats:", error);
     }
   };
 
@@ -174,7 +171,6 @@ export function ProfilePage({
         } catch {}
       }
     } catch (error) {
-      console.error("Failed to save profile:", error);
     } finally {
       setIsSaving(false);
     }
@@ -256,7 +252,6 @@ export function ProfilePage({
         );
       }
     } catch (error) {
-      console.error("Failed to change password:", error);
       setPasswordError(
         t("profile.passwordChangeFailed") ||
           "Failed to change password",
@@ -302,7 +297,6 @@ export function ProfilePage({
         );
       }
     } catch (error) {
-      console.error("Failed to clear data:", error);
       alert(
         t("settings.clearData.error") || "Failed to clear data",
       );

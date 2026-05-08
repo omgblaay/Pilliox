@@ -54,7 +54,6 @@ export function ForgotPasswordPage() {
   useEffect(() => {
     const otpFromUrl = searchParams.get("otp");
     if (otpFromUrl && otpFromUrl.length === 6) {
-      console.log("[ForgotPassword] OTP from URL:", otpFromUrl);
       setOtp(otpFromUrl);
       setStep("verify");
       setCameFromEmailLink(true);
@@ -96,7 +95,6 @@ export function ForgotPasswordPage() {
         // DEBUG: Show OTP in UI for testing (remove in production)
         if (data.debug?.otp) {
           setDebugOtp(data.debug.otp);
-          console.log("[DEBUG] OTP:", data.debug.otp);
         }
         setResendCooldown(60); // Set cooldown to 60 seconds
       } else {
@@ -146,16 +144,10 @@ export function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error(
-          "[ForgotPassword] Verification error:",
-          data,
-        );
         setError(data.error || "Invalid or expired code");
         setIsLoading(false);
         return;
       }
-
-      console.log("[ForgotPassword] Password reset successful");
       setSuccess(true);
 
       // Redirect to login after 3 seconds
@@ -163,7 +155,6 @@ export function ForgotPasswordPage() {
         navigate("/auth");
       }, 3000);
     } catch (err: any) {
-      console.error("[ForgotPassword] Unexpected error:", err);
       setError(err.message || "Failed to reset password");
     } finally {
       setIsLoading(false);

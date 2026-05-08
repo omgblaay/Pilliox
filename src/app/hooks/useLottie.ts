@@ -12,7 +12,6 @@ export function useLottie(url: string) {
         setLoading(false);
       })
       .catch((error) => {
-        console.error('Error loading Lottie animation:', error);
         setLoading(false);
       });
   }, [url]);

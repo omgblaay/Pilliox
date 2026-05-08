@@ -80,10 +80,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       // Still 401 — force an explicit session refresh and retry once
       if (response.status === 401) {
         const body401 = await response.clone().text().catch(() => '');
-        console.log('[subscription] 401 body:', body401);
-        console.log('[subscription] current token prefix:', token.slice(0, 20));
+
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        console.log('[subscription] refreshSession result:', !!refreshData?.session, 'error:', refreshError?.message);
         const freshToken = refreshData?.session?.access_token;
         if (freshToken) {
           localStorage.setItem('accessToken', freshToken);
@@ -97,7 +95,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
 
       const data: SubscriptionStatus = await response.json();
-      console.log('[subscription] status response:', JSON.stringify(data));
       setStatus(data);
       setError(null);
       return data;
@@ -123,7 +120,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const knownCustomerId = status?.subscription?.stripeCustomerId;
 
       if (pendingSession || knownCustomerId) {
-        console.log('[subscription] attempting complete-checkout — session:', pendingSession, 'customer:', knownCustomerId);
         const ccResponse = await fetchWithTokenRefresh(
           `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/complete-checkout`,
           {
@@ -138,12 +134,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           }
         );
         if (ccResponse.ok) {
-          console.log('[subscription] complete-checkout via sync succeeded');
           sessionStorage.removeItem('pendingStripeSession');
           await refreshStatus();
           return;
         }
-        console.warn('[subscription] complete-checkout via sync failed:', ccResponse.status, await ccResponse.text().catch(() => ''));
       }
 
       const response = await fetchWithTokenRefresh(
@@ -309,7 +303,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const delays = [500, 1000, 2000, 4000, 8000];
       const pollAccess = async (remaining: number[]) => {
         const latest = await refreshStatus();
-        console.log('[subscription] poll result:', latest?.hasAccess, latest?.subscription?.status);
         if (latest?.hasAccess || remaining.length === 0) return;
         setTimeout(() => pollAccess(remaining.slice(1)), remaining[0]);
       };
@@ -322,11 +315,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         try {
           const token = localStorage.getItem('accessToken');
           if (!token) {
-            console.warn('[subscription] complete-checkout skipped: no token in localStorage');
             return;
           }
-
-          console.log('[subscription] calling complete-checkout with session:', checkoutSessionId);
           const response = await fetchWithTokenRefresh(
             `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/subscription/complete-checkout`,
             {
@@ -339,18 +329,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           );
 
           if (response.ok) {
-            console.log('[subscription] complete-checkout succeeded, triggering extra refresh');
             sessionStorage.removeItem('pendingStripeSession');
             toast.success('Subscription activated successfully! 🎉');
             // One extra refresh after complete-checkout saves the data
             await refreshStatus();
           } else {
             const text = await response.text();
-            console.error('[subscription] complete-checkout failed:', response.status, text);
             // Keep pendingStripeSession so the sync button can retry
           }
         } catch (error) {
-          console.error('[subscription] complete-checkout error:', error);
         }
       };
 

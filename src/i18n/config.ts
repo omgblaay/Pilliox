@@ -30,7 +30,6 @@ i18n
 
 // Ensure we're initialized
 if (!i18n.isInitialized) {
-  console.error('i18n failed to initialize!');
 }
 
 export default i18n;

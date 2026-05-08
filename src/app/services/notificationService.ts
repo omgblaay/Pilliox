@@ -76,7 +76,6 @@ class NotificationService {
       } else {
         // Web: Check if Notifications API is supported
         if (!('Notification' in window)) {
-          console.warn('Browser does not support notifications');
           throw new Error('Browser does not support notifications');
         }
         // Restore any notifications that were scheduled before a page reload
@@ -87,7 +86,6 @@ class NotificationService {
 
       this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize notification service:', error);
       throw new Error(`Notification initialization error: ${error}`);
     }
   }
@@ -99,7 +97,6 @@ class NotificationService {
     try {
       await LocalNotifications.createChannel(this.NOTIFICATION_CHANNEL as Channel);
     } catch (error) {
-      console.error('Failed to create notification channel:', error);
       // Don't throw - channel creation might fail on iOS (where it's not needed)
     }
   }
@@ -155,7 +152,6 @@ class NotificationService {
         };
       }
     } catch (error) {
-      console.error('Failed to request notification permissions:', error);
       throw new Error(`Permission request error: ${error}`);
     }
   }
@@ -183,7 +179,6 @@ class NotificationService {
         };
       }
     } catch (error) {
-      console.error('Failed to check notification permissions:', error);
       throw new Error(`Permission check error: ${error}`);
     }
   }
@@ -204,7 +199,6 @@ class NotificationService {
     }
 
     // Permission denied
-    console.warn('Notification permissions denied');
     return false;
   }
 
@@ -220,7 +214,6 @@ class NotificationService {
     }
 
     if (!pill.notificationTime) {
-      console.warn(`No notification time set for ${pill.name}`);
       return [];
     }
 
@@ -237,7 +230,6 @@ class NotificationService {
         return await this.scheduleWebNotifications(pill, startDate);
       }
     } catch (error) {
-      console.error(`Failed to schedule notifications for ${pill.name}:`, error);
       throw new Error(`Notification scheduling error for ${pill.name}: ${error}`);
     }
   }
@@ -308,7 +300,6 @@ class NotificationService {
     pill: PillSetting,
     startDate: Date
   ): Promise<number[]> {
-    console.log(`[NotificationService] Notification time: ${pill.notificationTime}, Frequency: ${pill.notificationFrequency}`);
 
     const [hours, minutes] = pill.notificationTime!.split(':').map(Number);
 
@@ -338,13 +329,11 @@ class NotificationService {
 
       // Skip if too soon or in the past
       if (delay < minDelayMs) {
-        console.log(`[NotificationService] Skipping notification ${i}: scheduled for ${scheduledDate.toISOString()}, delay is ${(delay / 60000).toFixed(1)} minutes`);
         continue;
       }
 
       // Skip if delay exceeds max safe setTimeout value — would fire immediately due to 32-bit overflow
       if (delay > MAX_TIMEOUT_MS) {
-        console.log(`[NotificationService] Skipping notification ${i}: delay ${Math.floor(delay / 3600000)}h exceeds max setTimeout range`);
         continue;
       }
 
@@ -353,14 +342,12 @@ class NotificationService {
 
       const delayHours = Math.floor(delay / 3600000);
       const remainingMinutes = Math.floor((delay % 3600000) / 60000);
-      console.log(`[NotificationService] Scheduling notification ${notificationId} for ${scheduledDate.toISOString()} (in ${delayHours}h ${remainingMinutes}m)`);
 
       const title = `💊 ${pill.name}`;
       const body = this.getNotificationBody(pill);
 
       // Schedule using setTimeout
       const timeoutId = window.setTimeout(() => {
-        console.log(`[NotificationService] Showing notification for ${pill.name}`);
         void this.showWebNotificationById(title, body, notificationId, pill.id);
         this.scheduledWebNotifications = this.scheduledWebNotifications.filter(
           n => n.id !== notificationId
@@ -384,8 +371,6 @@ class NotificationService {
       });
     }
 
-    console.log(`[NotificationService] Scheduled ${scheduledIds.length} notifications for ${pill.name}`);
-
     this.saveWebNotificationsToStorage(storedNotifications, pill.id);
 
     return scheduledIds;
@@ -408,14 +393,13 @@ class NotificationService {
    */
   private async showWebNotificationById(title: string, body: string, notificationId: number, pillId: string): Promise<void> {
     if (!('Notification' in window) || Notification.permission !== 'granted') {
-      console.warn('[NotificationService] Cannot show notification: permission not granted');
       return;
     }
 
     const options: NotificationOptions = {
       body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: 'dist/logo-big.png',
+      badge: 'dist/logo-big.pngg',
       tag: `pill-${pillId}-${notificationId}`,
       requireInteraction: false,
       data: { pillId, notificationId, url: '/' },
@@ -430,7 +414,6 @@ class NotificationService {
         await registration.showNotification(title, options);
         return;
       } catch (e) {
-        console.warn('[NotificationService] SW notification failed, falling back to Notification API:', e);
       }
     }
 
@@ -479,7 +462,6 @@ class NotificationService {
         JSON.stringify([...filtered, ...incoming])
       );
     } catch (error) {
-      console.error('Failed to save notifications to storage:', error);
     }
   }
 
@@ -526,7 +508,6 @@ class NotificationService {
         });
       }
     } catch (error) {
-      console.error('Failed to load notifications from storage:', error);
     }
   }
 
@@ -543,7 +524,6 @@ class NotificationService {
         JSON.stringify(stored.filter(n => n.id !== notificationId))
       );
     } catch (error) {
-      console.error('Failed to remove notification from storage:', error);
     }
   }
 
@@ -646,7 +626,6 @@ class NotificationService {
         await this.cancelWebNotificationsForPill(pillId);
       }
     } catch (error) {
-      console.error(`Failed to cancel notifications for pill ${pillId}:`, error);
       throw new Error(`Notification cancellation error: ${error}`);
     }
   }
@@ -662,7 +641,6 @@ class NotificationService {
         await this.schedulePillNotifications(pill);
       }
     } catch (error) {
-      console.error(`Failed to update notifications for ${pill.name}:`, error);
       throw error;
     }
   }
@@ -703,7 +681,6 @@ class NotificationService {
         await this.updatePillNotifications(pill);
       }
     } catch (error) {
-      console.error('Failed to sync notifications:', error);
       throw new Error(`Notification sync error: ${error}`);
     }
   }
@@ -742,7 +719,6 @@ class NotificationService {
         );
       }
     } catch (error) {
-      console.error('Failed to send test notification:', error);
       throw new Error(`Test notification error: ${error}`);
     }
   }
@@ -763,7 +739,6 @@ class NotificationService {
         }));
       }
     } catch (error) {
-      console.error('Failed to get pending notifications:', error);
       return [];
     }
   }
@@ -786,7 +761,6 @@ class NotificationService {
         localStorage.removeItem('pilliox_scheduled_notifications');
       }
     } catch (error) {
-      console.error('Failed to cancel all notifications:', error);
       throw new Error(`Failed to cancel notifications: ${error}`);
     }
   }
@@ -804,7 +778,6 @@ class NotificationService {
       }
       this.initialized = false;
     } catch (error) {
-      console.error('Failed to cleanup notification service:', error);
     }
   }
 }

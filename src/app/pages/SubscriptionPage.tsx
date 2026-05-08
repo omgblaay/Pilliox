@@ -16,10 +16,6 @@ export function SubscriptionPage() {
     try {
       await openCheckout();
     } catch (error) {
-      console.error(
-        "Failed to create checkout session:",
-        error,
-      );
     }
   };
 
@@ -27,7 +23,6 @@ export function SubscriptionPage() {
     try {
       await openPortal();
     } catch (error) {
-      console.error("Failed to open portal:", error);
     }
   };
 

@@ -43,7 +43,6 @@ export function useNotifications() {
           });
         }
       } catch (error) {
-        console.error('Failed to initialize notifications:', error);
         if (mounted) {
           setPermissions({
             granted: false,
@@ -79,7 +78,6 @@ export function useNotifications() {
       
       return granted;
     } catch (error) {
-      console.error('Failed to request permissions:', error);
       setPermissions({
         granted: false,
         loading: false,
@@ -96,7 +94,6 @@ export function useNotifications() {
     try {
       const hasPermission = await notificationService.ensurePermissions();
       if (!hasPermission) {
-        console.warn('Cannot sync notifications: permissions not granted');
         return false;
       }
 
@@ -104,7 +101,6 @@ export function useNotifications() {
       
       return true;
     } catch (error) {
-      console.error('Failed to sync notifications:', error);
       return false;
     }
   }, []);
@@ -121,7 +117,6 @@ export function useNotifications() {
       await notificationService.schedulePillNotifications(pill);
       return true;
     } catch (error) {
-      console.error('Failed to schedule notifications for pill:', error);
       return false;
     }
   }, []);
@@ -133,7 +128,6 @@ export function useNotifications() {
     try {
       await notificationService.cancelPillNotifications(pillId);
     } catch (error) {
-      console.error('Failed to cancel notifications:', error);
     }
   }, []);
 
@@ -144,7 +138,6 @@ export function useNotifications() {
     try {
       await notificationService.cancelAllNotifications();
     } catch (error) {
-      console.error('Failed to cancel all notifications:', error);
     }
   }, []);
 
@@ -156,7 +149,6 @@ export function useNotifications() {
       const pending = await notificationService.getPendingNotifications();
       return pending.length;
     } catch (error) {
-      console.error('Failed to get pending notifications:', error);
       return 0;
     }
   }, []);

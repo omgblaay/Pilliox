@@ -42,6 +42,11 @@ import {
   BellOff,
   Clock,
   Flame,
+  CalendarSync,
+  CalendarCheck,
+  Rows3,
+  Grid,
+  Grid2X2,
 } from "lucide-react";
 import {
   motion,
@@ -305,10 +310,6 @@ export function CalendarView({
           Array.isArray(adHocMedsData) ? adHocMedsData : [],
         );
       } catch (error) {
-        console.error(
-          "Error parsing ad-hoc medications data:",
-          error,
-        );
         setAdHocMeds([]);
       }
     }
@@ -470,7 +471,6 @@ export function CalendarView({
           setPillsSettings(data.pills || []);
         }
       } catch (error) {
-        console.error("Error loading pills settings:", error);
       }
     };
 
@@ -540,10 +540,6 @@ export function CalendarView({
           next: nextData.entries || {},
         });
       } catch (error) {
-        console.error(
-          "Error preloading adjacent months:",
-          error,
-        );
       }
     };
 
@@ -575,7 +571,7 @@ export function CalendarView({
   };
 
   const handleDateClick = (date: Date) => {
-    if (!isSameMonth(date, currentMonth)) return;
+    if (viewMode === "month" && !isSameMonth(date, currentMonth)) return;
 
     const dateKey = format(date, "yyyy-MM-dd");
 
@@ -602,7 +598,6 @@ export function CalendarView({
         : [];
       setPills(Array.isArray(pillsData) ? pillsData : []);
     } catch (error) {
-      console.error("Error parsing pills data:", error);
       setPills([]);
     }
     try {
@@ -623,10 +618,6 @@ export function CalendarView({
         Array.isArray(adHocMedsData) ? adHocMedsData : [],
       );
     } catch (error) {
-      console.error(
-        "Error parsing ad-hoc medications data:",
-        error,
-      );
       setAdHocMeds([]);
     }
 
@@ -915,7 +906,6 @@ export function CalendarView({
         },
       );
     } catch (error) {
-      console.error("Error saving view mode:", error);
     }
   };
 
@@ -954,7 +944,6 @@ export function CalendarView({
         : [];
       setPills(Array.isArray(pillsData) ? pillsData : []);
     } catch (error) {
-      console.error("Error parsing pills data:", error);
       setPills([]);
     }
     try {
@@ -989,7 +978,6 @@ export function CalendarView({
         : [];
       setPills(Array.isArray(pillsData) ? pillsData : []);
     } catch (error) {
-      console.error("Error parsing pills data:", error);
       setPills([]);
     }
     try {
@@ -1320,13 +1308,13 @@ export function CalendarView({
       {/* Header */}
       <div>
         <div className="w-full lg:max-w-[800px] mx-auto px-4 sm:px-[24px] py-4 sm:py-[20px]">
-          <div className="flex items-center gap-8 justify-between mt-[0px] mr-[0px] ml-[0px] m-[0px]">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center space-between justify-between mt-[0px] mr-[0px] ml-[0px] m-[0px]">
+            <div className="flex items-center gap-2">
               {/* Menu button - visible only on mobile */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-12 w-12 rounded-full hover:bg-accent lg:hidden"
+                className="h-10 w-10 rounded-full hover:bg-accent lg:hidden"
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-6 w-6 text-muted-foreground" />
@@ -1336,12 +1324,25 @@ export function CalendarView({
               </div>
             </div>
             <div className="flex items-center gap-2">
-
+          {/* Upcoming notification pill */}
+          {upcomingNotification && (
+            <div className="px-3 pt-2 pb-0">
+              <div className="inline-flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 shadow-sm">
+                <div className="w-4 h-4 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                  <Bell className="h-3 w-3 text-blue-500" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">
+                  {upcomingNotification.time} · {upcomingNotification.name}
+                </span>
+                <span className="hidden sm:block text-xs text-muted-foreground">{upcomingNotification.label}</span>
+              </div>
+            </div>
+          )}
               {/* Desktop nav icons */}
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 hidden lg:flex"
+                className="h-12 w-12 hidden md:flex"
                 onClick={() => navigate("/app/medications")}
                 title="Medications"
               >
@@ -1350,7 +1351,7 @@ export function CalendarView({
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 hidden lg:flex"
+                className="h-12 w-12 hidden md:flex"
                 onClick={() => navigate("/app/profile")}
                 title="Profile"
               >
@@ -1359,7 +1360,7 @@ export function CalendarView({
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 hidden lg:flex"
+                className="h-12 w-12 hidden md:flex"
                 onClick={() => navigate("/app/settings")}
                 title="Settings"
               >
@@ -1375,21 +1376,21 @@ export function CalendarView({
         {/* Calendar Card */}
         <div className="bg-white dark:bg-input-background rounded-2xl shadow-sm border border-border overflow-hidden">
           {/* Toolbar */}
-          <div className="px-3 py-2.5 border-b border-border flex items-center gap-2">
+          <div className="px-4 py-2 border-b border-border flex items-center gap-2">
             {/* Left: Tag days */}
             <Button
               onClick={handleMultiSelectStart}
               variant="outline"
               size="sm"
               disabled={multiSelectMode}
-              className="gap-1.5 text-xs h-8 px-3"
+              className="sm:flex-1 "
             >
-              <Tag className="h-3.5 w-3.5" />
-              {t("calendar.markDays")}
+              <CalendarCheck className="size-4" />
+              <span className=" hidden sm:flex ">{t("calendar.markDays")}</span>
             </Button>
 
             {/* Center: Date navigation */}
-            <div className="flex items-center gap-0.5 flex-1 justify-center">
+            <div className="flex items-center gap-0.5 flex-5 justify-center">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePreviousMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -1416,14 +1417,15 @@ export function CalendarView({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs h-8 px-3 whitespace-nowrap"
+              className="sm:flex-1 no-wrap"
               onClick={() => {
                 const newMode = viewMode === "month" ? "week" : "month";
                 setViewMode(newMode);
                 saveViewMode(newMode);
               }}
             >
-              {viewMode === "month" ? t("calendar.weekView") : t("calendar.monthView")}
+              {viewMode === "week" ? <Grid2X2 className="size-4" /> : <Rows3 className="size-4" />}
+             <span className=" hidden sm:flex ">{viewMode === "month" ? t("calendar.weekView") : t("calendar.monthView")}</span>
             </Button>
           </div>
 
@@ -1463,24 +1465,11 @@ export function CalendarView({
             </div>
           )}
 
-          {/* Upcoming notification pill */}
-          {upcomingNotification && (
-            <div className="px-3 pt-2 pb-0">
-              <div className="inline-flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-1.5 shadow-sm">
-                <div className="w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
-                  <Bell className="h-3 w-3 text-blue-500" />
-                </div>
-                <span className="text-xs font-semibold text-foreground">
-                  {upcomingNotification.time} · {upcomingNotification.name}
-                </span>
-                <span className="text-xs text-muted-foreground">{upcomingNotification.label}</span>
-              </div>
-            </div>
-          )}
+
 
           {/* Calendar Grid */}
           <motion.div
-            className="px-4 sm:px-2 py-4 sm:py-5"
+            className="p-2"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
@@ -1694,7 +1683,7 @@ export function CalendarView({
                           ? "rounded-xl"
                           : roundedClass,
                         viewMode === "month" &&
-                          "flex flex-col items-start justify-start p-4",
+                          "flex flex-col items-start justify-start p-2 sm:p-4",
                         viewMode === "week" &&
                           "items-center justify-start p-3 gap-3",
                         "focus:outline-none bfocus:ring-2",

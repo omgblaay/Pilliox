@@ -136,9 +136,6 @@ export function PillsSettings({
 
   const loadPillsSettings = async () => {
     if (!userId) {
-      console.error(
-        "Cannot load pills settings: userId is empty",
-      );
       toast.error(t("pillsSettings.loadError"));
       return;
     }
@@ -154,15 +151,9 @@ export function PillsSettings({
         setPills(data.pills || []);
       } else {
         const errorText = await response.text();
-        console.error(
-          "Failed to load pills settings:",
-          response.status,
-          errorText,
-        );
         toast.error(t("pillsSettings.loadError"));
       }
     } catch (error) {
-      console.error("Error loading pills settings:", error);
       toast.error(t("pillsSettings.loadError"));
     } finally {
       setLoading(false);
@@ -179,7 +170,6 @@ export function PillsSettings({
           typeof pill.defaultDosage !== "number" ||
           isNaN(pill.defaultDosage)
         ) {
-          console.error("Invalid pill data:", pill);
           toast.error(t("pillsSettings.invalidData"));
           setSaving(false);
           return;
@@ -203,11 +193,9 @@ export function PillsSettings({
         onOpenChange(false);
       } else {
         const error = await response.text();
-        console.error("Failed to save pills settings:", error);
         toast.error(t("pillsSettings.saveError"));
       }
     } catch (error) {
-      console.error("Error saving pills settings:", error);
       toast.error(t("pillsSettings.saveError"));
     } finally {
       setSaving(false);

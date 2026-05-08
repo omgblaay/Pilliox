@@ -14,6 +14,7 @@ import {
   Minus,
   Pencil,
   Bell,
+  CalendarCheck,
 } from "lucide-react";
 import {
   Dialog,
@@ -273,21 +274,8 @@ export function EditDayDialog({
               {selectedDate && entries[format(selectedDate, "yyyy-MM-dd")]?.color && (
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                        <Palette className="h-4 w-4 text-orange-700 dark:text-orange-400" />
-                      </div>
-                      <Label>{t("calendar.colorTag")}</Label>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteConfirmOpen(true)}
-                      className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
-                    >
-                      <X className="h-2 w-2" />
-                      {t("calendar.removeTag")}
-                    </Button>
+
+
                   </div>
 
                   {/* Tag Display */}
@@ -306,6 +294,14 @@ export function EditDayDialog({
                         : undefined,
                     }}
                   >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteConfirmOpen(true)}
+                      className="text-white/50"
+                    >
+                      <X className="size-4" />
+                    </Button>
                     <span
                       className="text-sm mr-4"
                       style={{
@@ -592,7 +588,7 @@ export function EditDayDialog({
                 <Button variant="outline" onClick={onCancel} className="flex-1">
                   {t("calendar.cancel") || "Cancel"}
                 </Button>
-                <Button variant="destructive"  onClick={onClearDay} className="flex-1">
+                <Button variant="destructive" onClick={onClearDay} className="flex-1">
                   {t("day.delete") || "Clear"}
                 </Button>
                 <Button onClick={handleSave} className="flex-1">
