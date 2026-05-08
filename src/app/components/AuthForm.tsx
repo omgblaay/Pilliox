@@ -166,6 +166,8 @@ export function AuthForm({
         },
       });
 
+      console.log("[auth] signInWithOAuth — provider:", provider, "redirectTo:", `${window.location.origin}/app`, "error:", error?.message, "url:", data?.url?.slice(0, 80));
+
       if (error) {
         setError(error.message);
         setIsLoading(false);

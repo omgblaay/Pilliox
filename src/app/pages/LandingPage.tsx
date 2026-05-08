@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import {
   projectId,
   publicAnonKey,
@@ -26,7 +27,7 @@ import {
 import { useTheme } from "../hooks/useTheme";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { Logo } from "../components/Logo";
-import { supabase } from "/utils/supabase/client";
+import { supabase } from "../../../utils/supabase/client";
 
 // Animated Counter Component
 function AnimatedCounter({
@@ -574,7 +575,7 @@ export default function LandingPage() {
                   Popular
                 </div>
 
-                <div className="text-center flex gap-4 flex-col gap-4 relative z-10">
+                <div className="text-center flex flex-col gap-4 relative z-10">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {t("landing.pricing.plan")}
                   </h3>
