@@ -394,7 +394,10 @@ function AppRoutes() {
             accessToken ? (
               <Navigate to="/app" replace />
             ) : (
-              <Navigate to="/auth" replace />
+              <Navigate
+                to={`/auth${window.location.search}${window.location.hash}`}
+                replace
+              />
             )
           }
         />
