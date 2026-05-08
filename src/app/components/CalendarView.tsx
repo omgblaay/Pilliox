@@ -1525,7 +1525,7 @@ export function CalendarView({
                   ))}
                 {daysInMonth.map((day, dayIndex) => {
                   const dateStr = format(day, "yyyy-MM-dd");
-                  const entry = entries[dateStr] || {};
+                  const entry = entries[dateStr] || adjacentMonthEntries.prev[dateStr] || adjacentMonthEntries.next[dateStr] || {};
                   const hasAmount =
                     entry.amount && entry.amount !== "";
                   const hasNote =
@@ -1572,10 +1572,10 @@ export function CalendarView({
                     : null;
 
                   const prevEntry = prevDateStr
-                    ? entries[prevDateStr]
+                    ? (entries[prevDateStr] || adjacentMonthEntries.prev[prevDateStr] || adjacentMonthEntries.next[prevDateStr])
                     : null;
                   const nextEntry = nextDateStr
-                    ? entries[nextDateStr]
+                    ? (entries[nextDateStr] || adjacentMonthEntries.prev[nextDateStr] || adjacentMonthEntries.next[nextDateStr])
                     : null;
 
                   const hasSameColorTagAsPrev =

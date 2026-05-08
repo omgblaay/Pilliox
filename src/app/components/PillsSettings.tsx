@@ -62,6 +62,7 @@ export interface PillSetting {
   defaultDosage: number;
   color?: string;
   type?: "pills" | "value";
+  unit?: string;
   notificationsEnabled?: boolean;
   notificationTime?: string; // HH:mm format
   notificationFrequency?: "daily" | "every2days" | "every3days";
@@ -549,9 +550,9 @@ export function PillsSettings({
                       updatePill(editingPill.id, { color: color.value });
                       setEditingPill({ ...editingPill, color: color.value! });
                     }}
-                    variant="circle"
                   />
                 </div>
+
               </div>
               <div className="flex flex-col h-auto gap-5 md:flex-row">
                 {/* Type */}

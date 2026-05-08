@@ -47,7 +47,7 @@ export function ColorPicker({
     <div className={cn(
       variant === "circle"
         ? "flex flex-wrap gap-1 w-full"
-        : "flex flex-wrap w-full gap-1 mt-10",
+        : "flex flex-wrap w-full gap-1",
     )}>
       {colors.map((color) => {
         const base = color.hex ?? color.value ?? "";

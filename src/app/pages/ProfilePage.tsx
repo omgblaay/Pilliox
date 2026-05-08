@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { format, subDays } from "date-fns";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
@@ -128,22 +129,54 @@ export function ProfilePage({
   };
 
   const loadStats = () => {
-    // Calculate stats from calendar data in localStorage
-    // This is a simplified version - you can enhance it
     try {
-      let totalEntries = 0;
+      const loggedDates: string[] = [];
+      let totalMedications = 0;
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key?.startsWith("calendarEntries_")) {
-          const entries = JSON.parse(
-            localStorage.getItem(key) || "{}",
-          );
-          totalEntries += Object.keys(entries).length;
+        if (!key?.startsWith("calendarEntries_")) continue;
+
+        const monthEntries: Record<string, { amount?: string; note?: string; pills?: string; adHocMeds?: string; color?: string; tag?: string }> =
+          JSON.parse(localStorage.getItem(key) || "{}");
+
+        for (const [dateKey, entry] of Object.entries(monthEntries)) {
+          const hasContent =
+            entry.amount || entry.note || entry.color || entry.tag ||
+            (entry.pills && JSON.parse(entry.pills).length > 0) ||
+            (entry.adHocMeds && JSON.parse(entry.adHocMeds).length > 0);
+
+          if (hasContent) loggedDates.push(dateKey);
+
+          if (entry.pills) {
+            try {
+              const parsed: { dosage?: number }[] = JSON.parse(entry.pills);
+              totalMedications += parsed.reduce((s, p) => s + (p.dosage ?? 1), 0);
+            } catch {}
+          }
+          if (entry.adHocMeds) {
+            try {
+              totalMedications += (JSON.parse(entry.adHocMeds) as unknown[]).length;
+            } catch {}
+          }
         }
       }
-      setStats((prev) => ({ ...prev, totalEntries }));
-    } catch (error) {
-    }
+
+      // Compute streak: walk back from today counting consecutive logged days
+      const dateSet = new Set(loggedDates);
+      let streak = 0;
+      let cursor = new Date();
+      // If today has no entry yet, allow starting streak from yesterday
+      if (!dateSet.has(format(cursor, "yyyy-MM-dd"))) {
+        cursor = subDays(cursor, 1);
+      }
+      while (dateSet.has(format(cursor, "yyyy-MM-dd"))) {
+        streak++;
+        cursor = subDays(cursor, 1);
+      }
+
+      setStats({ totalEntries: loggedDates.length, currentStreak: streak, medicationsTaken: totalMedications });
+    } catch {}
   };
 
   const handleSave = async () => {
