@@ -378,7 +378,7 @@ export function EditDayDialog({
                           ? pillDosage!.dosage
                           : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
                         return (
-                          <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-750  hover:bg-muted/30 transition-colors">
+                          <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-100/20  hover:bg-muted/30 transition-colors">
                             <button
                               type="button"
                               onClick={() => {
@@ -458,7 +458,7 @@ export function EditDayDialog({
                   const pillDosage = pills.find((p) => p.pillId === valueSetting.id);
                   const currentValue = pillDosage?.dosage?.toString() || "";
                   return (
-                    <div key={valueSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-750  hover:bg-muted/30 transition-colors">
+                    <div key={valueSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-100/20 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center flex-row gap-2 flex-1">
 
                         <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: valueSetting.color }} />

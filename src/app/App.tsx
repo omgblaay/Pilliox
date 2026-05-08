@@ -168,7 +168,8 @@ function AppRoutes() {
                     );
                     if (
                       !currentPath.startsWith("/app") &&
-                      !currentPath.startsWith("/docs/")
+                      !currentPath.startsWith("/docs/") &&
+                      currentPath !== "/home"
                     ) {
                       navigate("/app");
                     }
@@ -182,7 +183,8 @@ function AppRoutes() {
               } else if (
                 onboardingCompleted &&
                 !currentPath.startsWith("/app") &&
-                !currentPath.startsWith("/docs/")
+                !currentPath.startsWith("/docs/") &&
+                currentPath !== "/home"
               ) {
                 navigate("/app");
               }
@@ -425,16 +427,8 @@ function AppRoutes() {
             )
           }
         />
-        <Route
-          path="/home"
-          element={
-            accessToken ? (
-              <Navigate to="/app" replace />
-            ) : (
-              <LandingPage />
-            )
-          }
-        />
+        <Route path="/home" element={<LandingPage />} />
+        <Route path="/landing" element={<Navigate to="/home" replace />} />
         <Route
           path="/docs/terms"
           element={

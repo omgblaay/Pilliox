@@ -1700,7 +1700,7 @@ export function CalendarView({
                         "focus:outline-none bfocus:ring-2",
                         isToday &&
                           !hasColor &&
-                          "border border-foreground/25 dark:border-blue-500/20 bg-blue-800/5",
+                          "border border-foreground/25 dark:border-blue-500/40 bg-blue-800/10",
                         !isToday &&
                         "text-muted-foreground",
                           !hasColor &&
@@ -1708,7 +1708,7 @@ export function CalendarView({
                         hasColor &&
                           "hover:opacity-80 border-2 border-transparent",
                         isSelected &&
-                          "ring-2 ring-blue-600 text-foreground",
+                          "ring-1 ring-blue-600 text-foreground",
                         // Add z-index for first day of tagged group to keep tag on top
                         hasColor &&
                           entry.tag &&
@@ -1897,12 +1897,12 @@ export function CalendarView({
                           {hasColor && entry.tag && !hasSameColorTagAsPrev && (
                             <div
                               className={cn(
-                                "absolute top-0 left-0 text-[9px] font-semibold py-0.5 px-1.5 rounded-t-xl truncate z-50",
+                                "absolute top-0 left-0 text-xs py-0.5 px-3 text-left rounded-t-xl truncate z-50",
                                 isDarkMode ? "bg-white/20 text-white/80" : "bg-black/15 text-gray-800",
                               )}
                               style={{
                                 width: consecutiveDaysCount > 1
-                                  ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 1}px)`
+                                  ? `calc(${consecutiveDaysCount * 100}% + ${(consecutiveDaysCount - 1) * 4}px)`
                                   : "100%",
                               }}
                             >
