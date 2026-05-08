@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import logoDark from "../../assets/LogoDark.svg";
-import logoLight from "../../assets/LogoLight.svg";
+import logoDark from "../../assets/LogoLight.svg";
+import logoLight from "../../assets/LogoDark.svg";
 
 interface LogoProps {
   className?: string;
