@@ -16,7 +16,8 @@ import {
 import { motion } from "motion/react";
 import { BottomNavigation } from "../components/BottomNavigation";
 import { PillsSettings, PillSetting } from "../components/PillsSettings.tsx";
-import { MedicationEditDialog, PILL_COLORS } from "../components/MedicationEditDialog";
+import { COLORS } from "../components/ColorPicker";
+import { MedicationEditDialog } from "../components/MedicationEditDialog";
 import { notificationService } from "../services/notificationService";
 
 interface MedicationsPageProps {
@@ -53,7 +54,7 @@ export function MedicationsPage({
         id: `pill_${Date.now()}`,
         name: "",
         defaultDosage: 1,
-        color: PILL_COLORS[0].hex,
+        color: COLORS[0].hex,
         type: "pills",
       };
       setEditingPill(newPill);
@@ -112,7 +113,7 @@ export function MedicationsPage({
       id: `pill_${Date.now()}`,
       name: "",
       defaultDosage: 1,
-      color: PILL_COLORS[0].hex,
+      color: COLORS[0].hex,
       type: "pills",
     };
     setEditingPill(newPill);
@@ -262,7 +263,7 @@ export function MedicationsPage({
                         </div>
                         {pill.notificationsEnabled ? (
                           <div className="flex items-center text-sm gap-2">
-                            <Bell className="h-4 w-4 text-blue-500" />
+                            <Bell className="size-3 text-blue-500" />
                             <span>{pill.notificationTime && ` ${pill.notificationTime}`}</span>
                           </div>
                         ) : (

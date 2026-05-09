@@ -41,20 +41,10 @@ import {
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { type PillSetting } from "./PillsSettings";
-import { ColorPicker, type PickerColor } from "./ColorPicker";
+import { ColorPicker, COLORS } from "./ColorPicker";
 import { notificationService } from "../services/notificationService";
 import { fetchWithTokenRefresh } from "../../utils/api-client";
 import { toast } from "sonner";
-
-export const PILL_COLORS: PickerColor[] = [
-  { name: "Blue", hex: "#3b82f6" },
-  { name: "Green", hex: "#22c55e" },
-  { name: "Yellow", hex: "#eab308" },
-  { name: "Red", hex: "#ef4444" },
-  { name: "Purple", hex: "#a855f7" },
-  { name: "Pink", hex: "#ec4899" },
-  { name: "Orange", hex: "#f97316" },
-];
 
 interface MedicationEditDialogProps {
   open: boolean;
@@ -368,8 +358,8 @@ export function MedicationEditDialog({
               <div className="space-y-2 flex-1">
                 <Label>{t("pillsSettings.color")}</Label>
                 <ColorPicker
-                  colors={PILL_COLORS}
-                  selectedColor={PILL_COLORS.find((c) => c.hex === editingPill.color) ?? PILL_COLORS[0]}
+                  colors={COLORS}
+                  selectedColor={COLORS.find((c) => c.hex === editingPill.color) ?? COLORS[0]}
                   onSelect={(color) => updatePill({ color: color.hex })}
                 />
               </div>
@@ -464,8 +454,8 @@ export function MedicationEditDialog({
             <div className="border-t pt-4 border-border/80">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-1 items-center gap-2">
-                  <Bell className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-base flex-1 whitespace-nowrap">
+                  <Bell className="size-4 text-muted-foreground" />
+                  <Label className="text-md flex-1 whitespace-nowrap">
                     {t("pillsSettings.notifications")}
                   </Label>
                   <Switch

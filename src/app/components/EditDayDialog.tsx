@@ -30,6 +30,7 @@ import { Label } from "./ui/label";
 import { cn } from "./ui/utils";
 import type { PillSetting } from "./PillsSettings";
 import { NoteDialog } from "./NoteDialog";
+import { EditTagDialog } from "./EditTagDialog";
 
 interface PillDosage {
   pillId: string;
@@ -79,27 +80,12 @@ const headerSlideVariants = {
   }),
 };
 
-function isLightColor(color: string): boolean {
-  const hex = color.replace("#", "");
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
-}
-
-function getColorForTheme(storedColor: string, isDarkMode: boolean): string {
-  if (!isDarkMode) return storedColor;
-  const DARK_COLORS: Record<string, string> = {
-    "#DBEAFE": "#1E3A8A",
-    "#D1FAE5": "#065F46",
-    "#F3E8FF": "#6B21A8",
-    "#FCE7F3": "#9F1239",
-    "#FEF3C7": "#92400E",
-    "#FFEDD5": "#9A3412",
-    "#FEE2E2": "#991B1B",
-    "#E0E7FF": "#3730A3",
-  };
-  return DARK_COLORS[storedColor.toUpperCase()] ?? DARK_COLORS[storedColor] ?? storedColor;
+function hexToRgba(hex: string, opacity: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
 interface EditDayDialogProps {
@@ -129,7 +115,8 @@ interface EditDayDialogProps {
   navigateToNextDay: () => void;
   handleDayModalSwipe: (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   formatDialogDate: (date: Date) => string;
-  startEditingTag: () => void;
+  weekStartsOnMonday: boolean;
+  onUpdateGroupedTag: (text: string, colorHex: string, addDays: Set<string>, removeDays: Set<string>) => void;
   handleSave: () => void;
   onCancel: () => void;
   onClearDay: () => void;
@@ -163,7 +150,8 @@ export function EditDayDialog({
   navigateToNextDay,
   handleDayModalSwipe,
   formatDialogDate,
-  startEditingTag,
+  weekStartsOnMonday,
+  onUpdateGroupedTag,
   handleSave,
   onCancel,
   onClearDay,
@@ -174,6 +162,15 @@ export function EditDayDialog({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [editTagDialogOpen, setEditTagDialogOpen] = useState(false);
+
+  function startEditingTag() {
+    if (!selectedDate) return;
+    const dateKey = format(selectedDate, "yyyy-MM-dd");
+    const currentEntry = entries[dateKey];
+    if (!currentEntry?.color) return;
+    setEditTagDialogOpen(true);
+  }
 
   function findGroupedDays(currentColor: string, currentTag: string): string[] {
     return Object.keys(entries).filter((dateKey) => {
@@ -222,7 +219,7 @@ export function EditDayDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-2 py-2 rounded-full bg-accent">
+        <div className="px-2 py-2 rounded-full bg-gray-100 dark:bg-accent">
           <div className="flex rounded-full items-center justify-between gap-2">
             <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
               <ChevronLeft />
@@ -281,84 +278,63 @@ export function EditDayDialog({
                   </div>
 
                   {/* Tag Display */}
-                  <div
-                    className="min-h-12 rounded-lg border flex items-center px-4 py-2 relative group"
-                    style={{
-                      backgroundColor: selectedDate
-                        ? entries[format(selectedDate, "yyyy-MM-dd")]?.color
-                          ? getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")].color || "", isDarkMode)
-                          : undefined
-                        : undefined,
-                      borderColor: selectedDate
-                        ? entries[format(selectedDate, "yyyy-MM-dd")]?.color
-                          ? getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")].color || "", isDarkMode)
-                          : undefined
-                        : undefined,
-                    }}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteConfirmOpen(true)}
-                      className="text-white/50"
-                    >
-                      <X className="size-4" />
-                    </Button>
-                    <span
-                      className="text-sm mr-4"
-                      style={{
-                        color:
-                          entries[format(selectedDate, "yyyy-MM-dd")]?.color &&
-                            isLightColor(getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")]?.color || "", isDarkMode))
-                            ? "#111827"
-                            : "#f3f4f6",
-                      }}
-                    >
-                      {entries[format(selectedDate, "yyyy-MM-dd")]?.tag || t("calendar.noTag")}
-                    </span>
+                  {(() => {
+                    const color = entries[format(selectedDate, "yyyy-MM-dd")]?.color || "";
+                    return (
+                      <div
+                        className="min-h-12 rounded-lg border flex items-center px-4 py-2 relative group"
+                        style={{
+                          backgroundColor: hexToRgba(color, 0.15),
+                          borderColor: hexToRgba(color, 0.3),
+                        }}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteConfirmOpen(true)}
+                          className="text-muted-foreground"
+                        >
+                          <X className="size-4" />
+                        </Button>
+                        <span className="text-sm mr-4 text-foreground">
+                          {entries[format(selectedDate, "yyyy-MM-dd")]?.tag || t("calendar.noTag")}
+                        </span>
 
-                    {/* Grouped Days */}
-                    {(() => {
-                      const currentEntry = entries[format(selectedDate, "yyyy-MM-dd")];
-                      if (!currentEntry?.color || !currentEntry?.tag) return null;
-                      const groupedDays = findGroupedDays(currentEntry.color, currentEntry.tag);
-                      const dayRanges = formatDayRanges(groupedDays);
-                      if (groupedDays.length <= 1) return null;
-                      const textColor = isLightColor(getColorForTheme(currentEntry.color, isDarkMode)) ? "#6b7280" : "#d1d5db";
-                      return (
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                          {dayRanges.map((range, idx) => (
-                            <span
-                              key={idx}
-                              className="px-1.5 py-0.5 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor: isLightColor(getColorForTheme(currentEntry.color!, isDarkMode))
-                                  ? "rgba(0,0,0,0.1)"
-                                  : "rgba(255,255,255,0.2)",
-                                color: textColor,
-                              }}
-                            >
-                              {range}
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    })()}
+                        {/* Grouped Days */}
+                        {(() => {
+                          const currentEntry = entries[format(selectedDate, "yyyy-MM-dd")];
+                          if (!currentEntry?.color || !currentEntry?.tag) return null;
+                          const groupedDays = findGroupedDays(currentEntry.color, currentEntry.tag);
+                          const dayRanges = formatDayRanges(groupedDays);
+                          if (groupedDays.length <= 1) return null;
+                          return (
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                              {dayRanges.map((range, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-1.5 py-0.5 rounded text-xs font-medium"
+                                  style={{
+                                    backgroundColor: hexToRgba(color, 0.2),
+                                    color,
+                                  }}
+                                >
+                                  {range}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
 
-                    <button
-                      onClick={startEditingTag}
-                      className="absolute right-2 top-2 h-8 w-8 rounded-lg flex items-center justify-center group-hover:opacity-100 transition-opacity hover:bg-white/20"
-                      style={{
-                        color:
-                          entries[format(selectedDate, "yyyy-MM-dd")]?.color &&
-                            isLightColor(getColorForTheme(entries[format(selectedDate, "yyyy-MM-dd")]?.color || "", isDarkMode))
-                            ? "#111827"
-                            : "#f3f4f6",
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  </div>
+                        <button
+                          onClick={startEditingTag}
+                          className="absolute right-2 top-2 h-8 w-8 rounded-lg flex items-center justify-center transition-opacity hover:bg-black/10 dark:hover:bg-white/10"
+                          style={{ color }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
                {/* Empty state — no regular medications configured */}
@@ -443,7 +419,7 @@ export function EditDayDialog({
                             <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
                               {pillSetting.name}
                             </span>
-                            <div className="flex items-center border border-[#4d4c54] rounded-md overflow-hidden h-12">
+                            <div className="flex items-center border border-border dark:border-[#4d4c54] rounded-md overflow-hidden h-12">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -629,6 +605,16 @@ export function EditDayDialog({
         onOpenChange={setNoteDialogOpen}
         note={note}
         onSave={setNote}
+      />
+
+      <EditTagDialog
+        open={editTagDialogOpen}
+        onOpenChange={setEditTagDialogOpen}
+        selectedDate={selectedDate}
+        entries={entries}
+        isDarkMode={isDarkMode}
+        weekStartsOnMonday={weekStartsOnMonday}
+        onApply={onUpdateGroupedTag}
       />
     </Dialog>
   );

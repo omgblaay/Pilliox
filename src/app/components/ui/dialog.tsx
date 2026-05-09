@@ -102,13 +102,14 @@ function DialogHeader({
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex flex-col min-h-10 w-full gap-2 text-left relative",
+        "flex min-h-10 w-full items-center space-between gap-2 text-left relative",
         className,
       )}
       {...props}
-    >
+    ><div className="flex flex-1 flex-col gap-2">
       {props.children}
-      <DialogPrimitive.Close className="w-10 h-10 absolute top-0 right-0 border-[#4d4c54] border-1 rounded-full ring-offset-background flex items-center cursor-pointer focus:ring-ring opacity-80 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
+       </div>
+      <DialogPrimitive.Close className="w-10 h-10 border-border dark:border-[#4d4c54] border-1 rounded-full ring-offset-background flex items-center cursor-pointer focus:ring-ring opacity-80 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
         <XIcon className="m-auto" />
       </DialogPrimitive.Close>
     </div>

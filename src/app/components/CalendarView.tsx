@@ -61,7 +61,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "./ui/dialog";
-import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { AboutModal } from "./AboutModal";
 import { SidebarMenu } from "./SidebarMenu";
@@ -84,10 +83,9 @@ import Vector from "../../imports/Vector";
 import { BottomNavigation } from "./BottomNavigation";
 import { Logo } from "../components/Logo";
 import { fetchWithTokenRefresh } from "../../utils/api-client";
-import { MiniDayPicker } from "./MiniDayPicker";
-import { ColorPicker, COLORS } from "./ColorPicker";
 import { EditDayDialog } from "./EditDayDialog";
 import { MarkDaysDialog } from "./MarkDaysDialog";
+import { COLORS } from "./ColorPicker";
 import { notificationService } from "../services/notificationService";
 
 interface PillDosage {
@@ -125,18 +123,12 @@ interface CalendarViewProps {
   anonKey: string;
 }
 
-// Helper function to get the appropriate color for the current theme
-function getColorForTheme(
-  storedColor: string,
-  isDarkMode: boolean,
-): string {
-  if (!isDarkMode) return storedColor;
-
-  // Find if this is a known light color and return its dark variant
-  const colorObj = COLORS.find(
-    (c) => c.hex?.toLowerCase() === storedColor.toLowerCase(),
-  );
-  return colorObj ? (colorObj.dark ?? storedColor) : storedColor;
+function hexToRgba(hex: string, opacity: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
 export function CalendarView({
@@ -279,14 +271,6 @@ export function CalendarView({
   const [name, setName] = useState("");
   const [userId, setUserId] = useState("");
 
-  // Tag editing
-  const [editingTag, setEditingTag] = useState(false);
-  const [editTagDialogOpen, setEditTagDialogOpen] = useState(false);
-  const [tempTagText, setTempTagText] = useState("");
-  const [tempTagColor, setTempTagColor] = useState(COLORS[0]);
-  const [tagAddDays, setTagAddDays] = useState<Set<string>>(new Set());
-  const [tagRemoveDays, setTagRemoveDays] = useState<Set<string>>(new Set());
-  const [editTagPickerMonth, setEditTagPickerMonth] = useState(new Date());
 
   // Theme
   const { theme, setTheme } = useTheme("system");
@@ -1094,25 +1078,21 @@ export function CalendarView({
     return ranges;
   };
 
-  // Function to update tag for all grouped days
-  const updateGroupedTag = () => {
+  const handleUpdateGroupedTag = (
+    text: string,
+    colorHex: string,
+    addDays: Set<string>,
+    removeDays: Set<string>,
+  ) => {
     if (!selectedDate) return;
-
     const dateKey = format(selectedDate, "yyyy-MM-dd");
     const currentEntry = entries[dateKey];
     if (!currentEntry?.color) return;
 
-    // Find all days with the same color and tag (tag may be empty string)
-    const groupedDays = findGroupedDays(
-      currentEntry.color,
-      currentEntry.tag ?? "",
-    );
-
-    // Update all grouped days plus any newly added days, minus removed ones
+    const groupedDays = findGroupedDays(currentEntry.color, currentEntry.tag ?? "");
     const newEntries = { ...entries };
 
-    // Remove tag/color from days marked for removal
-    tagRemoveDays.forEach((dayKey) => {
+    removeDays.forEach((dayKey: string) => {
       const entry = newEntries[dayKey];
       if (!entry) return;
       const { color: _c, tag: _t, ...rest } = entry;
@@ -1123,45 +1103,13 @@ export function CalendarView({
       }
     });
 
-    // Apply updated tag/color to remaining grouped + newly added days
-    const allDaysToUpdate = new Set([...groupedDays, ...tagAddDays].filter(k => !tagRemoveDays.has(k)));
-    allDaysToUpdate.forEach((dayKey) => {
-      newEntries[dayKey] = {
-        ...newEntries[dayKey],
-        tag: tempTagText || undefined,
-        color: tempTagColor.hex,
-      };
+    const allDaysToUpdate = new Set([...groupedDays, ...addDays].filter(k => !removeDays.has(k)));
+    allDaysToUpdate.forEach((dayKey: string) => {
+      newEntries[dayKey] = { ...newEntries[dayKey], tag: text || undefined, color: colorHex };
     });
 
     setEntries(newEntries);
     saveEntries(newEntries);
-    setTagAddDays(new Set());
-    setTagRemoveDays(new Set());
-    setEditingTag(false);
-    setEditTagDialogOpen(false);
-  };
-
-  // Function to start editing tag
-  const startEditingTag = () => {
-    if (!selectedDate) return;
-
-    const dateKey = format(selectedDate, "yyyy-MM-dd");
-    const currentEntry = entries[dateKey];
-    if (!currentEntry?.color) return;
-
-    setTempTagText(currentEntry.tag || "");
-    // Find the color object from the hex value
-    const colorObj = COLORS.find(
-      (c) =>
-        c.hex?.toLowerCase() ===
-        currentEntry.color?.toLowerCase(),
-    );
-    setTempTagColor(colorObj || COLORS[0]);
-    setTagAddDays(new Set());
-    setTagRemoveDays(new Set());
-    setEditTagPickerMonth(selectedDate);
-    setEditingTag(true);
-    setEditTagDialogOpen(true);
   };
 
   // Next upcoming medication notification today
@@ -1539,9 +1487,8 @@ export function CalendarView({
                   const isSelected = selectedDates.has(dateStr);
                   const isToday = isSameDay(day, new Date());
 
-                  // Get appropriate color for current theme
                   const displayColor = hasColor && entry.color
-                    ? getColorForTheme(entry.color, isDarkMode)
+                    ? hexToRgba(entry.color, 0.15)
                     : undefined;
 
                   // Calculate position in week (0 = first day, 6 = last day based on week start preference)
@@ -2037,7 +1984,8 @@ export function CalendarView({
         navigateToNextDay={navigateToNextDay}
         handleDayModalSwipe={handleDayModalSwipe}
         formatDialogDate={formatDialogDate}
-        startEditingTag={startEditingTag}
+        weekStartsOnMonday={weekStartsOnMonday}
+        onUpdateGroupedTag={handleUpdateGroupedTag}
         handleSave={handleSave}
         onCancel={handleCancelEdit}
         onClearDay={handleClearDay}
@@ -2063,8 +2011,6 @@ export function CalendarView({
         getMonthName={getMonthName}
         onApply={applyMultiSelectColors}
       />
-
-    
 
       {/* Add Ad-Hoc Medication Dialog */}
       <AdHocMedicationDialog
