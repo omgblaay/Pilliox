@@ -16,6 +16,7 @@ import {
   Pencil,
   Bell,
   CalendarCheck,
+  Trash,
 } from "lucide-react";
 import {
   Dialog,
@@ -42,6 +43,8 @@ interface AdHocMedication {
   name: string;
   dosage: number;
   unit: string;
+  type?: "medication" | "value";
+  taken?: boolean;
   notificationEnabled?: boolean;
   notificationTime?: string;
 }
@@ -122,6 +125,7 @@ interface EditDayDialogProps {
   onClearDay: () => void;
   handleRemoveAdHocMed: (id: string) => void;
   handleEditAdHocMed: (med: AdHocMedication) => void;
+  handleToggleAdHocTaken: (id: string) => void;
   // i18n locale for date formatting
   dateLocale: Locale;
 }
@@ -157,6 +161,7 @@ export function EditDayDialog({
   onClearDay,
   handleRemoveAdHocMed,
   handleEditAdHocMed,
+  handleToggleAdHocTaken,
   dateLocale,
 }: EditDayDialogProps) {
   const { t } = useTranslation();
@@ -337,50 +342,50 @@ export function EditDayDialog({
                   })()}
                 </div>
               )}
-               {/* Empty state — no regular medications configured */}
-                {pillsSettings.length === 0 && (
-                  <div className="space-y-2">
+              {/* Empty state — no regular medications configured */}
+              {pillsSettings.length === 0 && (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false);
+                      navigate("/app/medications", { state: { openAdd: true } });
+                    }}
+                    className="w-full flex cursor-pointer items-center gap-3 p-4 rounded-xl border border-dashed border-border dark:border-gray-500/40 hover:border-primary hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Plus className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-foreground">
+                        {t("medications.empty.title") || "No medications added yet"}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {t("medications.empty.description") || "Tap to add your first medication"}
+                      </p>
+                    </div>
+                  </button>
+                  {adHocMeds.length === 0 && (
                     <button
                       type="button"
-                      onClick={() => {
-                        onOpenChange(false);
-                        navigate("/app/medications", { state: { openAdd: true } });
-                      }}
+                      onClick={() => setAddAdHocDialogOpen(true)}
                       className="w-full flex cursor-pointer items-center gap-3 p-4 rounded-xl border border-dashed border-gray-500/40 hover:border-primary hover:bg-muted/40 transition-colors text-left"
                     >
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-4 w-4 text-primary" />
+                      <div className="h-9 w-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       </div>
                       <div>
                         <p className="text-foreground">
-                          {t("medications.empty.title") || "No medications added yet"}
+                          {t("medications.emptyAdHoc.title") || "Add one-time medication"}
                         </p>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          {t("medications.empty.description") || "Tap to add your first medication"}
+                          {t("medications.emptyAdHoc.description") || "Log a medication just for this day"}
                         </p>
                       </div>
                     </button>
-                    {adHocMeds.length === 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setAddAdHocDialogOpen(true)}
-                        className="w-full flex cursor-pointer items-center gap-3 p-4 rounded-xl border border-dashed border-gray-500/40 hover:border-primary hover:bg-muted/40 transition-colors text-left"
-                      >
-                        <div className="h-9 w-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                          <Plus className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div>
-                          <p className="text-foreground">
-                            {t("medications.emptyAdHoc.title") || "Add one-time medication"}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {t("medications.emptyAdHoc.description") || "Log a medication just for this day"}
-                          </p>
-                        </div>
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
               <div className="space-y-5">
                 {/* Pills Section */}
                 {pillsSettings.filter((ps) => (ps.type || "pills") === "pills").length > 0 && (
@@ -395,7 +400,7 @@ export function EditDayDialog({
                           ? pillDosage!.dosage
                           : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
                         return (
-                          <div key={pillSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-100/20  hover:bg-muted/30 transition-colors">
+                          <div key={pillSetting.id} className="flex items-center gap-3 p-3 border border-border rounded-lg dark:border-slate-100/20  hover:bg-muted/30 transition-colors">
                             <button
                               type="button"
                               onClick={() => {
@@ -475,7 +480,7 @@ export function EditDayDialog({
                   const pillDosage = pills.find((p) => p.pillId === valueSetting.id);
                   const currentValue = pillDosage?.dosage?.toString() || "";
                   return (
-                    <div key={valueSetting.id} className="flex items-center gap-3 p-3 border rounded-lg border-slate-100/20 hover:bg-muted/30 transition-colors">
+                    <div key={valueSetting.id} className="flex items-center gap-3 p-3 border border-border rounded-lg dark:border-slate-100/20 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center flex-row gap-2 flex-1">
 
                         <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: valueSetting.color }} />
@@ -501,13 +506,13 @@ export function EditDayDialog({
                           }}
                         />
                         {pillDosage && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="ghost"
                             onClick={() => setPills(pills.filter((p) => p.pillId !== valueSetting.id))}
                             className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
                           >
-                            <X className="h-4 w-4" />
-                          </button>
+                            <X className="size-10" />
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -531,44 +536,57 @@ export function EditDayDialog({
                     </div>
                     {adHocMeds.length > 0 && (
                       <div className="space-y-2">
-                        {adHocMeds.map((med) => (
-                          <div key={med.id} className="flex items-center gap-3 p-3 border rounded-lg transition-colors">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveAdHocMed(med.id)}
-                              className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
-                            >
-                              <X className="size-4" />
-                            </Button>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                {med.name} –
-                                <span className="text-gray-500">{med.dosage} {t(`calendar.units.${med.unit}`) || med.unit}</span>
-                                {med.notificationEnabled && (
-                                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-                                    <Bell className="h-3 w-3 text-indigo-700 dark:text-indigo-400" />
-                                    <span className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">{med.notificationTime}</span>
-                                  </div>
-                                )}
+                        {adHocMeds.map((med) => {
+                          const isValue = med.type === "value";
+                          const isTaken = med.taken !== false;
+                          return (
+                            <div key={med.id} className="flex items-center gap-3 p-3 border rounded-lg transition-colors">
+                              {!isValue && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAdHocTaken(med.id)}
+                                  className={cn(
+                                    "h-7 w-7 rounded-lg flex-shrink-0 cursor-pointer border-2 flex items-center justify-center transition-colors",
+                                    isTaken ? "bg-blue-600 border-blue-600" : "border-gray-400 dark:border-gray-600",
+                                  )}
+                                >
+                                  {isTaken && <Check className="h-4 w-4 text-white" />}
+                                </button>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={cn(!isValue && !isTaken && "text-muted-foreground line-through")}>
+                                    {med.name}
+                                  </span>
+                                  <span className="text-muted-foreground text-sm">
+                                    {med.dosage} {t(`calendar.units.${med.unit}`) || med.unit}
+                                  </span>
+                                  {!isValue && med.notificationEnabled && (
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+                                      <Bell className="h-3 w-3 text-indigo-700 dark:text-indigo-400" />
+                                      <span className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">{med.notificationTime}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditAdHocMed(med)}
+                                className="h-10 w-10 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 flex-shrink-0"
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditAdHocMed(med)}
-                              className="h-10 w-10 p-0 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
-                            >
-                              <Pencil className="size-4" />
-                            </Button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 )}
 
- 
+
               </div>
 
               {/* Note */}
@@ -585,14 +603,14 @@ export function EditDayDialog({
               </Button>
 
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" onClick={onCancel} className="flex-1">
-                  {t("calendar.cancel") || "Cancel"}
+                <Button variant="destructive" onClick={onClearDay}>
+                  <Trash className="size-4" />
                 </Button>
-                <Button variant="destructive" onClick={onClearDay} className="flex-1">
-                  {t("day.delete") || "Clear"}
+                <Button variant="outline" onClick={onCancel} className="flex-1">
+                  {t("basic.cancel") || "Cancel"}
                 </Button>
                 <Button onClick={handleSave} className="flex-1">
-                  {t("day.saveChanges")}
+                  {t("basic.save") || "Save"}
                 </Button>
               </div>
             </motion.div>

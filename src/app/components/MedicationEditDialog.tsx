@@ -527,7 +527,7 @@ export function MedicationEditDialog({
               </Button>
             )}
               <Button variant="outline" className="flex-1" onClick={onDiscard} disabled={isSaving}>
-                {t("pillsSettings.discard") || "Discard"}
+                {t("basic.cancel") || "Cancel"}
               </Button>
               <Button className="flex-1" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
@@ -537,7 +537,7 @@ export function MedicationEditDialog({
                   </>
                 ) : (
                   <>
-                    {t("pillsSettings.saveChanges") || "Save"}
+                    {t("basic.save") || "Save"}
                   </>
                 )}
               </Button>
@@ -580,7 +580,7 @@ export function MedicationEditDialog({
               onClick={() => { setDeleteConfirmOpen(false); setDeleteKeyword(""); }}
               disabled={isDeleting}
             >
-              {t("pillsSettings.cancel") || "Cancel"}
+              {t("basic.cancel") || "Cancel"}
             </Button>
             <Button
               variant="destructive"
@@ -595,7 +595,7 @@ export function MedicationEditDialog({
               ) : (
                 <>
                   <Trash2 className="h-4 w-4" strokeWidth={2} />
-                  {t("pillsSettings.confirmDelete") || "Confirm Delete"}
+                  {t("basic.apply") || "Confirm Delete"}
                 </>
               )}
             </Button>

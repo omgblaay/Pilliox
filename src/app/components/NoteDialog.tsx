@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
+import { Trash2 } from "lucide-react";
 
 interface NoteDialogProps {
   open: boolean;
@@ -36,14 +37,13 @@ export function NoteDialog({ open, onOpenChange, note, onSave }: NoteDialogProps
         <div className="flex gap-2">
           {tempNote && (
             <Button
-              variant="outline"
+              variant="destructive"
               onClick={() => {
                 onSave("");
                 onOpenChange(false);
               }}
-              className="text-destructive hover:text-destructive"
             >
-              {t("calendar.removeTag")}
+              <Trash2 className="size-4" />
             </Button>
           )}
           <Button
@@ -51,7 +51,7 @@ export function NoteDialog({ open, onOpenChange, note, onSave }: NoteDialogProps
             onClick={() => onOpenChange(false)}
             className="flex-1"
           >
-            {t("calendar.cancel")}
+            {t("basic.cancel")}
           </Button>
           <Button
             onClick={() => {
@@ -60,7 +60,7 @@ export function NoteDialog({ open, onOpenChange, note, onSave }: NoteDialogProps
             }}
             className="flex-1"
           >
-            {t("calendar.apply") || "OK"}
+            {t("basic.save") || "Save"}
           </Button>
         </div>
       </DialogContent>

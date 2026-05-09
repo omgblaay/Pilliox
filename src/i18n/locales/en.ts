@@ -10,6 +10,15 @@ export default {
     settings: "Settings",
     addDays: "Add Days",
   },
+  basic: {
+    ok: "Ok",
+    add: "Add",
+    cancel: "Cancel",
+    delete: "Delete",
+    save: "Save",
+    mark: "Mark",
+    clear: "Clear",
+  },
   landing: {
     header: {
       signIn: "Sign In",
@@ -184,12 +193,12 @@ export default {
       "No medications configured yet. Configure them in Settings.",
     otherMedications: "Other Medications",
     addMed: "Add",
-    addOtherMedication: "Add Other Medication",
+    addOtherMedication: "Add Other",
     addOtherMedicationDesc:
       "Add a one-time medication that's not in your regular schedule.",
-    editOtherMedication: "Edit Medication",
-    editOtherMedicationDesc: "Update the medication details.",
-    medicationName: "Medication Name",
+    editOtherMedication: "Edit",
+    editOtherMedicationDesc: "Update details.",
+    medicationName: "Name",
     medicationNamePlaceholder: "e.g., Aspirin, Ibuprofen",
     pillsAndValues: "Pills and Values",
     dosage: "Dosage",
@@ -201,6 +210,7 @@ export default {
     cancel: "Cancel",
     // Unit translations
     units: {
+      none: " ",
       mg: "mg",
       g: "g",
       ml: "ml",
@@ -324,7 +334,7 @@ export default {
     premiumAccess: "Full access to all features",
     upgradeToPremium: "Upgrade to unlock all features",
     trialDescription:
-      "Enjoy full access while you explore Pilliox",
+      "Subscribe to enjoy full access to Pilliox and support ongoing development",
     trialExpired: "Your trial has ended",
     subscribeCTA: "Subscribe - €2.99/mo",
     subscribeToAccess: "Subscribe to continue adding entries",

@@ -10,6 +10,15 @@ export default {
     settings: "Ustawienia",
     addDays: "Dodaj dni",
   },
+  basic: {
+    ok: "Ok",
+    add: "Dodaj",
+    cancel: "Anuluj",
+    delete: "Usuń",
+    save: "Zapisz",
+    mark: "Oznacz",
+    clear: "Wyczyść",
+  },
   landing: {
     header: {
       signIn: "Zaloguj się",
@@ -175,13 +184,13 @@ export default {
     pillsUnit: "tabletek",
     noPillsConfigured:
       "Nie skonfigurowano jeszcze leków. Skonfiguruj je w Ustawieniach.",
-    otherMedications: "Inne leki",
+    otherMedications: "Inne",
     addMed: "Dodaj",
-    addOtherMedication: "Dodaj inny lek",
-    addOtherMedicationDesc: "Dodaj jednorazowy lek, który nie jest w twoim regularnym harmonogramie.",
+    addOtherMedication: "Dodaj inny ",
+    addOtherMedicationDesc: "Dodaj jednorazowo - nie w twoim regularnym harmonogramie.",
     editOtherMedication: "Edytuj lek",
-    editOtherMedicationDesc: "Zaktualizuj szczegóły leku.",
-    medicationName: "Nazwa leku",
+    editOtherMedicationDesc: "Zaktualizuj szczegóły",
+    medicationName: "Nazwa",
     medicationNamePlaceholder: "np. Aspiryna, Ibuprofen",
     pillsAndValues: "Tabletki i wartości",
     dosage: "Dawka",
@@ -206,7 +215,7 @@ export default {
     notification: "Powiadomienie",
     enableNotification: "Włącz przypomnienie",
     notificationTime: "Czas przypomnienia",
-    notificationDesc: "Otrzymasz przypomnienie o tej porze, aby wziąć lek.",
+    notificationDesc: "Otrzymasz przypomnienie o tej porze",
     day: "Edytuj dzień",
     note: "Notatka",
     cancel: "Anuluj",
@@ -306,7 +315,7 @@ export default {
     plan: "Plan",
     renewsOn: "Odnawia się",
     expiresOn: "Wygasa",
-    trialActive: "Pozostało dni próbnych",
+    trialActive: "Pozostało {{days}} dni ",
     trialActiveTitle: "Aktywny okres próbny",
     trialDaysRemaining:
       "Pozostało dni próbnych",
@@ -314,7 +323,7 @@ export default {
     premiumAccess: "Pełny dostęp do wszystkich funkcji",
     upgradeToPremium: "Ulepsz, aby odblokować wszystkie funkcje",
     trialDescription:
-      "Ciesz się pełnym dostępem podczas odkrywania Pilliox",
+      "Subskrybuj, aby uzyskać pełen dostęp do Pilliox i wesprzeć dalszy rozwój",
     trialExpired: "Twój okres próbny dobiegł końca",
     subscribeCTA: "Subskrybuj - €2,99/mies.",
     subscribeToAccess:

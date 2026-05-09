@@ -12,6 +12,15 @@ export default {
     settings: "Einstellungen",
     addDays: "Tage hinzufügen",
   },
+  basic: {
+    ok: "Ok",
+    add: "Hinzufügen",
+    cancel: "Abbrechen",
+    delete: "Löschen",
+    save: "Speichern",
+    mark: "Markieren",
+    clear: "Löschen",
+  },
   landing: {
     header: {
       signIn: "Anmelden",
@@ -322,7 +331,7 @@ export default {
     premiumAccess: "Voller Zugriff auf alle Funktionen",
     upgradeToPremium: "Upgraden, um alle Funktionen freizuschalten",
     trialDescription:
-      "Genießen Sie vollen Zugriff, während Sie Pilliox erkunden",
+      "Subskribieren Sie, um vollen Zugriff auf Pilliox zu erhalten und die weitere Entwicklung zu unterstützen",
     trialExpired: "Ihre Testversion ist abgelaufen",
     subscribeCTA: "Abonnieren - €2,99/Monat",
     subscribeToAccess:

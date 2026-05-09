@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, Check, Clock, Plus } from "lucide-react";
+import { Bell, Check, Clock, Droplet, Pill, Plus, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -23,6 +23,7 @@ export interface AdHocMedicationData {
   name: string;
   dosage: number;
   unit: string;
+  type: "medication" | "value";
   notificationEnabled: boolean;
   notificationTime: string;
 }
@@ -32,6 +33,7 @@ interface EditingMed {
   name: string;
   dosage: number;
   unit: string;
+  type?: "medication" | "value";
   notificationEnabled?: boolean;
   notificationTime?: string;
 }
@@ -41,12 +43,14 @@ interface AdHocMedicationDialogProps {
   onOpenChange: (open: boolean) => void;
   editingMed?: EditingMed | null;
   onSave: (data: AdHocMedicationData, editingId: string | null) => void;
+  onDelete?: (id: string) => void;
 }
 
 const DEFAULT_FORM = {
   name: "",
   dosage: "",
   unit: "mg",
+  type: "medication" as const,
   notificationEnabled: false,
   notificationTime: "09:00",
 };
@@ -56,11 +60,13 @@ export function AdHocMedicationDialog({
   onOpenChange,
   editingMed,
   onSave,
+  onDelete,
 }: AdHocMedicationDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = useState(DEFAULT_FORM.name);
   const [dosage, setDosage] = useState(DEFAULT_FORM.dosage);
   const [unit, setUnit] = useState(DEFAULT_FORM.unit);
+  const [type, setType] = useState<"medication" | "value">(DEFAULT_FORM.type);
   const [notificationEnabled, setNotificationEnabled] = useState(DEFAULT_FORM.notificationEnabled);
   const [notificationTime, setNotificationTime] = useState(DEFAULT_FORM.notificationTime);
 
@@ -70,12 +76,14 @@ export function AdHocMedicationDialog({
         setName(editingMed.name);
         setDosage(editingMed.dosage.toString());
         setUnit(editingMed.unit);
+        setType(editingMed.type ?? "medication");
         setNotificationEnabled(editingMed.notificationEnabled ?? false);
         setNotificationTime(editingMed.notificationTime ?? "09:00");
       } else {
         setName(DEFAULT_FORM.name);
         setDosage(DEFAULT_FORM.dosage);
         setUnit(DEFAULT_FORM.unit);
+        setType(DEFAULT_FORM.type);
         setNotificationEnabled(DEFAULT_FORM.notificationEnabled);
         setNotificationTime(DEFAULT_FORM.notificationTime);
       }
@@ -89,15 +97,12 @@ export function AdHocMedicationDialog({
         name: name.trim(),
         dosage: parseFloat(dosage) || 0,
         unit,
+        type,
         notificationEnabled,
         notificationTime,
       },
       editingMed?.id ?? null,
     );
-  };
-
-  const handleCancel = () => {
-    onOpenChange(false);
   };
 
   const isEditing = !!editingMed;
@@ -120,134 +125,163 @@ export function AdHocMedicationDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="adhoc-name" className="text-foreground">
               {t("calendar.medicationName") || "Medication Name"}
             </Label>
             <Input
               id="adhoc-name"
-              placeholder={
-                t("calendar.medicationNamePlaceholder") || "e.g., Aspirin, Ibuprofen"
-              }
+              placeholder={t("calendar.medicationNamePlaceholder") || "e.g., Aspirin, Ibuprofen"}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          {/* Pills and Values Section */}
-          <div className="space-y-3">
-            <Label className="text-foreground font-semibold text-base">
-              {t("calendar.pillsAndValues") || "Pills and Values"}
-            </Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="adhoc-dosage" className="text-foreground">
-                  {t("calendar.dosage") || "Dosage"}
-                </Label>
-                <Input
-                  id="adhoc-dosage"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="500"
-                  value={dosage}
-                  onChange={(e) => setDosage(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="adhoc-unit" className="text-foreground">
-                  {t("calendar.unit") || "Unit"}
-                </Label>
-                <Select value={unit} onValueChange={setUnit}>
-                  <SelectTrigger id="adhoc-unit">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mg">mg</SelectItem>
-                    <SelectItem value="g">g</SelectItem>
-                    <SelectItem value="ml">ml</SelectItem>
-                    <SelectItem value="mcg">mcg</SelectItem>
-                    <SelectItem value="IU">IU</SelectItem>
-                    <SelectItem value="tablets">
-                      {t("calendar.tablets") || "tablets"}
-                    </SelectItem>
-                    <SelectItem value="cabsules">
-                      {t("calendar.capsules") || "capsules"}
-                    </SelectItem>
-                    <SelectItem value="drops">
-                      {t("calendar.drops") || "drops"}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Notification Section */}
-          <div className="space-y-3 pt-4 border-t border-border">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
-                <Label className="text-foreground font-medium">
-                  {t("calendar.enableNotification") || "Enable Reminder"}
-                </Label>
-              </div>
-              <button
+          {/* Type Switch */}
+          <div className="space-y-2">
+            <Label>{t("pillsSettings.type") || "Type"}</Label>
+            <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+              <Button
                 type="button"
-                onClick={() => setNotificationEnabled(!notificationEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  notificationEnabled
-                    ? "bg-blue-600"
-                    : "bg-gray-300 dark:bg-gray-600"
-                }`}
+                variant="tabGroup"
+                data-state={type === "medication" ? "active" : "inactive"}
+                onClick={() => setType("medication")}
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notificationEnabled ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
+                <Pill className="size-4 hidden sm:block" strokeWidth={1.33} />
+                <span>{t("pillsSettings.typePills") || "Medication"}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="tabGroup"
+                data-state={type === "value" ? "active" : "inactive"}
+                onClick={() => setType("value")}
+              >
+                <Droplet className="size-4 hidden sm:block" strokeWidth={1.33} />
+                <span>{t("pillsSettings.typeValue") || "Value"}</span>
+              </Button>
             </div>
-
-            {notificationEnabled && (
-              <div className="space-y-2">
-                <Label htmlFor="adhoc-notification-time" className="text-sm">
-                  {t("calendar.notificationTime") || "Reminder Time"}
-                </Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="adhoc-notification-time"
-                    type="time"
-                    value={notificationTime}
-                    onChange={(e) => setNotificationTime(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t("calendar.notificationDesc") ||
-                    "You'll receive a reminder at this time to take your medication."}
-                </p>
-              </div>
-            )}
           </div>
+
+          {/* Dosage + Unit */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="adhoc-dosage" className="text-foreground">
+                {type === "value"
+                  ? t("pillsSettings.defaultValue") || "Value"
+                  : t("calendar.dosage") || "Dosage"}
+              </Label>
+              <Input
+                id="adhoc-dosage"
+                type="number"
+                step={type === "value" ? "0.01" : "0.5"}
+                min="0"
+                placeholder={type === "value" ? "0.00" : "500"}
+                value={dosage}
+                onChange={(e) => setDosage(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="adhoc-unit" className="text-foreground">
+                {t("calendar.unit") || "Unit"}
+              </Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger id="adhoc-unit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-</SelectItem>
+                  <SelectItem value="mg">mg</SelectItem>
+                  <SelectItem value="g">g</SelectItem>
+                  <SelectItem value="ml">ml</SelectItem>
+                  <SelectItem value="mcg">mcg</SelectItem>
+                  <SelectItem value="IU">IU</SelectItem>
+                  {type === "value" && (
+                    <>
+                      <SelectItem value="mmol/L">mmol/L</SelectItem>
+                      <SelectItem value="mg/dL">mg/dL</SelectItem>
+                      <SelectItem value="kg">kg</SelectItem>
+                    </>
+                  )}
+                  {type === "medication" && (
+                    <>
+                      <SelectItem value="tablets">{t("calendar.tablets") || "tablets"}</SelectItem>
+                      <SelectItem value="capsules">{t("calendar.capsules") || "capsules"}</SelectItem>
+                      <SelectItem value="drops">{t("calendar.drops") || "drops"}</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Notification — only for medication type */}
+          {type === "medication" && (
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
+                  <Label className="text-foreground font-medium">
+                    {t("calendar.enableNotification") || "Enable Reminder"}
+                  </Label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationEnabled(!notificationEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notificationEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notificationEnabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+              {notificationEnabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="adhoc-notification-time" className="text-sm">
+                    {t("calendar.notificationTime") || "Reminder Time"}
+                  </Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="adhoc-notification-time"
+                      type="time"
+                      value={notificationTime}
+                      onChange={(e) => setNotificationTime(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleCancel} className="flex-1">
-            {t("calendar.cancel") || "Cancel"}
+          {isEditing && onDelete && (
+            <Button
+              variant="destructive"
+              onClick={() => { onDelete(editingMed!.id); onOpenChange(false); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            {t("basic.cancel") || "Cancel"}
           </Button>
           <Button onClick={handleSave} disabled={!name.trim()} className="flex-1">
             {isEditing ? (
               <>
                 <Check className="h-4 w-4 mr-2" />
-                {t("calendar.update") || "Update"}
+                {t("basic.ok") || "Ok"}
               </>
             ) : (
               <>
                 <Plus className="h-4 w-4 mr-2" />
-                {t("calendar.add") || "Add"}
+                {t("basic.add") || "Add"}
               </>
             )}
           </Button>

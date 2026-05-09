@@ -19,7 +19,7 @@ export function SubscriptionBanner() {
   if (status.isTrialActive) {
     return (
       <AnimatePresence>
-        <div className="flex items-center justify-center">
+        <div className="flex items-center fixed bottom-24 w-full z-50  sm:static justify-center">
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}

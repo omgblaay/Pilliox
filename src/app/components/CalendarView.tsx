@@ -98,8 +98,10 @@ interface AdHocMedication {
   name: string;
   dosage: number;
   unit: string;
+  type?: "medication" | "value";
+  taken?: boolean;
   notificationEnabled?: boolean;
-  notificationTime?: string; // HH:mm format
+  notificationTime?: string;
 }
 
 interface DayNotification {
@@ -793,6 +795,12 @@ export function CalendarView({
     setAdHocMeds(adHocMeds.filter((med) => med.id !== id));
   };
 
+  const handleToggleAdHocTaken = (id: string) => {
+    setAdHocMeds(adHocMeds.map((med) =>
+      med.id === id ? { ...med, taken: med.taken === false ? true : false } : med,
+    ));
+  };
+
   const toggleMultiSelectMode = () => {
     setMultiSelectMode(!multiSelectMode);
     setSelectedDates(new Set());
@@ -1393,7 +1401,7 @@ export function CalendarView({
                     className="flex-1"
                   >
                     <Check className="h-2 w-2" />
-                    {t("multiSelect.apply")}
+                    {t("basic.mark")}
                   </Button>
                   <Button
                     size="sm"
@@ -1402,7 +1410,7 @@ export function CalendarView({
                     className="flex-1"
                   >
                     <X className="h-2 w-2" />
-                    {t("calendar.cancel")}
+                    {t("basic.cancel")}
                   </Button>
                 </div>
               </div>
@@ -1795,10 +1803,16 @@ export function CalendarView({
                                   );
                                 return adHocMedsData.map(
                                   (med) => {
+                                    const isTaken = med.type === "value" || med.taken !== false;
                                     return (
                                       <div
                                         key={med.id}
-                                        className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 border-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md whitespace-nowrap bg-transparent"
+                                        className={cn(
+                                          "flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md whitespace-nowrap",
+                                          isTaken
+                                            ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"
+                                            : "border border-dashed border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-transparent",
+                                        )}
                                       >
                                         {med.notificationEnabled ? (
                                           <Bell className="h-3 w-3" />
@@ -1923,15 +1937,23 @@ export function CalendarView({
                             {/* Ad-hoc medications */}
                             {hasAdHocMeds && (() => {
                               const meds: AdHocMedication[] = JSON.parse(entry.adHocMeds || "[]");
-                              return meds.map((med) => (
-                                <span
-                                  key={med.id}
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none border border-dashed border-muted-foreground text-muted-foreground font-[family-name:var(--font-geist-mono)]"
-                                  title={`${med.name}: ${med.dosage}${med.unit}`}
-                                >
-                                  {med.dosage}{med.unit}
-                                </span>
-                              ));
+                              return meds.map((med) => {
+                                const isTaken = med.type === "value" || med.taken !== false;
+                                return (
+                                  <span
+                                    key={med.id}
+                                    className={cn(
+                                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none font-[family-name:var(--font-geist-mono)]",
+                                      isTaken
+                                        ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"
+                                        : "border border-dashed border-muted-foreground text-muted-foreground",
+                                    )}
+                                    title={`${med.name}: ${med.dosage}${med.unit}`}
+                                  >
+                                    {med.dosage}{med.unit}
+                                  </span>
+                                );
+                              });
                             })()}
 
                             {/* Legacy INR */}
@@ -1991,6 +2013,7 @@ export function CalendarView({
         onClearDay={handleClearDay}
         handleRemoveAdHocMed={handleRemoveAdHocMed}
         handleEditAdHocMed={handleEditAdHocMed}
+        handleToggleAdHocTaken={handleToggleAdHocTaken}
         dateLocale={dateLocale}
       />
 
@@ -2021,6 +2044,7 @@ export function CalendarView({
         }}
         editingMed={editingAdHocMed}
         onSave={handleAdHocSave}
+        onDelete={handleRemoveAdHocMed}
       />
 
 
@@ -2097,7 +2121,7 @@ export function CalendarView({
               className="w-full "
               onClick={() => setDeleteConfirmOpen(false)}
             >
-              {t("deleteConfirm.cancel")}
+              {t("basic.cancel")}
             </Button>
           </div>
         </DialogContent>

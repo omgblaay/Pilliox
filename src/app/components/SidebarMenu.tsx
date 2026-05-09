@@ -67,6 +67,7 @@ export function SidebarMenu({
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <Logo />
+              
               <Button
                 variant="outline"
                 size="icon"
@@ -78,7 +79,31 @@ export function SidebarMenu({
             </div>
 
             {/* Menu items */}
-            <div className="p-4 flex flex-col items-stretch space-y-1">
+            <div className="p-4 flex flex-col items-stretch space-y-1">              {/* Mark days */}
+              <Button
+                variant="ghost"
+                className="justify-start"
+                onClick={() => {
+                  onMarkDays();
+                  onClose();
+                }}
+              >
+                <Palette className="h-5 w-5" />
+                <span className="text-[15px] font-medium">{t("calendar.markDays")}</span>
+              </Button>
+
+              <div className="h-px bg-border my-2" />
+                             <Button
+                variant="ghost"
+                className="justify-start"
+                disabled={!userId}
+                onClick={() => go("/medications")}
+              >
+                <Pill className="h-5 w-5" />
+                <span className="text-[15px] font-medium">{t("medications.title")}</span>
+              </Button>
+               <div className="h-px bg-border my-2" />
+
               {/* View mode */}
               <Button
                 variant="ghost"
@@ -112,22 +137,10 @@ export function SidebarMenu({
 
               <div className="h-px bg-border my-2" />
 
-              {/* Mark days */}
-              <Button
-                variant="ghost"
-                className="justify-start"
-                onClick={() => {
-                  onMarkDays();
-                  onClose();
-                }}
-              >
-                <Palette className="h-5 w-5" />
-                <span className="text-[15px] font-medium">{t("calendar.markDays")}</span>
-              </Button>
 
-              <div className="h-px bg-border my-2" />
 
-              {/* Navigation */}
+              {/* Navigation */}             
+
               <Button
                 variant="ghost"
                 className="justify-start"
@@ -137,15 +150,7 @@ export function SidebarMenu({
                 <span className="text-[15px] font-medium">{t("profile.title")}</span>
               </Button>
 
-              <Button
-                variant="ghost"
-                className="justify-start"
-                disabled={!userId}
-                onClick={() => go("/medications")}
-              >
-                <Pill className="h-5 w-5" />
-                <span className="text-[15px] font-medium">{t("pillsSettings.title")}</span>
-              </Button>
+
 
               <Button
                 variant="ghost"
