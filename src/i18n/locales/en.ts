@@ -299,7 +299,7 @@ export default {
       error: "Failed to clear data",
     },
     legal: {
-      title: "Legal",
+      title: "Other",
     },
     termsOfService: "Terms of Service",
     privacyPolicy: "Privacy Policy",
@@ -319,7 +319,7 @@ export default {
     trialActive: "{{days}} days left in trial",
     trialActiveTitle: "Free Trial Active",
     trialDaysRemaining:
-      "You have {{days}} days remaining in your free trial",
+      "Remaining trial days",
     trialEndsOn: "Trial ends on",
     premiumAccess: "Full access to all features",
     upgradeToPremium: "Upgrade to unlock all features",
@@ -419,6 +419,11 @@ export default {
         "Add your first medication to start tracking doses",
     },
     addFirst: "Add your first medication",
+    emtpyAdHoc: {
+      title: "No one-time medications",
+      description:
+        "Add a one-time medication for special occasions or temporary treatments",
+    },
   },
   common: {
     loading: "Loading...",

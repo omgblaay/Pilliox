@@ -289,7 +289,7 @@ export default {
       error: "Nie udało się usunąć danych",
     },
     legal: {
-      title: "Prawne",
+      title: "Inne",
     },
     termsOfService: "Regulamin",
     privacyPolicy: "Polityka prywatności",
@@ -306,10 +306,10 @@ export default {
     plan: "Plan",
     renewsOn: "Odnawia się",
     expiresOn: "Wygasa",
-    trialActive: "Pozostało {{days}} dni próbnych",
+    trialActive: "Pozostało dni próbnych",
     trialActiveTitle: "Aktywny okres próbny",
     trialDaysRemaining:
-      "Masz jeszcze {{days}} dni w okresie próbnym",
+      "Pozostało dni próbnych",
     trialEndsOn: "Okres próbny kończy się",
     premiumAccess: "Pełny dostęp do wszystkich funkcji",
     upgradeToPremium: "Ulepsz, aby odblokować wszystkie funkcje",
@@ -408,6 +408,11 @@ export default {
       description: "Dodaj swój pierwszy lek, aby rozpocząć śledzenie dawek",
     },
     addFirst: "Dodaj swój pierwszy lek",
+    emptyAdHoc: {
+      title: "Brak jednorazowych leków",
+      description:
+        "Dodaj jednorazowy lek dla specjalnych okazji lub tymczasowych leczeń",
+    },
   },
   common: {
     loading: "Ładowanie...",

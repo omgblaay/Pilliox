@@ -296,7 +296,7 @@ export default {
       error: "Fehler beim Löschen der Daten",
     },
     legal: {
-      title: "Rechtliches",
+      title: "Andere",
     },
     termsOfService: "Nutzungsbedingungen",
     privacyPolicy: "Datenschutzrichtlinie",
@@ -317,7 +317,7 @@ export default {
     trialActive: "Noch {{days}} Tage Testversion",
     trialActiveTitle: "Kostenlose Testversion aktiv",
     trialDaysRemaining:
-      "Sie haben noch {{days}} Tage in Ihrer kostenlosen Testversion",
+      "Tages der Testversion übrig",
     trialEndsOn: "Testversion endet am",
     premiumAccess: "Voller Zugriff auf alle Funktionen",
     upgradeToPremium: "Upgraden, um alle Funktionen freizuschalten",
@@ -417,6 +417,11 @@ export default {
       description: "Fügen Sie Ihr erstes Medikament hinzu, um mit der Verfolgung zu beginnen",
     },
     addFirst: "Ihr erstes Medikament hinzufügen",
+        emtpyAdHoc: {
+      title: "Keine einmaligen Medikamente",
+      description:
+        "Fügen Sie ein einziges Medikament für besondere Anlässe oder temporäre Behandlungen hinzu",
+    },
   },
   common: {
     loading: "Laden...",

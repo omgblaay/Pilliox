@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate } from "react-router";
 import type { Locale } from "date-fns";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -7,7 +9,6 @@ import {
   ChevronRight,
   Palette,
   Pill,
-  Droplet,
   Check,
   X,
   Plus,
@@ -28,6 +29,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { cn } from "./ui/utils";
 import type { PillSetting } from "./PillsSettings";
+import { NoteDialog } from "./NoteDialog";
 
 interface PillDosage {
   pillId: string;
@@ -118,9 +120,8 @@ interface EditDayDialogProps {
   adHocMeds: AdHocMedication[];
   dosageOverrides: Record<string, number>;
   setDosageOverrides: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+  setNote: (v: string) => void;
   // Sub-dialog triggers
-  setNoteDialogOpen: (v: boolean) => void;
-  setTempNote: (v: string) => void;
   setDeleteConfirmOpen: (v: boolean) => void;
   setAddAdHocDialogOpen: (v: boolean) => void;
   // Handlers
@@ -155,8 +156,7 @@ export function EditDayDialog({
   adHocMeds,
   dosageOverrides,
   setDosageOverrides,
-  setNoteDialogOpen,
-  setTempNote,
+  setNote,
   setDeleteConfirmOpen,
   setAddAdHocDialogOpen,
   navigateToPreviousDay,
@@ -172,6 +172,8 @@ export function EditDayDialog({
   dateLocale,
 }: EditDayDialogProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
 
   function findGroupedDays(currentColor: string, currentTag: string): string[] {
     return Object.keys(entries).filter((dateKey) => {
@@ -359,7 +361,50 @@ export function EditDayDialog({
                   </div>
                 </div>
               )}
-
+               {/* Empty state — no regular medications configured */}
+                {pillsSettings.length === 0 && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate("/app/medications", { state: { openAdd: true } });
+                      }}
+                      className="w-full flex cursor-pointer items-center gap-3 p-4 rounded-xl border border-dashed border-gray-500/40 hover:border-primary hover:bg-muted/40 transition-colors text-left"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-foreground">
+                          {t("medications.empty.title") || "No medications added yet"}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {t("medications.empty.description") || "Tap to add your first medication"}
+                        </p>
+                      </div>
+                    </button>
+                    {adHocMeds.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAddAdHocDialogOpen(true)}
+                        className="w-full flex cursor-pointer items-center gap-3 p-4 rounded-xl border border-dashed border-gray-500/40 hover:border-primary hover:bg-muted/40 transition-colors text-left"
+                      >
+                        <div className="h-9 w-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                          <Plus className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="text-foreground">
+                            {t("medications.emptyAdHoc.title") || "Add one-time medication"}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {t("medications.emptyAdHoc.description") || "Log a medication just for this day"}
+                          </p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                )}
               <div className="space-y-5">
                 {/* Pills Section */}
                 {pillsSettings.filter((ps) => (ps.type || "pills") === "pills").length > 0 && (
@@ -547,33 +592,12 @@ export function EditDayDialog({
                   </div>
                 )}
 
-                {/* Legacy INR Section */}
-                {pillsSettings.length === 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <Droplet className="h-4 w-4 text-green-700 dark:text-green-400" />
-                      </div>
-                      <Label htmlFor="amount">INR</Label>
-                    </div>
-                    <Input
-                      id="amount"
-                      type="number"
-                      step="0.5"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                  </div>
-                )}
+ 
               </div>
 
               {/* Note */}
               <Button
-                onClick={() => {
-                  setTempNote(note);
-                  setNoteDialogOpen(true);
-                }}
+                onClick={() => setNoteDialogOpen(true)}
                 variant="outline"
                 className="w-full mt-4 max-w-full min-h-[100px] p-4 text-left items-start justify-start !font-normal"
               >
@@ -599,6 +623,13 @@ export function EditDayDialog({
           </AnimatePresence>
         </motion.div>
       </DialogContent>
+
+      <NoteDialog
+        open={noteDialogOpen}
+        onOpenChange={setNoteDialogOpen}
+        note={note}
+        onSave={setNote}
+      />
     </Dialog>
   );
 }

@@ -448,7 +448,7 @@ function AppRoutes() {
                   projectId={projectId}
                   anonKey={publicAnonKey}
                 />
-                <SubscriptionBanner />
+                <SubscriptionBanner/>
                 <SubscriptionPaywall onLogout={handleLogout} />
                 {/* <NotificationPermissionBanner />*/}
               </>

@@ -139,7 +139,7 @@ export function AuthForm({
       }
 
       if (data?.access_token) {
-        onAuthSuccess(data.access_token, signupEmail);
+        onAuthSuccess(data.access_token, signupEmail, data.refresh_token);
       }
     } catch (err: any) {
       setError(

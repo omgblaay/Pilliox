@@ -35,16 +35,16 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
             <div className="h-[40px] w-[160px]">
               <Logo />
             </div>
-            <p className="text-sm text-muted-foreground text-left">
+            <p className="text-muted-foreground text-left">
               {t("about.description")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground">
               {t("about.features")}
             </p>
-            <ul className="space-y-1 text-sm text-muted-foreground">
+            <ul className="space-y-1 text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 mt-0.5 text-[#9810FA] flex-shrink-0" />
                 <span>{t("about.feature1")}</span>

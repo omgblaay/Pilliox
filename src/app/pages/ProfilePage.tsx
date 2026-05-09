@@ -341,11 +341,11 @@ export function ProfilePage({
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-card border-b border-border">
-        <div className="max-w-screen-lg mx-auto px-4 py-4">
+      <div className="sticky top-0 bg-background">
+        <div className="max-w-screen-lg mx-auto px-4 sm:py-8 py-4">
           <div className="flex items-center gap-5">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => navigate("/app")}
               className="h-10 w-10"
@@ -354,17 +354,13 @@ export function ProfilePage({
             </Button>
             <div className="flex-1">
               <h1>{t("profile.title") || "Profile"}</h1>
-              <p className="small">
-                {t("profile.subtitle") ||
-                  "Your health information"}
-              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-screen-lg mx-auto px-4 space-y-6">
         {/* User Info Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -449,7 +445,23 @@ export function ProfilePage({
               </Button>
             )}
           </Card>
+        </motion.div><motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="divide-y divide-border">
+            {/* Subscription */}
+            <Button
+              variant="menuItem"
+              onClick={() => navigate("/app/subscription")}
+            >
+              <CreditCard className="w-5 h-5 text-muted-foreground" />
+              {t("settings.subscription") || "Subscription"}
+            </Button>
+          </Card>
         </motion.div>
+        {/* Security */}
         {/* Stats Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -686,14 +698,6 @@ export function ProfilePage({
             {t("settings.account.title") || "Account"}
           </h2>
           <Card className="divide-y divide-border">
-            {/* Subscription */}
-            <Button
-              variant="menuItem"
-              onClick={() => navigate("/app/subscription")}
-            >
-              <CreditCard className="w-5 h-5 text-muted-foreground" />
-              {t("settings.subscription") || "Subscription"}
-            </Button>
             {/* Clear Data */}
             <Button
               variant="menuItem"

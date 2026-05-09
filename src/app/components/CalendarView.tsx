@@ -63,7 +63,6 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
 import { AboutModal } from "./AboutModal";
 import { SidebarMenu } from "./SidebarMenu";
 import { AdHocMedicationDialog, type AdHocMedicationData } from "./AdHocMedicationDialog";
@@ -260,9 +259,6 @@ export function CalendarView({
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [multiTag, setMultiTag] = useState("");
   const [multiPickerMonth, setMultiPickerMonth] = useState(new Date());
-
-  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
-  const [tempNote, setTempNote] = useState("");
 
   // Settings
   const [pillsSettingsOpen, setPillsSettingsOpen] =
@@ -1264,7 +1260,7 @@ export function CalendarView({
       ];
 
   return (
-    <div className="h-full bg-background relative pb-20">
+    <div className="h-full bg-background relative pb-4">
       {/* Added pb-20 for bottom nav space */}
       {/* Loading Overlay */}
       {isLoading && (
@@ -1340,27 +1336,27 @@ export function CalendarView({
           )}
               {/* Desktop nav icons */}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="h-12 w-12 hidden md:flex"
+                className="h-12 w-12 hidden md:flex text-muted-foreground"
                 onClick={() => navigate("/app/medications")}
                 title="Medications"
               >
                 <Pill className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="h-12 w-12 hidden md:flex"
+                className="h-12 w-12 hidden md:flex text-muted-foreground"
                 onClick={() => navigate("/app/profile")}
                 title="Profile"
               >
                 <User className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="h-12 w-12 hidden md:flex"
+                className="h-12 w-12 hidden md:flex text-muted-foreground"
                 onClick={() => navigate("/app/settings")}
                 title="Settings"
               >
@@ -2034,8 +2030,7 @@ export function CalendarView({
         adHocMeds={adHocMeds}
         dosageOverrides={dosageOverrides}
         setDosageOverrides={setDosageOverrides}
-        setNoteDialogOpen={setNoteDialogOpen}
-        setTempNote={setTempNote}
+        setNote={setNote}
         setDeleteConfirmOpen={setDeleteConfirmOpen}
         setAddAdHocDialogOpen={setAddAdHocDialogOpen}
         navigateToPreviousDay={navigateToPreviousDay}
@@ -2069,158 +2064,7 @@ export function CalendarView({
         onApply={applyMultiSelectColors}
       />
 
-      {/* Edit Tag Dialog */}
-      <Dialog open={editTagDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          setTagAddDays(new Set());
-          setTagRemoveDays(new Set());
-          setEditingTag(false);
-          setEditTagDialogOpen(false);
-        }
-      }}>
-        <DialogContent size="small">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">{t("multiSelect.tagLabel")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              value={tempTagText}
-              onChange={(e) => setTempTagText(e.target.value)}
-              placeholder="Tag"
-              maxLength={50}
-            />
-
-            {/* Color Picker */}
-            <ColorPicker
-              selectedColor={tempTagColor}
-              onSelect={(color) => setTempTagColor(color as typeof COLORS[0])}
-              isDarkMode={isDarkMode}
-            />
-
-            {/* Mini day picker */}
-            {selectedDate && (() => {
-              const dateKey = format(selectedDate, "yyyy-MM-dd");
-              const currentEntry = entries[dateKey];
-              const alreadyGrouped = new Set(
-                currentEntry?.color
-                  ? findGroupedDays(currentEntry.color, currentEntry.tag ?? "")
-                  : [dateKey],
-              );
-              return (
-                <MiniDayPicker
-                  month={editTagPickerMonth}
-                  onMonthChange={setEditTagPickerMonth}
-                  monthLabel={`${getMonthName(editTagPickerMonth)} ${format(editTagPickerMonth, "yyyy")}`}
-                  weekStartsOnMonday={weekStartsOnMonday}
-                  highlightColor={tempTagColor}
-                  isDarkMode={isDarkMode}
-                  label={t("nav.addDays") || "Days"}
-                  getDayProps={(key) => {
-                    const inGroup = alreadyGrouped.has(key);
-                    const selected = tagAddDays.has(key);
-                    const markedForRemoval = tagRemoveDays.has(key);
-                    return {
-                      className: cn(
-                        inGroup && !markedForRemoval && "cursor-pointer font-semibold",
-                        inGroup && markedForRemoval && "cursor-pointer opacity-90 line-through",
-                        !inGroup && !selected && "hover:bg-accent cursor-pointer",
-                        !inGroup && selected && "ring-1 ring-offset-1 ring-primary font-semibold cursor-pointer",
-                      ),
-                      highlighted: (inGroup && !markedForRemoval) || selected,
-                    };
-                  }}
-                  onDayClick={(key) => {
-                    const inGroup = alreadyGrouped.has(key);
-                    const markedForRemoval = tagRemoveDays.has(key);
-                    if (inGroup) {
-                      const canRemove = alreadyGrouped.size - tagRemoveDays.size > 1 || markedForRemoval;
-                      if (!canRemove) return;
-                      setTagRemoveDays((prev) => {
-                        const next = new Set(prev);
-                        next.has(key) ? next.delete(key) : next.add(key);
-                        return next;
-                      });
-                    } else {
-                      setTagAddDays((prev) => {
-                        const next = new Set(prev);
-                        next.has(key) ? next.delete(key) : next.add(key);
-                        return next;
-                      });
-                    }
-                  }}
-                />
-              );
-            })()}
-          </div>
-
-          <div className="flex gap-2 mt-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setTagAddDays(new Set());
-                setTagRemoveDays(new Set());
-                setEditingTag(false);
-                setEditTagDialogOpen(false);
-              }}
-              className="flex-1"
-            >
-              <X className="h-3 w-3 mr-1" />
-              {t("calendar.cancel")}
-            </Button>
-            <Button onClick={updateGroupedTag} className="flex-1">
-              <Check className="h-3 w-3 mr-1" />
-              {t("calendar.apply")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Note Dialog */}
-      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent size="small">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">{t("calendar.note")}</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            placeholder={t("day.notePlaceholder")}
-            value={tempNote}
-            onChange={(e) => setTempNote(e.target.value)}
-            rows={5}
-            className="resize-none"
-            autoFocus
-          />
-          <div className="flex gap-2">
-            {tempNote && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setNote("");
-                  setNoteDialogOpen(false);
-                }}
-                className="text-destructive hover:text-destructive"
-              >
-                {t("calendar.removeTag")}
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              onClick={() => setNoteDialogOpen(false)}
-              className="flex-1"
-            >
-              {t("calendar.cancel")}
-            </Button>
-            <Button
-              onClick={() => {
-                setNote(tempNote);
-                setNoteDialogOpen(false);
-              }}
-              className="flex-1"
-            >
-              {t("calendar.apply") || "OK"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+    
 
       {/* Add Ad-Hoc Medication Dialog */}
       <AdHocMedicationDialog

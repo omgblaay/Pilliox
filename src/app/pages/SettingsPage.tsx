@@ -127,28 +127,24 @@ export function SettingsPage({
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-card border-b border-border">
-        <div className="max-w-screen-lg flex gap-5 items-center mx-auto px-4 py-4">
+      <div className="sticky top-0 bg-background">
+        <div className="max-w-screen-lg flex gap-5 items-center mx-auto px-4 sm:py-8 py-4">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => navigate("/app")}
-            className="h-10 w-10"
+            className="h-10 w-10 text-muted-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
             <h1>{t("settings.title") || "Settings"}</h1>
-            <p className="small">
-              {t("settings.subtitle") ||
-                "Customize your experience"}
-            </p>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-screen-lg mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-screen-lg mx-auto px-4 space-y-6">
         {/* Appearance */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -255,7 +251,9 @@ export function SettingsPage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-        >
+        >          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            {t("settings.legal.title") || "Other"}
+          </h2>
           <Card className="divide-y divide-border">
             <Button
               variant="menuItem"

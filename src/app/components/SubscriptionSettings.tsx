@@ -83,9 +83,7 @@ export function SubscriptionSettings() {
           <h3 className="text-lg font-semibold">
             {t("subscription.title")}
           </h3>
-          <p className="text-sm text-muted-foreground">
-            {t("subscription.manageDescription")}
-          </p>
+
         </div>
       </div>
 

@@ -477,23 +477,23 @@ app.get('/make-server-c7e1f966/health', (c) => {
 // Simple signup - creates a user using Supabase Auth
 app.post('/make-server-c7e1f966/signup', async (c) => {
   try {
-    const { email, password, name } = await c.req.json();
-    
+    const { email, password, name, dateOfBirth } = await c.req.json();
+
     if (!email || !password) {
       return c.json({ error: 'Email and password are required' }, 400);
     }
-    
+
     if (password.length < 6) {
       return c.json({ error: 'Password must be at least 6 characters' }, 400);
     }
-    
+
     console.log(`[signup] Attempting to create user in Supabase Auth: ${email}`);
-    
+
     // Create user in Supabase Auth
     const { data, error } = await supabase.auth.admin.createUser({
       email: email,
       password: password,
-      user_metadata: { name: name || '' },
+      user_metadata: { name: name || '', dateOfBirth: dateOfBirth || null },
       // Automatically confirm the user's email since an email server hasn't been configured
       email_confirm: true
     });
@@ -513,7 +513,16 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
     
     const userId = data.user.id;
     console.log(`✅ [signup] User created successfully in Supabase Auth with ID: ${userId}`);
-    
+
+    // Proactively create the 3-day trial subscription record so it starts
+    // from actual account creation, not from the first subscription status check.
+    const signupNow = Date.now();
+    const trialEndTs = signupNow + (3 * 24 * 60 * 60 * 1000);
+    await safeKvOperation(() =>
+      kvSet(`subscription:${userId}`, { signupDate: signupNow, trialEnd: trialEndTs })
+    );
+    console.log(`[signup] Trial created: ends ${new Date(trialEndTs).toISOString()}`);
+
     // Sign in the user immediately to get a proper session token
     console.log(`[signup] Signing in the newly created user...`);
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -525,35 +534,36 @@ app.post('/make-server-c7e1f966/signup', async (c) => {
       console.log(`[signup] ⚠️ Auto-signin failed after signup: ${signInError?.message || 'No session'}, using fallback token`);
       // Fallback: use userId as token
       const accessToken = userId;
-      const userData = { email, password: '', name: name || '', id: userId };
+      const userData = { email, password: '', name: name || '', id: userId, dateOfBirth: dateOfBirth || null };
       users.set(userId, userData);
       users.set(accessToken, userData);
       await safeKvOperation(() => kvSet(`user:${userId}`, userData));
       await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
-      
-      return c.json({ 
-        user: { id: userId, email, name: name || '' },
+
+      return c.json({
+        user: { id: userId, email, name: name || '', dateOfBirth: dateOfBirth || null },
         access_token: accessToken
       });
     }
     
     const accessToken = signInData.session.access_token;
     const userName = signInData.user.user_metadata?.name || name || '';
-    
+
     // Add to in-memory store for quick access - store by both userId AND access_token
-    const userData = { email, password: '', name: userName, id: userId };
+    const userData = { email, password: '', name: userName, id: userId, dateOfBirth: dateOfBirth || null };
     users.set(userId, userData);
     users.set(accessToken, userData);
-    
+
     // Try to store in KV for extra features (non-critical, silently fails on RLS)
     await safeKvOperation(() => kvSet(`user:${userId}`, userData));
     await safeKvOperation(() => kvSet(`user:${accessToken}`, userData));
-    
+
     console.log(`✅ [signup] Signup complete for user: ${userId} with proper session token`);
-    
-    return c.json({ 
-      user: { id: userId, email, name: userName },
-      access_token: accessToken
+
+    return c.json({
+      user: { id: userId, email, name: userName, dateOfBirth: dateOfBirth || null },
+      access_token: accessToken,
+      refresh_token: signInData.session.refresh_token,
     });
   } catch (error: any) {
     console.log(`[signup] 🔴 Unexpected error: ${error.message}`);
@@ -922,13 +932,17 @@ app.get('/make-server-c7e1f966/settings', async (c) => {
     
     console.log(`[settings] Settings loaded successfully for user: ${user.id}`);
     
-    return c.json({ 
-      user: { 
-        id: user.id, 
-        email: user.email, 
-        name: user.name 
+    // Fetch full user record from KV to get dateOfBirth and other stored fields
+    const kvUser = await safeKvOperation(() => kvGet(`user:${user.id}`));
+
+    return c.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        dateOfBirth: kvUser?.dateOfBirth ?? null,
       },
-      settings 
+      settings
     });
   } catch (error: any) {
     console.error('[settings] Error:', error.message, error.stack);
@@ -952,15 +966,26 @@ app.post('/make-server-c7e1f966/profile', async (c) => {
       return c.json({ error: 'Invalid token' }, 401);
     }
     
-    const { name } = await c.req.json();
-    
+    const { name, dateOfBirth } = await c.req.json();
+
     // Update user data in KV store
     const userData = await kvGet(`user:${user.id}`);
     if (userData) {
       userData.name = name;
+      if (dateOfBirth !== undefined) {
+        userData.dateOfBirth = dateOfBirth || null;
+      }
       await kvSet(`user:${user.id}`, userData);
     }
-    
+
+    // Also update Supabase Auth user_metadata so it persists in the JWT
+    await supabase.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        name: name,
+        ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth || null }),
+      },
+    });
+
     return c.json({ success: true });
   } catch (error) {
     return c.json({ error: 'Failed to update profile' }, 500);

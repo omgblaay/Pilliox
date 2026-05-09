@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -32,6 +32,7 @@ export function MedicationsPage({
 }: MedicationsPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [pillsSettingsOpen, setPillsSettingsOpen] = useState(false);
   const [userId, setUserId] = useState<string>("");
@@ -45,6 +46,21 @@ export function MedicationsPage({
   useEffect(() => {
     notificationService.initialize().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if ((location.state as any)?.openAdd) {
+      const newPill: PillSetting = {
+        id: `pill_${Date.now()}`,
+        name: "",
+        defaultDosage: 1,
+        color: PILL_COLORS[0].hex,
+        type: "pills",
+      };
+      setEditingPill(newPill);
+      setIsAddingNew(true);
+      setEditModalOpen(true);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -138,15 +154,15 @@ export function MedicationsPage({
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-card border-b border-border">
-        <div className="max-w-screen-lg mx-auto px-4 py-4">
+
+      <div className="sticky top-0 bg-background">
+        <div className="max-w-screen-lg mx-auto px-4 sm:py-8 py-4">
           <div className="flex items-center gap-5">
-            <Button variant="outline" size="icon" onClick={() => navigate("/app")} className="h-10 w-10">
-              <ArrowLeft className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => navigate("/app")} className="h-10 w-10">
+              <ArrowLeft />
             </Button>
             <div className="flex-1">
               <h1>{t("medications.title") || "Medications"}</h1>
-              <p className="small">{t("medications.subtitle") || "Manage your medications"}</p>
             </div>
             <Button onClick={addPill}>
               <Plus className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2} />
@@ -157,7 +173,7 @@ export function MedicationsPage({
       </div>
 
       {/* Content */}
-      <div className="max-w-screen-lg mx-auto px-4 py-6">
+      <div className="max-w-screen-lg mx-auto px-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-700 border-t-purple-400" />
