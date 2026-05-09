@@ -72,8 +72,8 @@ function DialogContent({
   size?: "small" | "large";
 }) {
   const sizeClasses = {
-    small: "max-w-[calc(100%-2rem)] sm:max-w-md",
-    large: "w-[calc(100%-2rem)] sm:max-w-3xl",
+    small: "max-w-[calc(100%-2rem)] sm:max-w-lg",
+    large: "w-[calc(100%-2rem)] sm:max-w-2xl",
   };
 
   return (
@@ -82,7 +82,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border sm:p-6 p-4 shadow-lg duration-200 max-h-[90vh] overflow-y-auto rounded-2xl bg-popover border-border",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border sm:p-8 p-4 shadow-lg duration-200 max-h-[90vh] overflow-y-auto rounded-2xl bg-popover border-border",
           sizeClasses[size],
           className,
         )}
