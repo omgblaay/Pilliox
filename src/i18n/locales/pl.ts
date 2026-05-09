@@ -188,7 +188,7 @@ export default {
     addMed: "Dodaj",
     addOtherMedication: "Dodaj inny ",
     addOtherMedicationDesc: "Dodaj jednorazowo - nie w twoim regularnym harmonogramie.",
-    editOtherMedication: "Edytuj lek",
+    editOtherMedication: "Edytuj",
     editOtherMedicationDesc: "Zaktualizuj szczegóły",
     medicationName: "Nazwa",
     medicationNamePlaceholder: "np. Aspiryna, Ibuprofen",

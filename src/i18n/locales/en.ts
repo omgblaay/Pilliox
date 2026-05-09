@@ -19,6 +19,19 @@ export default {
     mark: "Mark",
     clear: "Clear",
   },
+      // Unit translations
+  units: {
+      none: " ",
+      mg: "mg",
+      g: "g",
+      ml: "ml",
+      mcg: "mcg",
+      tablets: "tablets",
+      capsules: "capsules",
+      drops: "drops",
+      pieces: "pieces",
+      units: "units",
+    },
   landing: {
     header: {
       signIn: "Sign In",
@@ -197,7 +210,7 @@ export default {
     addOtherMedicationDesc:
       "Add a one-time medication that's not in your regular schedule.",
     editOtherMedication: "Edit",
-    editOtherMedicationDesc: "Update details.",
+    editOtherMedicationDesc: "Update details",
     medicationName: "Name",
     medicationNamePlaceholder: "e.g., Aspirin, Ibuprofen",
     pillsAndValues: "Pills and Values",
@@ -208,21 +221,7 @@ export default {
     drops: "drops",
     delete: "Delete",
     cancel: "Cancel",
-    // Unit translations
-    units: {
-      none: " ",
-      mg: "mg",
-      g: "g",
-      ml: "ml",
-      mcg: "mcg",
-      tablets: "tablets",
-      capsules: "capsules",
-      drops: "drops",
-      pieces: "pieces",
-      units: "units",
-    },
-    add: "Add",
-    update: "Update",
+
     notification: "Notification",
     enableNotification: "Enable Reminder",
     notificationTime: "Reminder Time",

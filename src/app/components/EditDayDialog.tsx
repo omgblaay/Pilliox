@@ -508,10 +508,11 @@ export function EditDayDialog({
                         {pillDosage && (
                           <Button
                             variant="ghost"
+                            size="icon"
                             onClick={() => setPills(pills.filter((p) => p.pillId !== valueSetting.id))}
                             className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
                           >
-                            <X className="size-10" />
+                            <X className="size-4" />
                           </Button>
                         )}
                       </div>
@@ -524,9 +525,7 @@ export function EditDayDialog({
                   <div className="space-y-3 py-4 border-t-1 border-border">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                          <Pill className="size-4 text-amber-700 dark:text-amber-400" />
-                        </div>
+
                         <Label>{t("calendar.otherMedications") || "Other Medications"}</Label>
                       </div>
                       <Button variant="secondary" size="sm" onClick={() => setAddAdHocDialogOpen(true)}>
@@ -559,7 +558,7 @@ export function EditDayDialog({
                                     {med.name}
                                   </span>
                                   <span className="text-muted-foreground text-sm">
-                                    {med.dosage} {t(`calendar.units.${med.unit}`) || med.unit}
+                                    {med.dosage} {t(`units.${med.unit}`) || med.unit}
                                   </span>
                                   {!isValue && med.notificationEnabled && (
                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30">

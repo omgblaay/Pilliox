@@ -1826,7 +1826,7 @@ export function CalendarView({
                                           )}
                                           : {med.dosage}{" "}
                                           {t(
-                                            `calendar.units.${med.unit}`,
+                                            `units.${med.unit}`,
                                           ) || med.unit}
                                         </span>
                                       </div>

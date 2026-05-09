@@ -11,6 +11,7 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 import {
   Select,
   SelectContent,
@@ -220,24 +221,15 @@ export function AdHocMedicationDialog({
             <div className="space-y-3 pt-4 border-t border-border">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
-                  <Label className="text-foreground font-medium">
+                  <Bell className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                  <Label className="text-foreground text-md">
                     {t("calendar.enableNotification") || "Enable Reminder"}
                   </Label>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setNotificationEnabled(!notificationEnabled)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      notificationEnabled ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
+                <Switch
+                  checked={notificationEnabled}
+                  onCheckedChange={setNotificationEnabled}
+                />
               </div>
               {notificationEnabled && (
                 <div className="space-y-2">
@@ -245,13 +237,11 @@ export function AdHocMedicationDialog({
                     {t("calendar.notificationTime") || "Reminder Time"}
                   </Label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="adhoc-notification-time"
                       type="time"
                       value={notificationTime}
                       onChange={(e) => setNotificationTime(e.target.value)}
-                      className="pl-10"
                     />
                   </div>
                 </div>
