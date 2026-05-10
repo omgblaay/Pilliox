@@ -24,7 +24,9 @@ import { type PillSetting, type ScheduleType, type ScheduleTime } from "./PillsS
 import { ColorPicker, COLORS } from "./ColorPicker";
 import { notificationService } from "../services/notificationService";
 import { toast } from "sonner";
-import { DAYS, UNIT_OPTIONS, normalizeUnit } from "../constants/medicationOptions";
+import { DAYS, UNIT_OPTIONS } from "../constants/medicationOptions";
+  
+const normalizeUnit = (unit?: string) => unit && unit !== "none" ? unit : undefined;
 
 interface MedicationEditDialogProps {
   open: boolean;
@@ -370,7 +372,7 @@ export function MedicationEditDialog({
                     <SelectContent>
                       {UNIT_OPTIONS.map((unit) => (
                         <SelectItem key={unit} value={unit}>
-                          {unit === "none" ? "-" : t(`units.${unit}`, { defaultValue: unit })}
+                          {unit === "none" ? "-" : t(`units.${unit}`) || unit}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -416,16 +418,16 @@ export function MedicationEditDialog({
                     <div className="space-y-2">
                       <Label className="text-sm text-muted-foreground">{t("schedule.selectDays") || "Select days"}</Label>
                       <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-1">
-                        {DAYS.map((day) => (
+                        {DAYS.map((day, i) => (
                           <Button
-                            key={day.value}
+                            key={i}
                             type="button"
                             variant="tabGroup"
-                            data-state={specificDays.has(day.value) ? "active" : "inactive"}
-                            onClick={() => toggleDay(day.value)}
+                            data-state={specificDays.has(i) ? "active" : "inactive"}
+                            onClick={() => toggleDay(i)}
                             className="flex-1 h-9 text-xs"
                           >
-                            {t(day.labelKey) || day.fallback}
+                            {t(day.labelKey, day.fallback)}
                           </Button>
                         ))}
                       </div>
@@ -454,7 +456,7 @@ export function MedicationEditDialog({
                               <SelectContent>
                                 {UNIT_OPTIONS.map((unit) => (
                                   <SelectItem key={unit} value={unit}>
-                                    {unit === "none" ? "-" : t(`units.${unit}`, { defaultValue: unit })}
+                                    {unit === "none" ? "-" : t(`units.${unit}`) || unit}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
