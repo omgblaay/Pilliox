@@ -190,8 +190,7 @@ export function MedicationScheduleEditor({
           {scheduleType === "specific_days" && (
             <div className="space-y-2">
               <Label>{t("schedule.selectDays") || "Select days"}</Label>
-                          <div className="bg-gray-200 gap-1 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
-
+                          <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                 {DAYS.map((day) => (
                   <Button
                     key={day.value}
