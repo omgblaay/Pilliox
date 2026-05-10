@@ -17,6 +17,7 @@ import {
   Bell,
   CalendarCheck,
   Trash,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -539,7 +540,7 @@ export function EditDayDialog({
                           const isValue = med.type === "value";
                           const isTaken = med.taken !== false;
                           return (
-                            <div key={med.id} className="flex items-center gap-3 p-3 border rounded-lg transition-colors">
+                            <div key={med.id} className="flex items-center gap-3 p-3 border border-border dark:border-slate-100/20 rounded-lg transition-colors">
                               {!isValue && (
                                 <button
                                   type="button"
@@ -603,7 +604,7 @@ export function EditDayDialog({
 
               <div className="flex gap-2 mt-4">
                 <Button variant="destructive" onClick={onClearDay}>
-                  <Trash className="size-4" />
+                  <Trash2 className="size-4" />
                 </Button>
                 <Button variant="outline" onClick={onCancel} className="flex-1">
                   {t("basic.cancel") || "Cancel"}

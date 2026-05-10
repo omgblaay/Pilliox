@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { UNIT_OPTIONS } from "../constants/medicationOptions";
 
 export interface AdHocMedicationData {
   name: string;
@@ -191,26 +192,11 @@ export function AdHocMedicationDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">-</SelectItem>
-                  <SelectItem value="mg">mg</SelectItem>
-                  <SelectItem value="g">g</SelectItem>
-                  <SelectItem value="ml">ml</SelectItem>
-                  <SelectItem value="mcg">mcg</SelectItem>
-                  <SelectItem value="IU">IU</SelectItem>
-                  {type === "value" && (
-                    <>
-                      <SelectItem value="mmol/L">mmol/L</SelectItem>
-                      <SelectItem value="mg/dL">mg/dL</SelectItem>
-                      <SelectItem value="kg">kg</SelectItem>
-                    </>
-                  )}
-                  {type === "medication" && (
-                    <>
-                      <SelectItem value="tablets">{t("calendar.tablets") || "tablets"}</SelectItem>
-                      <SelectItem value="capsules">{t("calendar.capsules") || "capsules"}</SelectItem>
-                      <SelectItem value="drops">{t("calendar.drops") || "drops"}</SelectItem>
-                    </>
-                  )}
+                  {UNIT_OPTIONS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit === "none" ? "-" : t(`units.${unit}`, { defaultValue: unit })}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -256,7 +242,7 @@ export function AdHocMedicationDialog({
               variant="destructive"
               onClick={() => { onDelete(editingMed!.id); onOpenChange(false); }}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="size-4" />
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">

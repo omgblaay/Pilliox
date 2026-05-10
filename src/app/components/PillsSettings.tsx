@@ -56,6 +56,14 @@ interface PillDosage {
   dosage: number;
 }
 
+export interface ScheduleTime {
+  time: string;
+  dose: number;
+  unit?: string;
+}
+
+export type ScheduleType = "daily" | "cyclic" | "specific_days" | "as_needed";
+
 export interface PillSetting {
   id: string;
   name: string;
@@ -64,8 +72,12 @@ export interface PillSetting {
   type?: "pills" | "value";
   unit?: string;
   notificationsEnabled?: boolean;
-  notificationTime?: string; // HH:mm format
+  notificationTime?: string;
   notificationFrequency?: "daily" | "every2days" | "every3days";
+  scheduleType?: ScheduleType;
+  scheduleCycleDays?: number;
+  scheduleSpecificDays?: number[];
+  scheduleTimes?: ScheduleTime[];
 }
 
 interface PillsSettingsProps {

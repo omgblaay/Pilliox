@@ -18,7 +18,10 @@ import { BottomNavigation } from "../components/BottomNavigation";
 import { PillsSettings, PillSetting } from "../components/PillsSettings.tsx";
 import { COLORS } from "../components/ColorPicker";
 import { MedicationEditDialog } from "../components/MedicationEditDialog";
+import { MedicationDetailPage } from "../components/MedicationDetailPage";
+import { MedicationScheduleEditor } from "../components/MedicationScheduleEditor";
 import { notificationService } from "../services/notificationService";
+import { toast } from "sonner";
 
 interface MedicationsPageProps {
   accessToken: string;
@@ -43,6 +46,9 @@ export function MedicationsPage({
   const [editingPill, setEditingPill] = useState<PillSetting | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [detailPill, setDetailPill] = useState<PillSetting | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [scheduleEditorOpen, setScheduleEditorOpen] = useState(false);
 
   useEffect(() => {
     notificationService.initialize().catch(() => {});
@@ -141,6 +147,33 @@ export function MedicationsPage({
     setIsAddingNew(false);
   };
 
+  const handleScheduleSaved = async (updates: Partial<PillSetting>) => {
+    if (!detailPill || !userId) return;
+
+    const updatedPill = { ...detailPill, ...updates };
+    const response = await fetch(
+      `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/pills-settings/${userId}/${detailPill.id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${anonKey}`,
+          "X-User-Token": accessToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedPill),
+      },
+    );
+
+    if (!response.ok) {
+      toast.error(t("pillsSettings.deleteError") || "Failed to save");
+      throw new Error("Failed to save medication schedule");
+    }
+
+    setPills((prev) => prev.map((p) => (p.id === updatedPill.id ? updatedPill : p)));
+    setDetailPill(updatedPill);
+    toast.success(t("pillsSettings.saveChanges") || "Changes saved");
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -199,32 +232,32 @@ export function MedicationsPage({
                 </div>
                 <Card className="divide-y divide-border">
                   {pills.filter((p) => (p.type || "pills") === "pills").map((pill) => (
-                    <div key={pill.id} className="flex items-center">
+                    <div key={pill.id} className="items-center">
                       <Button
                         variant="menuItem"
-                        hideChevron
-                        className="flex-1"
+                        className="flex-1 sm:!px-5 !gap-5 sm:!py-3"
                         onClick={() => {
-                          setEditingPill({ ...pill });
-                          setIsAddingNew(false);
-                          setEditModalOpen(true);
+                          setDetailPill({ ...pill });
+                          setDetailOpen(true);
                         }}
                       >
                         <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
-                        <span className="flex-1 font-medium text-foreground">
+                        <div className="flex-1 flex-col items-center gap-2">
+                          <span className="flex-1 font-normal text-foreground">
                           {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
                         </span>
                         <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                          <Pill className="h-4 w-4" />
+                          <Pill className="size-4" />
                           <span>{pill.defaultDosage}</span>
                         </div>
+                         </div>
                         {pill.notificationsEnabled ? (
                           <div className="flex items-center text-sm gap-2">
-                            <Bell className="h-4 w-4 text-blue-500" />
+                            <Bell className="size-4 text-blue-500" />
                             <span>{pill.notificationTime && ` ${pill.notificationTime}`}</span>
                           </div>
                         ) : (
-                          <BellOff className="h-4 w-4 text-muted-foreground" />
+                          <BellOff className="size-4 text-muted-foreground" />
                         )}
                       </Button>
                     </div>
@@ -245,29 +278,30 @@ export function MedicationsPage({
                     <div key={pill.id} className="flex items-center">
                       <Button
                         variant="menuItem"
-                        hideChevron
-                        className="flex-1"
+                        className="flex-1 sm:!px-5 !gap-5 sm:!py-3"
                         onClick={() => {
-                          setEditingPill({ ...pill });
-                          setIsAddingNew(false);
-                          setEditModalOpen(true);
+                          setDetailPill({ ...pill });
+                          setDetailOpen(true);
                         }}
                       >
+
                         <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
+                        <div className="flex-1 flex-col items-center gap-2">
                         <span className="flex-1 font-medium text-foreground">
                           {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
                         </span>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Droplet className="h-4 w-4" />
+                          <Droplet className="size-3" />
                           <span>{pill.defaultDosage}{pill.unit ? ` ${pill.unit}` : ""}</span>
+                        </div>
                         </div>
                         {pill.notificationsEnabled ? (
                           <div className="flex items-center text-sm gap-2">
-                            <Bell className="size-3 text-blue-500" />
+                            <Bell className="size-4 text-blue-500" />
                             <span>{pill.notificationTime && ` ${pill.notificationTime}`}</span>
                           </div>
                         ) : (
-                          <BellOff className="h-4 w-4 text-muted-foreground" />
+                          <BellOff className="size-4 text-muted-foreground" />
                         )}
                       </Button>
                     </div>
@@ -288,18 +322,55 @@ export function MedicationsPage({
         accessToken={accessToken}
       />
 
+      <MedicationDetailPage
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        pill={detailPill}
+        projectId={projectId}
+        onEdit={() => {
+          setDetailOpen(false);
+          setEditingPill(detailPill);
+          setIsAddingNew(false);
+          setEditModalOpen(true);
+        }}
+        onEditSchedule={() => setScheduleEditorOpen(true)}
+      />
+
+      {detailPill && (
+        <MedicationScheduleEditor
+          open={scheduleEditorOpen}
+          onOpenChange={setScheduleEditorOpen}
+          pill={detailPill}
+          onSave={handleScheduleSaved}
+        />
+      )}
+
       <MedicationEditDialog
         open={editModalOpen}
-        onOpenChange={setEditModalOpen}
+        onOpenChange={(open) => {
+          setEditModalOpen(open);
+          if (!open && editingPill && !isAddingNew) {
+            setDetailPill(editingPill);
+            setDetailOpen(true);
+          }
+        }}
         pill={editingPill}
         isAddingNew={isAddingNew}
         userId={userId}
         projectId={projectId}
         anonKey={anonKey}
         accessToken={accessToken}
-        onSaved={handleSaved}
+        onSaved={(saved, isNew) => {
+          handleSaved(saved, isNew);
+          setDetailPill(saved);
+          if (!isNew) setDetailOpen(true);
+        }}
         onDeleted={handleDeleted}
-        onDiscard={handleDiscard}
+        onDiscard={() => {
+          const wasAddingNew = isAddingNew;
+          handleDiscard();
+          if (!wasAddingNew) setDetailOpen(true);
+        }}
       />
     </div>
   );

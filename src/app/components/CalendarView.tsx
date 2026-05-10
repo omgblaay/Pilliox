@@ -15,6 +15,7 @@ import {
   endOfWeek,
   addWeeks,
   subWeeks,
+  getDay,
 } from "date-fns";
 import { de } from "date-fns/locale/de";
 import { enUS } from "date-fns/locale/en-US";
@@ -123,6 +124,13 @@ interface CalendarViewProps {
   accessToken: string;
   projectId: string;
   anonKey: string;
+}
+
+function isPillScheduledForDay(pill: PillSetting, date: Date): boolean {
+  if (!pill.scheduleType || pill.scheduleType === "daily") return true;
+  if (pill.scheduleType === "as_needed") return false;
+  if (pill.scheduleType === "specific_days") return (pill.scheduleSpecificDays ?? []).includes(getDay(date));
+  return true; // cyclic: show as scheduled (no reference start date available)
 }
 
 function hexToRgba(hex: string, opacity: number): string {
@@ -1758,6 +1766,7 @@ export function CalendarView({
                                           </div>
                                         );
                                       } else {
+                                        if (!isPillScheduledForDay(pillSetting, day)) return null;
                                         return (
                                           <div
                                             key={pillSetting.id}
@@ -1903,6 +1912,7 @@ export function CalendarView({
                                           </span>
                                         );
                                       }
+                                      if (!isPillScheduledForDay(pillSetting, day)) return null;
                                       return (
                                         <span
                                           key={pillSetting.id}

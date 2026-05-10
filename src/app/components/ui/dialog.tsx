@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
 import { cn } from "./utils";
+import { Button } from "./button";
 
 function Dialog({
   ...props
@@ -109,8 +110,11 @@ function DialogHeader({
     ><div className="flex flex-1 flex-col gap-2">
       {props.children}
        </div>
-      <DialogPrimitive.Close className="w-10 h-10 border-border dark:border-[#4d4c54] border-1 rounded-full ring-offset-background flex items-center cursor-pointer focus:ring-ring opacity-80 transition-opacity hover:opacity-100 [&_svg:not([class*='size-'])]:size-4">
-        <XIcon className="m-auto" />
+      <DialogPrimitive.Close>
+        <Button variant="ghost" size="icon">
+          <XIcon className="size-4" />
+        </Button>
+
       </DialogPrimitive.Close>
     </div>
   );

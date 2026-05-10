@@ -1,3 +1,6 @@
+import { Title } from "@radix-ui/react-dialog";
+import { Edit } from "lucide-react";
+
 export default {
   app: {
     name: "Pilliox",
@@ -13,6 +16,7 @@ export default {
   basic: {
     ok: "Ok",
     add: "Add",
+    edit: "Edit",
     cancel: "Cancel",
     delete: "Delete",
     save: "Save",
@@ -224,7 +228,7 @@ export default {
 
     notification: "Notification",
     enableNotification: "Enable Reminder",
-    notificationTime: "Reminder Time",
+    notificationTime: "Time",
     notificationDesc:
       "You'll receive a reminder at this time to take your medication.",
     note: "Note",
@@ -450,6 +454,8 @@ export default {
     editMedicationDescription: "Edit your medication settings",
     medicationName: "Medication Name",
     medicationPlaceholder: "Enter medication name",
+    nameAndColor: "Name & color",
+    typeAndSchedule: "Type & schedule",
     color: "Color",
     type: "Type",
     typePills: "Medication",
@@ -478,9 +484,35 @@ export default {
     cancel: "Cancel",
     confirmDelete: "Confirm Delete",
   },  
+  schedule: {
+    title: "Schedule",  
+    editSchedule: "Edit Schedule",
+    addSchedule: "Add Schedule",
+    scheduleFrequency: "Schedule Type",
+    daily: "Daily",
+    everyXDays: "Every Few Days",
+    cyclic: "Cyclic",
+    specificDays: "Specific Days",
+    asNeeded: "As Needed",
+    customDescription: "Select specific days for this medication",
+    selectDays: "Select Days",
+    noSchedule: "No schedule yet",
+    tapToSet: "Tap to set schedule",
+    frequency: "Frequency",
+    frequencyDescription: "Choose how this medication should appear in your schedule.",
+    dailyDescription: "Take this medication every day.",
+    cyclicDescription: "Repeat after a custom number of days.",
+    specificDaysDescription: "Choose the weekdays when this medication is scheduled.",
+    asNeededDescription: "No fixed schedule. Log it only when you take it.",
+    days: "days",
+    timesAndDoses: "Times & Doses",
+  },
   dataRange: {
-    thisMonth: "This Month",
-    thisYear: "This Year",
+    prefill: "Prefill",
+    dont: "Don't",
+    thisWeek: "Week",
+    thisMonth: "Month",
+    thisYear: "Year",
     range: "Date Range",
     fillEmpty: "Fill empty days in range",
   },

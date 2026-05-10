@@ -1,4 +1,5 @@
 import { add } from "date-fns";
+import { Donut } from "lucide-react";
 
 export default {
   app: {
@@ -447,6 +448,8 @@ export default {
     editMedicationDescription: "Bearbeiten Sie Ihre Medikamenteneinstellungen",
     medicationName: "Medikamentenname",
     medicationPlaceholder: "Medikamentennamen eingeben",
+    nameAndColor: "Name & Farbe",
+    typeAndSchedule: "Typ & Zeitplan",
     color: "Farbe",
     type: "Typ",
     typePills: "Medikament",
@@ -486,9 +489,35 @@ export default {
     cancel: "Abbrechen",
   },
   dataRange: {
-    thisMonth: "Dieser Monat",
-    thisYear: "Dieses Jahr",
-    range: "Datumsbereich",
+    prefill: "Ausfüllen",
+    dont: "Nicht",
+    thisWeek: "Woche",
+    thisMonth: "Monat",
+    thisYear: "Jahr",
+    range: "Bereich",
+  },
+  schedule: {
+    title: "Zeitplan",
+    editSchedule: "Zeitplan bearbeiten",
+    addSchedule: "Zeitplan hinzufügen",
+    scheduleFrequency: "Zeitplantyp",
+    daily: "Täglich",
+    everyXDays: "Alle paar Tage",
+    cyclic: "Zyklisch",
+    specificDays: "Bestimmte Tage",
+    asNeeded: "Bei Bedarf",
+    customDescription: "Wählen Sie bestimmte Tage für dieses Medikament",
+    selectDays: "Tage auswählen",
+    noSchedule: "Noch kein Zeitplan",
+    tapToSet: "Tippen, um den Zeitplan festzulegen",
+    frequency: "Häufigkeit",
+    frequencyDescription: "Wählen Sie, wie dieses Medikament im Zeitplan erscheinen soll.",
+    dailyDescription: "Nehmen Sie dieses Medikament jeden Tag ein.",
+    cyclicDescription: "Nach einer eigenen Anzahl von Tagen wiederholen.",
+    specificDaysDescription: "Wählen Sie die Wochentage, an denen dieses Medikament geplant ist.",
+    asNeededDescription: "Kein fester Zeitplan. Nur protokollieren, wenn Sie es einnehmen.",
+    days: "Tage",
+    timesAndDoses: "Zeiten & Dosen",
   },
   about: {
     title: "Über Pilliox",

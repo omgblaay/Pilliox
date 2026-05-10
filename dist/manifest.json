@@ -15,7 +15,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "dist/logo-big.png",
+      "src": "dist/logo-big.pngg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

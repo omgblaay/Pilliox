@@ -67,8 +67,6 @@ function AppRoutes() {
         const hashAccessToken = hashParams.get("access_token");
         const hashType = hashParams.get("type");
 
-        console.log("[auth] initAuth — path:", window.location.pathname, "code:", !!code, "type:", type, "hashType:", hashType);
-
         // Redirect to reset password if this is explicitly a password recovery
         // Check multiple formats: code, token, or hash access_token with type=recovery
         // CRITICAL: Check if we're landing on root (/) with recovery tokens
@@ -97,7 +95,6 @@ function AppRoutes() {
           data: { subscription: sub },
         } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            console.log("[auth] onAuthStateChange — event:", event, "hasToken:", !!session?.access_token, "email:", session?.user?.email, "metaEmail:", session?.user?.user_metadata?.email);
             // CRITICAL: Handle password recovery event FIRST before any other logic
             // DO NOT store tokens or log the user in - just navigate to reset page
             if (event === "PASSWORD_RECOVERY") {
@@ -180,7 +177,6 @@ function AppRoutes() {
                     navigate("/app/onboarding");
                   }
                 } catch (err) {
-                  console.log("[auth] settings fetch failed:", err);
                   navigate("/app/onboarding");
                 }
               } else if (
@@ -215,7 +211,6 @@ function AppRoutes() {
           error,
         } = await supabase.auth.getSession();
 
-        console.log("[auth] getSession — hasSession:", !!session, "error:", error?.message);
         if (error) {
           setIsLoading(false);
         } else if (session?.access_token) {
