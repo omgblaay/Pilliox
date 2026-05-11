@@ -307,7 +307,7 @@ export function MedicationEditDialog({
             )}
 
             {!frequencyPickerOpen && showSchedule && (
-              <div className="mx-auto w-full space-y-5 ">
+              <div className="mx-auto w-full space-y-5 mt-5">
                 {/* Type */}
                 <div className="flex w-full gap-4 sm:gap-6">
                 <div className="space-y-2 flex-1">

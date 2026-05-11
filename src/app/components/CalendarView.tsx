@@ -1231,7 +1231,7 @@ export function CalendarView({
       ];
 
   return (
-    <div className="h-full bg-background relative pb-4">
+    <div className="h-[100svh] bg-background relative pb-4">
       {/* Added pb-20 for bottom nav space */}
       {/* Loading Overlay */}
       {isLoading && (

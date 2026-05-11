@@ -187,6 +187,7 @@ export function MedicationScheduleForm({
               <Label className="text-sm text-muted-foreground">{t("schedule.from") || "From"}</Label>
               <Input
                 type="date"
+                className="w-auto"
                 value={scheduleStartDate}
                 onChange={(event) => onScheduleStartDateChange(event.target.value)}
               />

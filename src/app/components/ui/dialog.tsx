@@ -109,7 +109,7 @@ function DialogHeader({
     <div
       data-slot="dialog-header"
       className={cn(
-        "sm:static absolute p-4 sm:p-0 sm:bg-none bg-gradient-to-b from-popover to-transparent top-0 left-0 right-0 flex min-h-20 sm:min-h-auto w-full items-center space-between gap-2 text-left",
+        "sm:static absolute p-4 sm:p-0 z-52 sm:bg-none bg-gradient-to-b from-popover to-transparent top-0 left-0 right-0 flex min-h-20 sm:min-h-auto w-full items-center space-between gap-2 text-left",
         className,
       )}
       {...props}
