@@ -169,7 +169,7 @@ export function MedicationScheduleForm({
         </div>
 
         {scheduleType === "cyclic" && (
-          <div className="flex sm:items-center gap-12 sm:gap-6">
+          <div className="flex sm:items-center gap-6">
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">{t("schedule.everyXDays") || "Every how many days"}</Label>
               <div className="flex items-center gap-3">

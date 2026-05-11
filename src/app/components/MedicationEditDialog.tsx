@@ -263,7 +263,7 @@ export function MedicationEditDialog({
             )}
           </DialogHeader>
 
-          <div className="h-full sm:pt-0 pt-16 overflow-y-auto">
+          <div className="sm:pt-0 pt-16 overflow-y-auto">
             {frequencyPickerOpen ? (
               <MedicationScheduleForm
                 pill={editingPill}
