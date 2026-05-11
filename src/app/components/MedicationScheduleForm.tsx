@@ -205,7 +205,7 @@ export function MedicationScheduleForm({
                   variant="tabGroup"
                   data-state={specificDays.has(day.value) ? "active" : "inactive"}
                   onClick={() => toggleDay(day.value)}
-                  className="flex-1 h-9 text-xs"
+                  className="flex-1 h-9 !text-xs !px-0"
                 >
                   {t(day.labelKey) || day.fallback}
                 </Button>
@@ -218,9 +218,8 @@ export function MedicationScheduleForm({
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
 
-              <div className="flex items-center gap-3 pt-2">
-                <Bell className="size-4 text-blue-500 flex-shrink-0" />
-                <Label className="flex-1 text-muted-foreground">
+              <div className="flex w-full items-center gap-3 my-4">
+                <Label className="flex-1 text-foreground">
                   {t("pillsSettings.notifications") || "Notifications"}
                 </Label>
                 <Switch checked={notificationsEnabled} onCheckedChange={handleNotificationToggle} />
