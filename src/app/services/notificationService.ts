@@ -34,6 +34,12 @@ interface StoredWebNotification {
   scheduledTime: string;
 }
 
+interface MedicationReminderTime {
+  time: string;
+  dose: number;
+  unit?: string;
+}
+
 // Max safe value for setTimeout (32-bit signed int). Delays beyond this wrap to 0 and fire immediately.
 const MAX_TIMEOUT_MS = 2_147_483_647;
 
@@ -213,7 +219,7 @@ class NotificationService {
       return [];
     }
 
-    if (!pill.notificationTime) {
+    if (this.getMedicationReminderTimes(pill).length === 0) {
       return [];
     }
 
@@ -241,35 +247,20 @@ class NotificationService {
     pill: PillSetting,
     startDate: Date
   ): Promise<number[]> {
-    const [hours, minutes] = pill.notificationTime!.split(':').map(Number);
-
-    const frequencyMap = {
-      daily: 1,
-      every2days: 2,
-      every3days: 3,
-    };
-    const frequencyDays = frequencyMap[pill.notificationFrequency || 'daily'];
-
     const notifications: LocalNotificationSchema[] = [];
     const scheduledIds: number[] = [];
     const maxNotifications = 30;
 
-    for (let i = 0; i < maxNotifications; i++) {
-      const scheduledDate = new Date(startDate);
-      scheduledDate.setDate(startDate.getDate() + (i * frequencyDays));
-      scheduledDate.setHours(hours, minutes, 0, 0);
+    this.forEachScheduledReminder(pill, startDate, maxNotifications, (scheduledDate, reminder, index) => {
+      if (scheduledDate <= new Date()) return;
 
-      if (scheduledDate <= new Date()) {
-        continue;
-      }
-
-      const notificationId = this.generateNotificationId(pill.id, i);
+      const notificationId = this.generateNotificationId(pill.id, index);
       scheduledIds.push(notificationId);
 
       notifications.push({
         id: notificationId,
         title: `💊 ${pill.name}`,
-        body: this.getNotificationBody(pill),
+        body: this.getNotificationBody(pill, reminder),
         schedule: {
           at: scheduledDate,
         },
@@ -278,11 +269,11 @@ class NotificationService {
         extra: {
           pillId: pill.id,
           pillName: pill.name,
-          dosage: pill.defaultDosage,
+          dosage: reminder.dose,
           type: pill.type,
         },
       });
-    }
+    });
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({
@@ -301,15 +292,6 @@ class NotificationService {
     startDate: Date
   ): Promise<number[]> {
 
-    const [hours, minutes] = pill.notificationTime!.split(':').map(Number);
-
-    const frequencyMap = {
-      daily: 1,
-      every2days: 2,
-      every3days: 3,
-    };
-    const frequencyDays = frequencyMap[pill.notificationFrequency || 'daily'];
-
     const scheduledIds: number[] = [];
     const maxNotifications = 30;
     const minDelayMs = 30 * 1000; // 30 seconds minimum
@@ -320,31 +302,24 @@ class NotificationService {
     const now = new Date();
     const storedNotifications: StoredWebNotification[] = [];
 
-    for (let i = 0; i < maxNotifications; i++) {
-      const scheduledDate = new Date(startDate);
-      scheduledDate.setDate(startDate.getDate() + (i * frequencyDays));
-      scheduledDate.setHours(hours, minutes, 0, 0);
-
+    this.forEachScheduledReminder(pill, startDate, maxNotifications, (scheduledDate, reminder, index) => {
       const delay = scheduledDate.getTime() - now.getTime();
 
       // Skip if too soon or in the past
       if (delay < minDelayMs) {
-        continue;
+        return;
       }
 
       // Skip if delay exceeds max safe setTimeout value — would fire immediately due to 32-bit overflow
       if (delay > MAX_TIMEOUT_MS) {
-        continue;
+        return;
       }
 
-      const notificationId = this.generateNotificationId(pill.id, i);
+      const notificationId = this.generateNotificationId(pill.id, index);
       scheduledIds.push(notificationId);
 
-      const delayHours = Math.floor(delay / 3600000);
-      const remainingMinutes = Math.floor((delay % 3600000) / 60000);
-
       const title = `💊 ${pill.name}`;
-      const body = this.getNotificationBody(pill);
+      const body = this.getNotificationBody(pill, reminder);
 
       // Schedule using setTimeout
       const timeoutId = window.setTimeout(() => {
@@ -369,7 +344,7 @@ class NotificationService {
         body,
         scheduledTime: scheduledDate.toISOString(),
       });
-    }
+    });
 
     this.saveWebNotificationsToStorage(storedNotifications, pill.id);
 
@@ -590,16 +565,113 @@ class NotificationService {
   }
 
   /**
+   * Resolve reminder times from the current schedule model, with legacy fallback.
+   */
+  private getMedicationReminderTimes(pill: PillSetting): MedicationReminderTime[] {
+    if (pill.scheduleType === 'as_needed') {
+      return [];
+    }
+
+    const scheduledTimes = (pill.scheduleTimes ?? [])
+      .filter((entry) => /^\d{2}:\d{2}$/.test(entry.time))
+      .map((entry) => ({
+        time: entry.time,
+        dose: entry.dose || pill.defaultDosage,
+        unit: entry.unit ?? pill.unit,
+      }));
+
+    if (scheduledTimes.length > 0) {
+      return scheduledTimes;
+    }
+
+    if (!pill.notificationTime || !/^\d{2}:\d{2}$/.test(pill.notificationTime)) {
+      return [];
+    }
+
+    return [{
+      time: pill.notificationTime,
+      dose: pill.defaultDosage,
+      unit: pill.unit,
+    }];
+  }
+
+  private forEachScheduledReminder(
+    pill: PillSetting,
+    startDate: Date,
+    maxNotifications: number,
+    callback: (scheduledDate: Date, reminder: MedicationReminderTime, index: number) => void
+  ): void {
+    const reminderTimes = this.getMedicationReminderTimes(pill);
+    if (reminderTimes.length === 0) return;
+
+    let scheduledCount = 0;
+    let dayOffset = 0;
+    const maxDaysToCheck = Math.max(365, maxNotifications * (pill.scheduleCycleDays ?? 1));
+
+    while (scheduledCount < maxNotifications && dayOffset <= maxDaysToCheck) {
+      const scheduledDay = new Date(startDate);
+      scheduledDay.setDate(startDate.getDate() + dayOffset);
+
+      if (this.isMedicationScheduledOnDay(pill, scheduledDay, dayOffset)) {
+        for (const reminder of reminderTimes) {
+          if (scheduledCount >= maxNotifications) break;
+
+          const [hours, minutes] = reminder.time.split(':').map(Number);
+          const scheduledDate = new Date(scheduledDay);
+          scheduledDate.setHours(hours, minutes, 0, 0);
+          callback(scheduledDate, reminder, scheduledCount);
+          scheduledCount += 1;
+        }
+      }
+
+      dayOffset += 1;
+    }
+  }
+
+  private isMedicationScheduledOnDay(pill: PillSetting, date: Date, dayOffset: number): boolean {
+    if (!pill.scheduleType || pill.scheduleType === 'daily') {
+      return this.isLegacyFrequencyDay(pill, dayOffset);
+    }
+
+    if (pill.scheduleType === 'specific_days') {
+      return (pill.scheduleSpecificDays ?? []).includes(date.getDay());
+    }
+
+    if (pill.scheduleType === 'cyclic') {
+      return dayOffset % Math.max(1, pill.scheduleCycleDays ?? 1) === 0;
+    }
+
+    return false;
+  }
+
+  private isLegacyFrequencyDay(pill: PillSetting, dayOffset: number): boolean {
+    const frequencyMap = {
+      daily: 1,
+      every2days: 2,
+      every3days: 3,
+    };
+    const frequencyDays = frequencyMap[pill.notificationFrequency || 'daily'];
+    return dayOffset % frequencyDays === 0;
+  }
+
+  /**
    * Get notification body text based on pill type
    */
-  private getNotificationBody(pill: PillSetting): string {
+  private getNotificationBody(pill: PillSetting, reminder?: MedicationReminderTime): string {
     if (pill.type === 'value') {
       return `Time to record your ${pill.name} value`;
     }
+
+    const dose = reminder?.dose ?? pill.defaultDosage;
+    const unit = reminder?.unit;
+
+    if (unit) {
+      return `Time to take ${dose} ${unit}`;
+    }
     
-    const dosageText = pill.defaultDosage === 1 
+    const dosageText = dose === 1 
       ? '1 pill' 
-      : `${pill.defaultDosage} pills`;
+      : `${dose} pills`;
     
     return `Time to take ${dosageText}`;
   }

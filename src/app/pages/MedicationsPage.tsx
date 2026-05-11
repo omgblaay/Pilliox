@@ -142,6 +142,7 @@ export function MedicationsPage({
   };
 
   const handleDeleted = (pillId: string) => {
+    void notificationService.cancelPillNotifications(pillId).catch(() => {});
     setPills((prev) => prev.filter((p) => p.id !== pillId));
     setEditingPill(null);
     setIsAddingNew(false);
@@ -171,6 +172,9 @@ export function MedicationsPage({
 
     setPills((prev) => prev.map((p) => (p.id === updatedPill.id ? updatedPill : p)));
     setDetailPill(updatedPill);
+    await notificationService.updatePillNotifications(updatedPill).catch(() => {
+      toast.error(t("notifications.scheduleError") || "Saved, but notification scheduling failed");
+    });
     toast.success(t("pillsSettings.saveChanges") || "Changes saved");
   };
 
@@ -362,6 +366,9 @@ export function MedicationsPage({
         accessToken={accessToken}
         onSaved={(saved, isNew) => {
           handleSaved(saved, isNew);
+          void notificationService.updatePillNotifications(saved).catch(() => {
+            toast.error(t("notifications.scheduleError") || "Saved, but notification scheduling failed");
+          });
           setDetailPill(saved);
           if (!isNew) setDetailOpen(true);
         }}
