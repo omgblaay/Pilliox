@@ -14,6 +14,7 @@ import {
   Channel,
 } from '@capacitor/local-notifications';
 import { PillSetting } from '../components/PillsSettings';
+import { diffCalendarDays } from '../constants/medicationOptions';
 
 export interface NotificationPermissionStatus {
   display: 'granted' | 'denied' | 'prompt';
@@ -638,7 +639,9 @@ class NotificationService {
     }
 
     if (pill.scheduleType === 'cyclic') {
-      return dayOffset % Math.max(1, pill.scheduleCycleDays ?? 1) === 0;
+      const startDate = pill.scheduleStartDate ? new Date(`${pill.scheduleStartDate}T00:00:00`) : new Date();
+      const dayDiff = diffCalendarDays(date, startDate);
+      return dayDiff >= 0 && dayDiff % Math.max(1, pill.scheduleCycleDays ?? 1) === 0;
     }
 
     return false;

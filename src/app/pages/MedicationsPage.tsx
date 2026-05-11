@@ -20,6 +20,7 @@ import { COLORS } from "../components/ColorPicker";
 import { MedicationEditDialog } from "../components/MedicationEditDialog";
 import { MedicationDetailPage } from "../components/MedicationDetailPage";
 import { MedicationScheduleEditor } from "../components/MedicationScheduleEditor";
+import { MedicationIcon } from "../components/MedicationIcon";
 import { notificationService } from "../services/notificationService";
 import { toast } from "sonner";
 
@@ -62,6 +63,7 @@ export function MedicationsPage({
         defaultDosage: 1,
         color: COLORS[0].hex,
         type: "pills",
+        icon: "capsule",
       };
       setEditingPill(newPill);
       setIsAddingNew(true);
@@ -121,6 +123,7 @@ export function MedicationsPage({
       defaultDosage: 1,
       color: COLORS[0].hex,
       type: "pills",
+      icon: "capsule",
     };
     setEditingPill(newPill);
     setIsAddingNew(true);
@@ -251,7 +254,7 @@ export function MedicationsPage({
                           {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
                         </span>
                         <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                          <Pill className="size-4" />
+                          <MedicationIcon icon={pill.icon} className="size-4" />
                           <span>{pill.defaultDosage}</span>
                         </div>
                          </div>

@@ -88,6 +88,8 @@ import { EditDayDialog } from "./EditDayDialog";
 import { MarkDaysDialog } from "./MarkDaysDialog";
 import { COLORS } from "./ColorPicker";
 import { notificationService } from "../services/notificationService";
+import { MedicationIcon } from "./MedicationIcon";
+import { diffCalendarDays } from "../constants/medicationOptions";
 
 interface PillDosage {
   pillId: string;
@@ -130,7 +132,12 @@ function isPillScheduledForDay(pill: PillSetting, date: Date): boolean {
   if (!pill.scheduleType || pill.scheduleType === "daily") return true;
   if (pill.scheduleType === "as_needed") return false;
   if (pill.scheduleType === "specific_days") return (pill.scheduleSpecificDays ?? []).includes(getDay(date));
-  return true; // cyclic: show as scheduled (no reference start date available)
+  if (pill.scheduleType === "cyclic") {
+    const startDate = pill.scheduleStartDate ? new Date(`${pill.scheduleStartDate}T00:00:00`) : new Date();
+    const dayDiff = diffCalendarDays(date, startDate);
+    return dayDiff >= 0 && dayDiff % Math.max(1, pill.scheduleCycleDays ?? 1) === 0;
+  }
+  return false;
 }
 
 function hexToRgba(hex: string, opacity: number): string {
@@ -1756,10 +1763,10 @@ export function CalendarView({
                                         return (
                                           <div
                                             key={pillSetting.id}
-                                            style={{ backgroundColor: pillSetting.color }}
+                                            style={{ backgroundColor: pillSetting.color || "#3b82f6" }}
                                             className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 text-white rounded-md whitespace-nowrap"
                                           >
-                                            <Pill className="h-3 w-3" />
+                                            <MedicationIcon icon={pillSetting.icon} className="h-3 w-3" />
                                             <span>
                                               {pillSetting.name.substring(0, 3)}: {pill!.dosage}
                                             </span>
@@ -1773,7 +1780,7 @@ export function CalendarView({
                                             style={{ borderColor: pillSetting.color || "#a855f7", color: pillSetting.color || "#a855f7" }}
                                             className="flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md whitespace-nowrap border border-dashed opacity-90"
                                           >
-                                            <Pill className="h-3 w-3" />
+                                            <MedicationIcon icon={pillSetting.icon} className="h-3 w-3" />
                                             <span>
                                               {pillSetting.name.substring(0, 3)}: {ghostDosage}
                                             </span>
@@ -1902,24 +1909,26 @@ export function CalendarView({
                                       const ghostDosage = entryOverrides[pillSetting.id] ?? pillSetting.defaultDosage;
                                       if (pill) {
                                         return (
-                                          <span
-                                            key={pillSetting.id}
-                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white leading-none font-[family-name:var(--font-geist-mono)]"
-                                            style={{ backgroundColor: pillSetting.color || "#3b82f6" }}
-                                            title={`${pillSetting.name}: ${pill.dosage}`}
-                                          >
-                                            {pill.dosage}
-                                          </span>
+                                        <span
+                                          key={pillSetting.id}
+                                          className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white leading-none font-[family-name:var(--font-geist-mono)]"
+                                          style={{ backgroundColor: pillSetting.color || "#3b82f6" }}
+                                          title={`${pillSetting.name}: ${pill.dosage}`}
+                                        >
+                                          <MedicationIcon icon={pillSetting.icon} className="h-2.5 w-2.5" />
+                                          {pill.dosage}
+                                        </span>
                                         );
                                       }
                                       if (!isPillScheduledForDay(pillSetting, day)) return null;
                                       return (
                                         <span
                                           key={pillSetting.id}
-                                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none border border-dashed font-[family-name:var(--font-geist-mono)]"
+                                          className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none border border-dashed font-[family-name:var(--font-geist-mono)]"
                                           style={{ borderColor: pillSetting.color || "#3b82f6", color: pillSetting.color || "#3b82f6" }}
                                           title={`${pillSetting.name}: ${ghostDosage}`}
                                         >
+                                          <MedicationIcon icon={pillSetting.icon} className="h-2.5 w-2.5" />
                                           {ghostDosage}
                                         </span>
                                       );

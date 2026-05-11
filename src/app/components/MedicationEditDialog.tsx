@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, Pill, Droplet, ArrowLeft } from "lucide-react";
+import { Trash2, Pill, Droplet, ArrowLeft, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -22,8 +22,9 @@ import { cn } from "./ui/utils";
 import { type PillSetting, type ScheduleType, type ScheduleTime } from "./PillsSettings";
 import { ColorPicker, COLORLESS, COLORS } from "./ColorPicker";
 import { toast } from "sonner";
-import { UNIT_OPTIONS, normalizeUnit } from "../constants/medicationOptions";
+import { UNIT_OPTIONS, formatDateInputValue, getUnitLabel, normalizeUnit } from "../constants/medicationOptions";
 import { MedicationScheduleForm, normalizeScheduleTimes } from "./MedicationScheduleForm";
+import { MEDICATION_ICON_IDS, MedicationIcon } from "./MedicationIcon";
 
 interface MedicationEditDialogProps {
   open: boolean;
@@ -67,6 +68,7 @@ export function MedicationEditDialog({
   // Schedule state
   const [scheduleType, setScheduleType] = useState<ScheduleType>("daily");
   const [frequencyPickerOpen, setFrequencyPickerOpen] = useState(false);
+  const [scheduleStartDate, setScheduleStartDate] = useState(formatDateInputValue());
   const [cycleDays, setCycleDays] = useState(2);
   const [specificDays, setSpecificDays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [times, setTimes] = useState<ScheduleTime[]>([{ time: "09:00", dose: 1 }]);
@@ -76,6 +78,7 @@ export function MedicationEditDialog({
     if (open && pill) {
       setEditingPill({ ...pill });
       setScheduleType(pill.scheduleType ?? "daily");
+      setScheduleStartDate(pill.scheduleStartDate ?? formatDateInputValue());
       setCycleDays(pill.scheduleCycleDays ?? 2);
       setSpecificDays(new Set(pill.scheduleSpecificDays ?? [1, 2, 3, 4, 5]));
       setTimes(
@@ -153,6 +156,7 @@ export function MedicationEditDialog({
         defaultDosage: firstDose,
         unit: firstUnit,
         scheduleType,
+        scheduleStartDate: scheduleType === "cyclic" ? scheduleStartDate : undefined,
         scheduleCycleDays: scheduleType === "cyclic" ? cycleDays : undefined,
         scheduleSpecificDays: scheduleType === "specific_days" ? Array.from(specificDays) : undefined,
         scheduleTimes,
@@ -187,6 +191,19 @@ export function MedicationEditDialog({
 
   const currentUnit = normalizeUnit(editingPill.unit ?? times[0]?.unit);
   const medicationColors = [COLORLESS, ...COLORS];
+  const addMedicationSteps = [
+    {
+      index: 0,
+      label: t("pillsSettings.nameAndColor") || "Name & color",
+      description: t("pillsSettings.addMedicationDescription") || "Add a new medication to your list",
+    },
+    {
+      index: 1,
+      label: t("pillsSettings.typeAndSchedule") || "Type & schedule",
+      description: editingPill.name,
+    },
+  ] as const;
+  const currentAddMedicationStep = addMedicationSteps[step];
   const showBasics = !isAddingNew || step === 0;
   const showSchedule = !isAddingNew || step === 1;
 
@@ -201,7 +218,23 @@ export function MedicationEditDialog({
               : "sm:max-w-[640px] max-h-[90vh]",
           )}
         >
-          <DialogHeader>
+          <DialogHeader hideClose>
+            {isAddingNew && !frequencyPickerOpen && (
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {addMedicationSteps.map((item) => (
+                  <button
+                    key={item.index}
+                    type="button"
+                    onClick={() => item.index === 0 || editingPill.name?.trim() ? setStep(item.index as 0 | 1) : setStep(0)}
+                    className={cn(
+                      "h-1 rounded-full transition-colors",
+                      step === item.index ? "bg-primary" : "bg-muted",
+                    )}
+                    aria-label={item.label}
+                  />
+                ))}
+              </div>
+            )}
             <div className="flex items-center gap-3">
               {frequencyPickerOpen && (
                 <Button type="button" variant="ghost" size="icon" onClick={() => setFrequencyPickerOpen(false)}>
@@ -209,33 +242,31 @@ export function MedicationEditDialog({
                 </Button>
               )}
               <div className="flex-1">
-                <DialogTitle>
-                  {frequencyPickerOpen
-                    ? t("schedule.frequency") || "Frequency"
-                    : editingPill.name ? t("pillsSettings.editMedication") || "Edit Medication" : t("pillsSettings.addMedication") || "Add Medication"}
-                </DialogTitle>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <DialogTitle>
+                    {frequencyPickerOpen
+                      ? t("schedule.frequency") || "Frequency"
+                      : isAddingNew ? t("pillsSettings.addMedication") || "Add Medication" : t("pillsSettings.editMedication") || "Edit Medication"}
+                  </DialogTitle>
+                  {isAddingNew && !frequencyPickerOpen && (
+                    <>
+                      <span className="text-base font-medium text-muted-foreground">-</span>
+                      <h3 className="text-base font-medium leading-none">
+                        {currentAddMedicationStep.label}
+                      </h3>
+                    </>
+                  )}
+                </div>
                 {isAddingNew && !frequencyPickerOpen && (
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {[
-                      { index: 0, label: t("pillsSettings.nameAndColor") || "Name & color" },
-                      { index: 1, label: t("pillsSettings.typeAndSchedule") || "Type & schedule" },
-                    ].map((item) => (
-                      <button
-                        key={item.index}
-                        type="button"
-                        onClick={() => item.index === 0 || editingPill.name?.trim() ? setStep(item.index as 0 | 1) : setStep(0)}
-                        className={cn(
-                          "h-2 rounded-full transition-colors",
-                          step === item.index ? "bg-primary" : "bg-muted",
-                        )}
-                        aria-label={item.label}
-                      />
-                    ))}
-                  </div>
+                  <DialogDescription>
+                    {currentAddMedicationStep.description}
+                  </DialogDescription>
                 )}
               </div>
             </div>
-            <DialogDescription className="sr-only">Medication settings</DialogDescription>
+            {(!isAddingNew || frequencyPickerOpen) && (
+              <DialogDescription className="sr-only">Medication settings</DialogDescription>
+            )}
           </DialogHeader>
 
           <div className={cn("flex-1 overflow-y-auto px-1", !isAddingNew && "space-y-6")}>
@@ -244,6 +275,8 @@ export function MedicationEditDialog({
                 pill={editingPill}
                 scheduleType={scheduleType}
                 onScheduleTypeChange={setScheduleType}
+                scheduleStartDate={scheduleStartDate}
+                onScheduleStartDateChange={setScheduleStartDate}
                 cycleDays={cycleDays}
                 onCycleDaysChange={setCycleDays}
                 specificDays={specificDays}
@@ -257,12 +290,6 @@ export function MedicationEditDialog({
               />
             ) : showBasics && (
               <div className="mx-auto w-full space-y-6">
-                {isAddingNew && (
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-semibold">{t("pillsSettings.nameAndColor") || "Name & color"}</h2>
-                    <p className="text-sm text-muted-foreground">{t("pillsSettings.addMedicationDescription") || "Add a new medication to your list"}</p>
-                  </div>
-                )}
                 {/* Name */}
                 <div className="space-y-2">
                   <Label>{t("pillsSettings.medicationName")}</Label>
@@ -286,22 +313,18 @@ export function MedicationEditDialog({
             )}
 
             {!frequencyPickerOpen && showSchedule && (
-              <div className="mx-auto w-full space-y-5">
-                {isAddingNew && (
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-semibold">{t("pillsSettings.typeAndSchedule") || "Type & schedule"}</h2>
-                    <p className="text-sm text-muted-foreground">{editingPill.name}</p>
-                  </div>
-                )}
+              <div className="mx-auto w-full space-y-5 ">
                 {/* Type */}
-                <div className="space-y-2">
+                <div className="flex w-full gap-4 sm:gap-6">
+                <div className="space-y-2 flex-1">
                   <Label>{t("pillsSettings.type")}</Label>
-                  <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+                  <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-1 flex h-12 gap-0">
                     <Button
                       type="button"
                       variant="tabGroup"
+                      className="!min-h-8 h-full"
                       data-state={(editingPill.type || "pills") === "pills" ? "active" : "inactive"}
-                      onClick={() => updatePill({ type: "pills" })}
+                      onClick={() => updatePill({ type: "pills", icon: editingPill.icon ?? "capsule" })}
                     >
                       <Pill className="size-5 hidden sm:block" strokeWidth={1.33} />
                       <span>{t("pillsSettings.typePills")}</span>
@@ -309,6 +332,7 @@ export function MedicationEditDialog({
                     <Button
                       type="button"
                       variant="tabGroup"
+                      className="!min-h-8 h-full"
                       data-state={(editingPill.type || "pills") === "value" ? "active" : "inactive"}
                       onClick={() => updatePill({ type: "value" })}
                     >
@@ -317,8 +341,7 @@ export function MedicationEditDialog({
                     </Button>
                   </div>
                 </div>
-
-                <div className="space-y-2">
+                <div className="space-y-2 flex-1">
                   <Label>{t("pillsSettings.unit") || "Unit"}</Label>
                   <Select
                     value={currentUnit ?? "none"}
@@ -334,17 +357,48 @@ export function MedicationEditDialog({
                     <SelectContent>
                       {UNIT_OPTIONS.map((unit) => (
                         <SelectItem key={unit} value={unit}>
-                          {unit === "none" ? "-" : t(`units.${unit}`) || unit}
+                          {unit === "none" ? "-" : getUnitLabel(unit, t)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div></div>
+
+                {(editingPill.type || "pills") === "pills" && (
+                  <div className="space-y-2">
+                    <Label>{t("pillsSettings.icon") || "Icon"}</Label>
+                  <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+                      {MEDICATION_ICON_IDS.map((icon) => {
+                        const isSelected = (editingPill.icon ?? "capsule") === icon;
+
+                        return (
+                          <Button
+                            key={icon}
+                            type="button"
+                            onClick={() => updatePill({ icon })}
+                            variant="tabGroup" 
+                            data-state={isSelected ? "active" : "inactive"}
+                            aria-label={`${t("pillsSettings.icon") || "Icon"} ${icon}`}
+                          >
+                            <MedicationIcon
+                              icon={icon}
+                              color={editingPill.color || "currentColor"}
+                              className="size-5"
+                            />
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
 
                 <MedicationScheduleForm
                   pill={editingPill}
                   scheduleType={scheduleType}
                   onScheduleTypeChange={setScheduleType}
+                  scheduleStartDate={scheduleStartDate}
+                  onScheduleStartDateChange={setScheduleStartDate}
                   cycleDays={cycleDays}
                   onCycleDaysChange={setCycleDays}
                   specificDays={specificDays}
@@ -366,16 +420,19 @@ export function MedicationEditDialog({
               <Button variant="destructive" onClick={handleDeleteClick}>
                 <Trash2 className="h-4 w-4" strokeWidth={2} />
               </Button>
-            )}
-            <Button variant="outline" className="flex-1" onClick={onDiscard} disabled={isSaving}>
-              {t("basic.cancel") || "Cancel"}
-            </Button>
+            )}            
             {!frequencyPickerOpen && isAddingNew && step === 1 && (
               <Button variant="outline" className="flex-1" onClick={() => setStep(0)} disabled={isSaving}>
                 <ArrowLeft className="size-4" />
-                Back
               </Button>
             )}
+            {!frequencyPickerOpen && isAddingNew && step === 0 && (
+ <Button variant="outline" className="flex-1" onClick={onDiscard} disabled={isSaving}>
+              {t("basic.cancel") || "Cancel"}
+            </Button>
+            )}
+           
+
             {!frequencyPickerOpen && (
               <Button
                 className="flex-1"
@@ -392,7 +449,7 @@ export function MedicationEditDialog({
                 }}
                 disabled={isSaving}
               >
-                {isSaving ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : isAddingNew && step === 0 ? (t("onboarding.next") || "Next") : (t("basic.save") || "Save")}
+                {isSaving ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : isAddingNew && step === 0 ? (t("onboarding.next") || "Next") : <Check className="size-5" />}
               </Button>
             )}
           </div>

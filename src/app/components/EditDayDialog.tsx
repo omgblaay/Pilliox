@@ -33,6 +33,7 @@ import { cn } from "./ui/utils";
 import type { PillSetting } from "./PillsSettings";
 import { NoteDialog } from "./NoteDialog";
 import { EditTagDialog } from "./EditTagDialog";
+import { MedicationIcon } from "./MedicationIcon";
 
 interface PillDosage {
   pillId: string;
@@ -219,44 +220,57 @@ export function EditDayDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="small">
         {/* Header */}
-        <DialogHeader>
-          <DialogTitle className="flex-1 ">
-            {t("calendar.day", { count: selectedDates.size })}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHeader hideClose>
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
+                <ChevronLeft />
+              </Button>
+              <motion.div
+                className="overflow-hidden flex-auto"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={handleDayModalSwipe}
+              >
+                <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                  <DialogTitle asChild>
+                    <motion.div
+                      key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
+                      custom={swipeDirectionRef.current}
+                      variants={headerSlideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="text-foreground !font-normal !w-auto text-center"
+                    >
+                      {selectedDate && (() => {
+                        const [weekday, ...dateParts] = formatDialogDate(selectedDate).split(",");
+                        const dateText = dateParts.join(",").trim();
 
-        <div className="px-2 py-2 rounded-full bg-gray-100 dark:bg-accent">
-          <div className="flex rounded-full items-center justify-between gap-2">
-            <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
-              <ChevronLeft />
-            </Button>
-            <motion.div
-              className="flex-1 overflow-hidden"
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
-              onDragEnd={handleDayModalSwipe}
-            >
-              <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
-                <motion.div
-                  key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
-                  custom={swipeDirectionRef.current}
-                  variants={headerSlideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="text-foreground text-center flex-1 font-normal"
-                >
-                  {selectedDate && formatDialogDate(selectedDate)}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-            <Button variant="ghost" size="icon" onClick={navigateToNextDay}>
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
+                        return (
+                          <>
+                            {weekday}
+                            {dateText && (
+                              <span className="text-muted-foreground">
+                                {`, ${dateText}`}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </motion.div>
+                  </DialogTitle>
+                </AnimatePresence>
+              </motion.div>
+              <Button variant="ghost" size="icon" onClick={navigateToNextDay}>
+                <ChevronRight />
+              </Button>
+            </div>
+          <DialogDescription className="sr-only">
+            {t("calendar.day", { count: selectedDates.size })}
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
         <motion.div
@@ -416,7 +430,7 @@ export function EditDayDialog({
                               className={cn(
                                 "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
                                 isSelected && !medicationColor && "bg-muted-foreground border-muted-foreground",
-                                !isSelected && !medicationColor && "border-gray-400 dark:border-gray-600",
+                                !isSelected && !medicationColor && "border-gray-400 dark:border-gray-500",
                                 !isSelected && "hover:bg-muted/40",
                               )}
                               style={{
@@ -426,6 +440,11 @@ export function EditDayDialog({
                             >
                               {isSelected && <Check className="h-4 w-4 text-white" />}
                             </button>
+                            <MedicationIcon
+                              icon={pillSetting.icon}
+                              color={medicationColor || "currentColor"}
+                              className={cn("size-5", !isSelected && "text-muted-foreground")}
+                            />
                             <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
                               {pillSetting.name}
                             </span>
@@ -618,7 +637,7 @@ export function EditDayDialog({
                   {t("basic.cancel") || "Cancel"}
                 </Button>
                 <Button onClick={handleSave} className="flex-1">
-                  {t("basic.save") || "Save"}
+                  <Check className="size-5" / >
                 </Button>
               </div>
             </motion.div>

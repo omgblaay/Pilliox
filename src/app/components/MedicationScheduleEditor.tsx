@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import type { PillSetting, ScheduleType, ScheduleTime } from "./PillsSettings";
-import { normalizeUnit } from "../constants/medicationOptions";
+import { formatDateInputValue, normalizeUnit } from "../constants/medicationOptions";
 import { MedicationScheduleForm, normalizeScheduleTimes } from "./MedicationScheduleForm";
 
 interface MedicationScheduleEditorProps {
@@ -22,6 +22,7 @@ export function MedicationScheduleEditor({
 }: MedicationScheduleEditorProps) {
   const { t } = useTranslation();
   const [scheduleType, setScheduleType] = useState<ScheduleType>("daily");
+  const [scheduleStartDate, setScheduleStartDate] = useState(formatDateInputValue());
   const [cycleDays, setCycleDays] = useState(2);
   const [specificDays, setSpecificDays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [times, setTimes] = useState<ScheduleTime[]>([{ time: "09:00", dose: pill.defaultDosage }]);
@@ -32,6 +33,7 @@ export function MedicationScheduleEditor({
   useEffect(() => {
     if (open) {
       setScheduleType(pill.scheduleType ?? "daily");
+      setScheduleStartDate(pill.scheduleStartDate ?? formatDateInputValue());
       setCycleDays(pill.scheduleCycleDays ?? 2);
       setSpecificDays(new Set(pill.scheduleSpecificDays ?? [1, 2, 3, 4, 5]));
       setTimes(
@@ -51,6 +53,7 @@ export function MedicationScheduleEditor({
       await onSave({
         unit: firstUnit,
         scheduleType,
+        scheduleStartDate: scheduleType === "cyclic" ? scheduleStartDate : undefined,
         scheduleCycleDays: scheduleType === "cyclic" ? cycleDays : undefined,
         scheduleSpecificDays: scheduleType === "specific_days" ? Array.from(specificDays) : undefined,
         scheduleTimes: scheduleType !== "as_needed"
@@ -85,6 +88,8 @@ export function MedicationScheduleEditor({
             pill={pill}
             scheduleType={scheduleType}
             onScheduleTypeChange={setScheduleType}
+            scheduleStartDate={scheduleStartDate}
+            onScheduleStartDateChange={setScheduleStartDate}
             cycleDays={cycleDays}
             onCycleDaysChange={setCycleDays}
             specificDays={specificDays}
@@ -105,7 +110,7 @@ export function MedicationScheduleEditor({
           </Button>
           {!frequencyPickerOpen && (
             <Button onClick={handleSave} className="flex-1" disabled={isSaving}>
-              {isSaving ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : t("pillsSettings.saveChanges") || "Save"}
+              {isSaving ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Check className="size-5" />}
             </Button>
           )}
         </div>

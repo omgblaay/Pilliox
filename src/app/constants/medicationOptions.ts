@@ -27,7 +27,6 @@ export const UNIT_OPTIONS = [
 
 const UNIT_ALIASES: Record<string, (typeof UNIT_OPTIONS)[number]> = {
   "-": "none",
-  "": "none",
   none: "none",
   tablet: "tablets",
   tablets: "tablets",
@@ -60,4 +59,32 @@ export const normalizeUnit = (unit?: string) => {
   const trimmedUnit = (unit ?? "").trim();
   const normalized = UNIT_ALIASES[trimmedUnit] ?? UNIT_ALIASES[trimmedUnit.toLowerCase()];
   return normalized && normalized !== "none" ? normalized : undefined;
+};
+
+export const getUnitLabel = (unit: string | undefined, t: (key: string) => string) => {
+  const normalizedUnit = normalizeUnit(unit);
+  if (!normalizedUnit) return "";
+
+  const calendarKey = `calendar.units.${normalizedUnit}`;
+  const calendarLabel = t(calendarKey);
+  if (calendarLabel && calendarLabel !== calendarKey) return calendarLabel;
+
+  const rootKey = `units.${normalizedUnit}`;
+  const rootLabel = t(rootKey);
+  if (rootLabel && rootLabel !== rootKey) return rootLabel;
+
+  return normalizedUnit;
+};
+
+export const formatDateInputValue = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const diffCalendarDays = (date: Date, startDate: Date) => {
+  const current = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  return Math.floor((current.getTime() - start.getTime()) / 86_400_000);
 };

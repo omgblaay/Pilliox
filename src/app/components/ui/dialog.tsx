@@ -73,8 +73,8 @@ function DialogContent({
   size?: "small" | "large";
 }) {
   const sizeClasses = {
-    small: "max-w-[calc(100%-2rem)] sm:max-w-lg",
-    large: "w-[calc(100%-2rem)] sm:max-w-2xl",
+    small: "max-w-[100%] sm:max-w-lg",
+    large: "max-w-[calc(100%] sm:max-w-2xl",
   };
 
   return (
@@ -83,7 +83,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "overflow-x-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border sm:p-8 p-4 shadow-lg duration-200 max-h-[90vh] overflow-y-auto rounded-2xl bg-popover border-border",
+          "overflow-x-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-0 left-0 bottom-0 sm:top-[50%] sm:left-[50%] z-50 grid w-full sm:translate-x-[-50%] sm:translate-y-[-50%] gap-4 border sm:p-8 p-4 shadow-lg duration-200 sm:max-h-[90vh] overflow-y-auto sm:rounded-2xl bg-popover border-borde flex flex-col",
           sizeClasses[size],
           className,
         )}
@@ -97,8 +97,12 @@ function DialogContent({
 
 function DialogHeader({
   className,
+  hideClose = false,
+  children,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & {
+  hideClose?: boolean;
+}) {
   return (
     <div
       data-slot="dialog-header"
@@ -108,14 +112,15 @@ function DialogHeader({
       )}
       {...props}
     ><div className="flex flex-1 flex-col gap-2">
-      {props.children}
+      {children}
        </div>
-      <DialogPrimitive.Close>
-        <Button variant="ghost" size="icon">
-          <XIcon className="size-4" />
-        </Button>
-
-      </DialogPrimitive.Close>
+      {!hideClose && (
+        <DialogPrimitive.Close>
+          <Button variant="ghost" size="icon">
+            <XIcon className="size-4" />
+          </Button>
+        </DialogPrimitive.Close>
+      )}
     </div>
   );
 }

@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { ColorPicker } from "./ColorPicker";
+import type { MedicationIconId } from "./MedicationIcon";
 import { toast } from "sonner";
 import {
   projectId,
@@ -69,12 +70,14 @@ export interface PillSetting {
   name: string;
   defaultDosage: number;
   color?: string;
+  icon?: MedicationIconId;
   type?: "pills" | "value";
   unit?: string;
   notificationsEnabled?: boolean;
   notificationTime?: string;
   notificationFrequency?: "daily" | "every2days" | "every3days";
   scheduleType?: ScheduleType;
+  scheduleStartDate?: string;
   scheduleCycleDays?: number;
   scheduleSpecificDays?: number[];
   scheduleTimes?: ScheduleTime[];
@@ -222,6 +225,7 @@ export function PillsSettings({
       defaultDosage: 1,
       color: PILL_COLORS[0].value,
       type: "pills",
+      icon: "capsule",
     };
     setPills([...pills, newPill]);
     setEditingPill(newPill);

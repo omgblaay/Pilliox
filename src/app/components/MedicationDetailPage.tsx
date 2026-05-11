@@ -32,7 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "./ui/button";
 import type { PillSetting } from "./PillsSettings";
 import { fetchWithTokenRefresh } from "../../utils/api-client";
-import { DAYS } from "../constants/medicationOptions";
+import { DAYS, getUnitLabel } from "../constants/medicationOptions";
 
 type TimeRange = "week" | "month" | "6m" | "year";
 
@@ -174,7 +174,8 @@ export function MedicationDetailPage({
   const averageLabel = range === "week" || range === "month"
     ? t("graph.averagePerDay")
     : t("graph.averagePerMonth");
-  const unitLabel = pill.unit ? ` ${pill.unit}` : "";
+  const unitLabel = getUnitLabel(pill.unit, t);
+  const unitSuffix = unitLabel ? ` ${unitLabel}` : "";
 
   return (
     <>
@@ -230,15 +231,6 @@ export function MedicationDetailPage({
                   className="min-w-0 flex-1 text-center"
                 >
                   <p className="text-sm font-medium text-foreground">{periodLabel}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {range === "week"
-                      ? t("graph.week")
-                      : range === "month"
-                        ? t("graph.month")
-                        : range === "year"
-                          ? t("graph.year")
-                          : t("graph.sixMonths")}
-                  </p>
                 </motion.div>
               </AnimatePresence>
               <Button
@@ -257,14 +249,14 @@ export function MedicationDetailPage({
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">{t("graph.total")}</p>
                 <p className="text-sm font-semibold text-foreground">
                   {formatGraphNumber(graphTotal)}
-                  {unitLabel}
+                  {unitSuffix}
                 </p>
               </div>
               <div className="rounded-lg bg-muted/40 px-3 py-2">
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">{averageLabel}</p>
                 <p className="text-sm font-semibold text-foreground">
                   {formatGraphNumber(graphAverage)}
-                  {unitLabel}
+                  {unitSuffix}
                 </p>
               </div>
             </div>
@@ -309,7 +301,7 @@ export function MedicationDetailPage({
                               active={active}
                               payload={payload}
                               pillName={pill.name}
-                              unit={pill.unit}
+                              unitLabel={unitLabel}
                               emptyLabel={t("graph.noLoggedDose")}
                             />
                           )}
@@ -356,7 +348,7 @@ export function MedicationDetailPage({
                           className="px-2 py-0.5 rounded-full text-xs font-semibold text-white"
                           style={{ backgroundColor: color }}
                         >
-                          {entry.dose} {entry.unit ?? pill.unit ?? ""}
+                          {entry.dose}{getUnitLabel(entry.unit ?? pill.unit, t) ? ` ${getUnitLabel(entry.unit ?? pill.unit, t)}` : ""}
                         </span>
                       </div>
                     ))}
@@ -467,20 +459,20 @@ function GraphTooltip({
   active,
   payload,
   pillName,
-  unit,
+  unitLabel,
   emptyLabel,
 }: {
   active?: boolean;
   payload?: Array<{ payload?: GraphPoint }>;
   pillName: string;
-  unit?: string;
+  unitLabel: string;
   emptyLabel: string;
 }) {
   if (!active || !payload?.length || !payload[0]?.payload) return null;
 
   const point = payload[0].payload;
   const value = point.dosage > 0
-    ? `${point.dosage}${unit ? ` ${unit}` : ""}`
+    ? `${point.dosage}${unitLabel ? ` ${unitLabel}` : ""}`
     : emptyLabel;
 
   return (

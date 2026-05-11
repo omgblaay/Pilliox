@@ -8,12 +8,14 @@ import { cn } from "./ui/utils";
 import { notificationService } from "../services/notificationService";
 import { toast } from "sonner";
 import type { PillSetting, ScheduleTime, ScheduleType } from "./PillsSettings";
-import { DAYS, normalizeUnit } from "../constants/medicationOptions";
+import { DAYS, getUnitLabel, normalizeUnit } from "../constants/medicationOptions";
 
 interface MedicationScheduleFormProps {
   pill: Pick<PillSetting, "defaultDosage" | "unit">;
   scheduleType: ScheduleType;
   onScheduleTypeChange: (scheduleType: ScheduleType) => void;
+  scheduleStartDate: string;
+  onScheduleStartDateChange: (date: string) => void;
   cycleDays: number;
   onCycleDaysChange: (cycleDays: number) => void;
   specificDays: Set<number>;
@@ -33,6 +35,8 @@ export function MedicationScheduleForm({
   pill,
   scheduleType,
   onScheduleTypeChange,
+  scheduleStartDate,
+  onScheduleStartDateChange,
   cycleDays,
   onCycleDaysChange,
   specificDays,
@@ -57,6 +61,9 @@ export function MedicationScheduleForm({
   ];
 
   const currentScheduleType = scheduleTypes.find((type) => type.value === scheduleType) ?? scheduleTypes[0];
+  const getDoseUnitLabel = (unit?: string) => {
+    return getUnitLabel(unit ?? pill.unit, t);
+  };
 
   const toggleDay = (day: number) => {
     const next = new Set(specificDays);
@@ -114,7 +121,7 @@ export function MedicationScheduleForm({
               "w-full rounded-xl border p-4 text-left transition-colors",
               scheduleType === type.value
                 ? "border-blue-500 bg-blue-500/10"
-                : "border-gray-700 hover:border-primary/50 hover:bg-muted/40",
+                : "border-gray-1000/20 hover:border-border/50 hover:bg-muted/40",
             )}
           >
             <div className="flex items-start gap-3">
@@ -122,7 +129,7 @@ export function MedicationScheduleForm({
                 <p className="font-medium">{type.label}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{type.description}</p>
               </div>
-              {scheduleType === type.value && <Check className="size-5 text-primary" />}
+              {scheduleType === type.value && <Check className="size-5 text-blue-500" />}
             </div>
           </button>
         ))}
@@ -149,7 +156,7 @@ export function MedicationScheduleForm({
           <button
             type="button"
             onClick={() => onFrequencyPickerOpenChange(true)}
-            className="w-full rounded-xl border border-gray-600 p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
+            className="w-full rounded-xl border border-border cursor-pointer p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
           >
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -162,13 +169,27 @@ export function MedicationScheduleForm({
         </div>
 
         {scheduleType === "cyclic" && (
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">{t("schedule.everyXDays") || "Every how many days"}</Label>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => onCycleDaysChange(Math.max(2, cycleDays - 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">−</button>
-              <span className="w-12 text-center text-lg font-semibold">{cycleDays}</span>
-              <button type="button" onClick={() => onCycleDaysChange(Math.min(60, cycleDays + 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">+</button>
-              <span className="text-sm text-muted-foreground">{t("schedule.days") || "days"}</span>
+          <div className="flex sm:items-center gap-12 sm:gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">{t("schedule.everyXDays") || "Every how many days"}</Label>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={() => onCycleDaysChange(Math.max(2, cycleDays - 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">
+                  <Plus className="size-4" />
+                </Button>
+                <span className="w-12 text-center text-lg font-semibold">{cycleDays}</span>
+                <Button variant="outline" onClick={() => onCycleDaysChange(Math.min(60, cycleDays + 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">
+                  <Plus className="size-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">{t("schedule.days") || "days"}</span>
+              </div>
+            </div>
+            <div className="space-y-2 flex-1">
+              <Label className="text-sm text-muted-foreground">{t("schedule.from") || "From"}</Label>
+              <Input
+                type="date"
+                value={scheduleStartDate}
+                onChange={(event) => onScheduleStartDateChange(event.target.value)}
+              />
             </div>
           </div>
         )}
@@ -194,19 +215,37 @@ export function MedicationScheduleForm({
         )}
 
         {scheduleType !== "as_needed" && (
-          <div className="space-y-2">
+          <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
-              <Label className="text-sm text-muted-foreground">{t("schedule.timesAndDoses") || "Times & Doses"}</Label>
-              <Button type="button" variant="secondary" size="sm" onClick={addTime}>
-                <Plus className="size-4" />
-                {t("basic.add") || "Add"}
-              </Button>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Bell className="size-4 text-blue-500 flex-shrink-0" />
+                <Label className="flex-1 text-muted-foreground">
+                  {t("pillsSettings.notifications") || "Notifications"}
+                </Label>
+                <Switch checked={notificationsEnabled} onCheckedChange={handleNotificationToggle} />
+              </div>
+
             </div>
             <div className="space-y-2">
               {times.map((entry, index) => (
                 <div key={index} className="flex items-center gap-4">
-                  <Input type="time" value={entry.time} onChange={(event) => updateTime(index, "time", event.target.value)} className="flex-1"/>
-                  <Input type="number" className="flex-1" min="0" step="0.5" value={entry.dose} onChange={(event) => updateTime(index, "dose", event.target.value)}/>
+                  <Input type="time" value={entry.time} onChange={(event) => updateTime(index, "time", event.target.value)} className="flex-1" />
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      className="pr-16"
+                      min="0"
+                      step="0.5"
+                      value={entry.dose}
+                      onChange={(event) => updateTime(index, "dose", event.target.value)}
+                    />
+                    {getDoseUnitLabel(entry.unit) && (
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-right text-sm text-muted-foreground">
+                        {getDoseUnitLabel(entry.unit)}
+                      </span>
+                    )}
+                  </div>
                   {times.length > 1 && (
                     <Button type="button" variant="destructive" size="icon" onClick={() => removeTime(index)}>
                       <Trash2 className="size-4" />
@@ -215,14 +254,13 @@ export function MedicationScheduleForm({
                 </div>
               ))}
             </div>
+                          <Button type="button" variant="secondary" size="sm" onClick={addTime}>
+                <Plus className="size-4" />
+                {t("basic.add") || "Add"}
+              </Button>
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-1">
-          <Bell className="size-4 text-muted-foreground flex-shrink-0" />
-          <Label className="flex-1">{t("pillsSettings.notifications") || "Notifications"}</Label>
-          <Switch checked={notificationsEnabled} onCheckedChange={handleNotificationToggle} />
-        </div>
       </div>
     </div>
   );
