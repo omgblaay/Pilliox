@@ -449,7 +449,7 @@ export default {
     color: "Kolor",
     type: "Typ",
     icon: "Ikona",
-    typePills: "Suplement lub lek",
+    typePills: "Ilość",
     typeValue: "Wartość",
     unit: "Jednostka",
     defaultDosage: "Domyślna Dawka",

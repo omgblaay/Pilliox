@@ -138,7 +138,7 @@ export function MedicationScheduleForm({
   }
 
   return (
-    <div className="mx-auto w-full space-y-5">
+    <div className="mx-auto w-full space-y-5 mt-5">
       {(introTitle || introDescription) && (
         <div className="space-y-1">
           {introTitle && <h2 className="text-xl font-semibold">{introTitle}</h2>}
