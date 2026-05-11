@@ -353,7 +353,7 @@ export function ProfilePage({
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1">
-              <h1>{t("profile.title") || "Profile"}</h1>
+              <h1 className="text-lg">{t("profile.title") || "Profile"}</h1>
             </div>
           </div>
         </div>

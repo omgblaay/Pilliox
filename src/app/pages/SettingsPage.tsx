@@ -138,7 +138,7 @@ export function SettingsPage({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
-            <h1>{t("settings.title") || "Settings"}</h1>
+            <h1 className="text-lg">{t("settings.title") || "Settings"}</h1>
           </div>
         </div>
       </div>

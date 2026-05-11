@@ -203,7 +203,7 @@ export function MedicationsPage({
               <ArrowLeft />
             </Button>
             <div className="flex-1">
-              <h1 className="!text-base">{t("medications.title") || "Medications"}</h1>
+              <h1 className="text-lg">{t("medications.title") || "Medications"}</h1>
             </div>
             <Button onClick={addPill}>
               <Plus className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2} />
