@@ -20,7 +20,7 @@ import {
 } from "./ui/dialog";
 import { cn } from "./ui/utils";
 import { type PillSetting, type ScheduleType, type ScheduleTime } from "./PillsSettings";
-import { ColorPicker, COLORS } from "./ColorPicker";
+import { ColorPicker, COLORLESS, COLORS } from "./ColorPicker";
 import { toast } from "sonner";
 import { UNIT_OPTIONS, normalizeUnit } from "../constants/medicationOptions";
 import { MedicationScheduleForm, normalizeScheduleTimes } from "./MedicationScheduleForm";
@@ -186,6 +186,7 @@ export function MedicationEditDialog({
   if (!editingPill) return null;
 
   const currentUnit = normalizeUnit(editingPill.unit ?? times[0]?.unit);
+  const medicationColors = [COLORLESS, ...COLORS];
   const showBasics = !isAddingNew || step === 0;
   const showSchedule = !isAddingNew || step === 1;
 
@@ -237,7 +238,7 @@ export function MedicationEditDialog({
             <DialogDescription className="sr-only">Medication settings</DialogDescription>
           </DialogHeader>
 
-          <div className={cn("flex-1 overflow-y-auto", !isAddingNew && "space-y-6")}>
+          <div className={cn("flex-1 overflow-y-auto px-1", !isAddingNew && "space-y-6")}>
             {frequencyPickerOpen ? (
               <MedicationScheduleForm
                 pill={editingPill}
@@ -276,8 +277,8 @@ export function MedicationEditDialog({
                 <div className="space-y-2 mx-1">
                   <Label>{t("pillsSettings.color")}</Label>
                   <ColorPicker
-                    colors={COLORS}
-                    selectedColor={COLORS.find((c) => c.hex === editingPill.color) ?? COLORS[0]}
+                    colors={medicationColors}
+                    selectedColor={editingPill.color ? COLORS.find((c) => c.hex === editingPill.color) ?? COLORS[0] : COLORLESS}
                     onSelect={(color) => updatePill({ color: color.hex })}
                   />
                 </div>

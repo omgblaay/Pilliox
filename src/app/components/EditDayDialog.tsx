@@ -400,7 +400,7 @@ export function EditDayDialog({
                         const currentDosage = isSelected
                           ? pillDosage!.dosage
                           : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
-                        const medicationColor = pillSetting.color ?? "#2563eb";
+                        const medicationColor = pillSetting.color;
                         return (
                           <div key={pillSetting.id} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20  hover:bg-muted/30 transition-colors">
                             <button
@@ -415,10 +415,12 @@ export function EditDayDialog({
                               }}
                               className={cn(
                                 "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
+                                isSelected && !medicationColor && "bg-muted-foreground border-muted-foreground",
+                                !isSelected && !medicationColor && "border-gray-400 dark:border-gray-600",
                                 !isSelected && "hover:bg-muted/40",
                               )}
                               style={{
-                                backgroundColor: isSelected ? medicationColor : "transparent",
+                                backgroundColor: isSelected && medicationColor ? medicationColor : undefined,
                                 borderColor: medicationColor,
                               }}
                             >

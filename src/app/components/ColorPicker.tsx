@@ -8,6 +8,8 @@ export interface PickerColor {
   value?: string; // pill colors
 }
 
+export const COLORLESS: PickerColor = { name: "Colorless" };
+
 {/*export const COLORS: PickerColor[] = [
   { name: "Blue", hex: "#3b82f6" },
   { name: "Green", hex: "#22c55e" },
@@ -62,6 +64,7 @@ export function ColorPicker({
       {colors.map((color) => {
         const base = color.hex ?? color.value ?? "";
         const bg = isDarkMode && color.dark ? color.dark : base;
+        const isColorless = !base;
         const isSelected = selectedColor.name === color.name;
 
         if (variant === "circle") {
@@ -72,11 +75,15 @@ export function ColorPicker({
               onClick={() => onSelect(color)}
               title={color.name}
               className={cn(
-                "min-w-10 h-10 cursor-pointer rounded-full border-2 flex-1 transition-all",
-                isSelected ? "border-black dark:border-white scale-110" : "border-transparent",
+                "min-w-10 h-10 cursor-pointer rounded-full border-2 flex-1 transition-all flex items-center justify-center",
+                isColorless && "border-dashed border-muted-foreground/50 bg-transparent",
+                !isColorless && (isSelected ? "border-black dark:border-white scale-110" : "border-transparent"),
+                isColorless && isSelected && "border-black dark:border-white scale-110",
               )}
-              style={{ backgroundColor: bg }}
-            />
+              style={{ backgroundColor: isColorless ? undefined : bg }}
+            >
+              {isColorless && <span className="h-0.5 w-5 -rotate-45 rounded-full bg-muted-foreground" />}
+            </button>
           );
         }
 
@@ -86,14 +93,17 @@ export function ColorPicker({
             type="button"
             onClick={() => onSelect(color)}
             className={cn(
-              "h-10 rounded-lg flex-1 border-2 transition-all",
+              "h-10 rounded-lg flex-1 border-2 transition-all flex items-center justify-center",
+              isColorless && "border-dashed border-muted-foreground/50 bg-transparent",
               isSelected && "ring-2 ring-blue-600 dark:ring-blue-500 ring-offset-2 dark:ring-offset-card",
             )}
-            style={{ backgroundColor: bg, borderColor: bg }}
+            style={isColorless ? undefined : { backgroundColor: bg, borderColor: bg }}
           >
-            {isSelected && (
+            {isColorless ? (
+              <span className="h-0.5 w-6 -rotate-45 rounded-full bg-muted-foreground" />
+            ) : isSelected && (
               <Check
-                className="size-5 mx-auto"
+                className="size-5"
                 style={{ color: isLightColor(bg) ? "#fff" : "#f3f4f6" }}
               />
             )}
