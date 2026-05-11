@@ -209,7 +209,12 @@ export default {
     cancel: "Abbrechen",
     // Unit translations
     units: {
+      none: "-",
       mg: "mg",
+      kg: "kg",
+      IU: "IU",
+      mmoll: "mmol/L",
+      mgdl: "mg/dL",
       g: "g",
       ml: "ml",
       mcg: "mcg",
@@ -518,6 +523,19 @@ export default {
     asNeededDescription: "Kein fester Zeitplan. Nur protokollieren, wenn Sie es einnehmen.",
     days: "Tage",
     timesAndDoses: "Zeiten & Dosen",
+  },
+  graph: {
+    week: "Woche",
+    month: "Monat",
+    sixMonths: "6 Monate",
+    sixMonthsShort: "6M",
+    year: "Jahr",
+    total: "Gesamt",
+    averagePerDay: "Ø/Tag",
+    averagePerMonth: "Ø/Monat",
+    noLoggedDose: "Keine Dosis protokolliert",
+    previousPeriod: "Vorheriger Zeitraum",
+    nextPeriod: "Nächster Zeitraum",
   },
   about: {
     title: "Über Pilliox",

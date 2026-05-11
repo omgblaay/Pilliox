@@ -387,7 +387,7 @@ export function EditDayDialog({
                   )}
                 </div>
               )}
-              <div className="space-y-5">
+              <div className="space-y-3">
                 {/* Pills Section */}
                 {pillsSettings.filter((ps) => (ps.type || "pills") === "pills").length > 0 && (
 
@@ -400,8 +400,9 @@ export function EditDayDialog({
                         const currentDosage = isSelected
                           ? pillDosage!.dosage
                           : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
+                        const medicationColor = pillSetting.color ?? "#2563eb";
                         return (
-                          <div key={pillSetting.id} className="flex items-center gap-3 p-3 border border-border rounded-lg dark:border-slate-100/20  hover:bg-muted/30 transition-colors">
+                          <div key={pillSetting.id} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20  hover:bg-muted/30 transition-colors">
                             <button
                               type="button"
                               onClick={() => {
@@ -414,20 +415,24 @@ export function EditDayDialog({
                               }}
                               className={cn(
                                 "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
-                                isSelected ? "bg-blue-600" : "border-gray-400 dark:border-gray-600",
+                                !isSelected && "hover:bg-muted/40",
                               )}
+                              style={{
+                                backgroundColor: isSelected ? medicationColor : "transparent",
+                                borderColor: medicationColor,
+                              }}
                             >
                               {isSelected && <Check className="h-4 w-4 text-white" />}
                             </button>
-                            {pillSetting.color && (
-                              <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: pillSetting.color }} />
-                            )}
                             <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
                               {pillSetting.name}
                             </span>
-                            <div className="flex items-center border border-border dark:border-[#4d4c54] rounded-md overflow-hidden h-12">
-                              <button
+                            <div className="flex items-center">
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="dark:hover:bg-slate-100/5 text-muted-foreground"
                                 onClick={() => {
                                   const newDosage = Math.max(0, currentDosage - 0.5);
                                   if (isSelected) {
@@ -436,14 +441,15 @@ export function EditDayDialog({
                                     setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
                                   }
                                 }}
-                                className="px-4 h-full text-muted-foreground hover:bg-muted transition-colors"
-                              >
+                             >
                                 <Minus className="size-4" />
-                              </button>
-                              <input
+                              </Button>
+                              <Input
                                 type="number"
                                 min="0"
                                 step="0.25"
+                                variant="underline"
+                                className="w-14 text-center mx-1"
                                 value={currentDosage}
                                 onChange={(e) => {
                                   const newDosage = parseFloat(e.target.value) || 0;
@@ -453,10 +459,12 @@ export function EditDayDialog({
                                     setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
                                   }
                                 }}
-                                className="w-10 text-sm font-medium text-center bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="dark:hover:bg-slate-100/5 text-muted-foreground"
                                 onClick={() => {
                                   const newDosage = currentDosage + 0.5;
                                   if (isSelected) {
@@ -465,10 +473,9 @@ export function EditDayDialog({
                                     setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
                                   }
                                 }}
-                                className="px-4 h-full text-muted-foreground hover:bg-muted transition-colors"
                               >
                                 <Plus className="size-4" />
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         );
@@ -481,21 +488,20 @@ export function EditDayDialog({
                   const pillDosage = pills.find((p) => p.pillId === valueSetting.id);
                   const currentValue = pillDosage?.dosage?.toString() || "";
                   return (
-                    <div key={valueSetting.id} className="flex items-center gap-3 p-3 border border-border rounded-lg dark:border-slate-100/20 hover:bg-muted/30 transition-colors">
+                    <div key={valueSetting.id} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center flex-row gap-2 flex-1">
-
-                        <div className="h-3 w-3 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: valueSetting.color }} />
-
-                        <Label htmlFor={`value-${valueSetting.id}`}>{valueSetting.name}</Label>
+                        <div className="h-5 w-2 rounded-full" style={{ backgroundColor: valueSetting.color }} />
+                        <Label className="text-md" htmlFor={`value-${valueSetting.id}`}>{valueSetting.name}</Label>
                       </div>
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-2">
                         <Input
                           id={`value-${valueSetting.id}`}
                           type="number"
+                          variant="underline"
                           step="0.01"
                           placeholder="0.00"
-                          className="flex-1"
                           value={currentValue}
+                          className="w-16 text-center"
                           onChange={(e) => {
                             const newValue = parseFloat(e.target.value) || 0;
                             const existingPill = pills.find((p) => p.pillId === valueSetting.id);
@@ -558,7 +564,7 @@ export function EditDayDialog({
                                   <span className={cn(!isValue && !isTaken && "text-muted-foreground line-through")}>
                                     {med.name}
                                   </span>
-                                  <span className="text-muted-foreground text-sm">
+                                  <span className="text-muted-foreground">
                                     {med.dosage} {t(`units.${med.unit}`) || med.unit}
                                   </span>
                                   {!isValue && med.notificationEnabled && (

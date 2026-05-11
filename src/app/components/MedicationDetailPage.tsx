@@ -1,16 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   format,
-  subDays,
+  addMonths,
+  addWeeks,
+  addYears,
   subMonths,
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
   startOfMonth,
   endOfMonth,
+  startOfYear,
+  type Locale,
 } from "date-fns";
+import { de } from "date-fns/locale/de";
+import { enUS } from "date-fns/locale/en-US";
+import { pl } from "date-fns/locale/pl";
 import { useTranslation } from "react-i18next";
-import { Pencil, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, CalendarDays } from "lucide-react";
+import { motion, AnimatePresence, type PanInfo } from "motion/react";
 import {
   BarChart,
   Bar,
@@ -22,8 +30,7 @@ import {
 } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { cn } from "./ui/utils";
-import type { PillSetting, ScheduleType } from "./PillsSettings";
+import type { PillSetting } from "./PillsSettings";
 import { fetchWithTokenRefresh } from "../../utils/api-client";
 import { DAYS } from "../constants/medicationOptions";
 
@@ -32,6 +39,7 @@ type TimeRange = "week" | "month" | "6m" | "year";
 interface GraphPoint {
   label: string;
   dosage: number;
+  dateLabel: string;
 }
 
 interface MedicationDetailPageProps {
@@ -44,10 +52,10 @@ interface MedicationDetailPageProps {
 }
 
 const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: "week",  label: "Week" },
-  { value: "month", label: "Month" },
-  { value: "6m",    label: "6M" },
-  { value: "year",  label: "Year" },
+  { value: "week",  label: "graph.week" },
+  { value: "month", label: "graph.month" },
+  { value: "6m",    label: "graph.sixMonthsShort" },
+  { value: "year",  label: "graph.year" },
 ];
 
 function scheduleTypeSummary(pill: PillSetting, t: (k: string) => string): string {
@@ -77,79 +85,64 @@ export function MedicationDetailPage({
   onEdit,
   onEditSchedule,
 }: MedicationDetailPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [range, setRange] = useState<TimeRange>("month");
+  const [periodAnchor, setPeriodAnchor] = useState(new Date());
+  const [periodSwipeDirection, setPeriodSwipeDirection] = useState(0);
   const [graphData, setGraphData] = useState<GraphPoint[]>([]);
   const [loadingGraph, setLoadingGraph] = useState(false);
+  const languageCode = (i18n.language || "en").split("-")[0].toLowerCase();
+  const dateLocale = languageCode === "de" ? de : languageCode === "pl" ? pl : enUS;
+
+  const periodLabel = getPeriodLabel(range, periodAnchor, dateLocale);
+
+  const movePeriod = useCallback((direction: -1 | 1) => {
+    setPeriodSwipeDirection(direction);
+    setPeriodAnchor((current) => movePeriodAnchor(current, range, direction));
+  }, [range]);
+
+  const handleGraphSwipe = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const swipeThreshold = 50;
+    if (Math.abs(info.offset.x) <= swipeThreshold) return;
+    movePeriod(info.offset.x > 0 ? -1 : 1);
+  };
 
   const fetchGraphData = useCallback(async () => {
     if (!pill) return;
     setLoadingGraph(true);
     try {
-      const now = new Date();
       let points: GraphPoint[] = [];
 
       if (range === "week") {
+        const periodStart = startOfWeek(periodAnchor, { weekStartsOn: 1 });
         const days = eachDayOfInterval({
-          start: startOfWeek(now, { weekStartsOn: 1 }),
-          end: endOfWeek(now, { weekStartsOn: 1 }),
+          start: periodStart,
+          end: endOfWeek(periodAnchor, { weekStartsOn: 1 }),
         });
-        const mk = format(now, "yyyy-MM");
-        let entries: Record<string, any> = {};
-        try {
-          const r = await fetchWithTokenRefresh(
-            `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${mk}`,
-          );
-          if (r.ok) entries = (await r.json()).entries ?? {};
-        } catch {}
-        // also fetch adjacent month if week crosses boundary
-        const prevMk = format(subDays(days[0], 0), "yyyy-MM");
-        if (prevMk !== mk) {
-          try {
-            const r = await fetchWithTokenRefresh(
-              `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${prevMk}`,
-            );
-            if (r.ok) entries = { ...((await r.json()).entries ?? {}), ...entries };
-          } catch {}
-        }
+        const entries = await fetchEntriesForMonths(
+          Array.from(new Set(days.map((day) => format(day, "yyyy-MM")))),
+          projectId,
+        );
         points = days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const dosage = extractDosage(entries[key], pill.id);
-          return { label: format(day, "EEE"), dosage };
+          return { label: format(day, "EEE", { locale: dateLocale }), dateLabel: format(day, "MMM d", { locale: dateLocale }), dosage };
         });
 
       } else if (range === "month") {
-        const days = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) });
-        const mk = format(now, "yyyy-MM");
-        let entries: Record<string, any> = {};
-        try {
-          const r = await fetchWithTokenRefresh(
-            `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${mk}`,
-          );
-          if (r.ok) entries = (await r.json()).entries ?? {};
-        } catch {}
+        const days = eachDayOfInterval({ start: startOfMonth(periodAnchor), end: endOfMonth(periodAnchor) });
+        const entries = await fetchEntriesForMonths([format(periodAnchor, "yyyy-MM")], projectId);
         points = days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const dosage = extractDosage(entries[key], pill.id);
-          return { label: format(day, "d"), dosage };
+          return { label: format(day, "d", { locale: dateLocale }), dateLabel: format(day, "MMM d", { locale: dateLocale }), dosage };
         });
 
       } else {
-        const monthCount = range === "6m" ? 6 : 12;
-        const months = Array.from({ length: monthCount }, (_, i) =>
-          subMonths(now, monthCount - 1 - i),
-        );
-        const allEntries: Record<string, Record<string, any>> = {};
-        await Promise.all(
-          months.map(async (m) => {
-            const mk = format(m, "yyyy-MM");
-            try {
-              const r = await fetchWithTokenRefresh(
-                `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${mk}`,
-              );
-              if (r.ok) allEntries[mk] = (await r.json()).entries ?? {};
-            } catch {}
-          }),
+        const months = getPeriodMonths(range, periodAnchor);
+        const allEntries = await fetchEntriesByMonth(
+          months.map((month) => format(month, "yyyy-MM")),
+          projectId,
         );
         points = months.map((m) => {
           const mk = format(m, "yyyy-MM");
@@ -158,7 +151,7 @@ export function MedicationDetailPage({
             (sum, e) => sum + extractDosage(e, pill.id),
             0,
           );
-          return { label: format(m, "MMM"), dosage: total };
+          return { label: format(m, "MMM", { locale: dateLocale }), dateLabel: format(m, "MMMM yyyy", { locale: dateLocale }), dosage: total };
         });
       }
 
@@ -166,7 +159,7 @@ export function MedicationDetailPage({
     } finally {
       setLoadingGraph(false);
     }
-  }, [pill, range, projectId]);
+  }, [pill, range, periodAnchor, projectId, dateLocale]);
 
   useEffect(() => {
     if (open && pill) fetchGraphData();
@@ -176,6 +169,12 @@ export function MedicationDetailPage({
 
   const color = pill.color || "#a855f7";
   const hasTimes = (pill.scheduleTimes?.length ?? 0) > 0;
+  const graphTotal = graphData.reduce((sum, point) => sum + point.dosage, 0);
+  const graphAverage = graphData.length > 0 ? graphTotal / graphData.length : 0;
+  const averageLabel = range === "week" || range === "month"
+    ? t("graph.averagePerDay")
+    : t("graph.averagePerMonth");
+  const unitLabel = pill.unit ? ` ${pill.unit}` : "";
 
   return (
     <>
@@ -203,50 +202,133 @@ export function MedicationDetailPage({
                 className="flex-1"
                 onClick={() => setRange(r.value)}
               >
-                {r.label}
+                {t(r.label)}
               </Button>
             ))}
           </div>
 
           {/* Graph */}
-          <div className="h-48 w-full">
-            {loadingGraph ? (
-              <div className="h-full flex items-center justify-center">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => movePeriod(-1)}
+                aria-label={t("graph.previousPeriod")}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <AnimatePresence mode="wait" initial={false} custom={periodSwipeDirection}>
+                <motion.div
+                  key={`${range}-${periodLabel}`}
+                  custom={periodSwipeDirection}
+                  initial={{ opacity: 0, x: periodSwipeDirection * 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: periodSwipeDirection * -16 }}
+                  transition={{ duration: 0.18 }}
+                  className="min-w-0 flex-1 text-center"
+                >
+                  <p className="text-sm font-medium text-foreground">{periodLabel}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {range === "week"
+                      ? t("graph.week")
+                      : range === "month"
+                        ? t("graph.month")
+                        : range === "year"
+                          ? t("graph.year")
+                          : t("graph.sixMonths")}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => movePeriod(1)}
+                aria-label={t("graph.nextPeriod")}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">{t("graph.total")}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {formatGraphNumber(graphTotal)}
+                  {unitLabel}
+                </p>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={graphData} barCategoryGap="30%">
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval={range === "month" ? 4 : 0}
-                  />
-                  <YAxis hide />
-                  <Tooltip
-                    cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: 12,
-                    }}
-                    formatter={(val: number) => [val || "–", pill.name]}
-                  />
-                  <Bar dataKey="dosage" radius={[4, 4, 0, 0]}>
-                    {graphData.map((_, i) => (
-                      <Cell
-                        key={i}
-                        fill={graphData[i].dosage > 0 ? color : "var(--muted)"}
-                        fillOpacity={graphData[i].dosage > 0 ? 0.85 : 0.4}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">{averageLabel}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {formatGraphNumber(graphAverage)}
+                  {unitLabel}
+                </p>
+              </div>
+            </div>
+
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.18}
+              onDragEnd={handleGraphSwipe}
+              className="h-48 w-full cursor-grab touch-pan-y active:cursor-grabbing"
+            >
+              {loadingGraph ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+                </div>
+              ) : (
+                <AnimatePresence mode="wait" initial={false} custom={periodSwipeDirection}>
+                  <motion.div
+                    key={`${range}-${periodLabel}-chart`}
+                    custom={periodSwipeDirection}
+                    initial={{ opacity: 0, x: periodSwipeDirection * 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: periodSwipeDirection * -24 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full w-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={graphData} barCategoryGap="30%">
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={range === "month" ? 4 : 0}
+                        />
+                        <YAxis hide />
+                        <Tooltip
+                          cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                          wrapperStyle={{ zIndex: 50 }}
+                          content={({ active, payload }) => (
+                            <GraphTooltip
+                              active={active}
+                              payload={payload}
+                              pillName={pill.name}
+                              unit={pill.unit}
+                              emptyLabel={t("graph.noLoggedDose")}
+                            />
+                          )}
+                        />
+                        <Bar dataKey="dosage" radius={[4, 4, 0, 0]}>
+                          {graphData.map((_, i) => (
+                            <Cell
+                              key={i}
+                              fill={graphData[i].dosage > 0 ? color : "var(--muted)"}
+                              fillOpacity={graphData[i].dosage > 0 ? 0.85 : 0.4}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </AnimatePresence>
+              )}
+            </motion.div>
           </div>
 
           {/* Schedule section */}
@@ -312,4 +394,101 @@ function extractDosage(entry: any, pillId: string): number {
   } catch {
     return 0;
   }
+}
+
+function formatGraphNumber(value: number): string {
+  if (Number.isInteger(value)) return value.toString();
+  return value.toFixed(1);
+}
+
+function movePeriodAnchor(anchor: Date, range: TimeRange, direction: -1 | 1): Date {
+  if (range === "week") return addWeeks(anchor, direction);
+  if (range === "month") return addMonths(anchor, direction);
+  if (range === "6m") return addMonths(anchor, direction * 6);
+  return addYears(anchor, direction);
+}
+
+function getPeriodMonths(range: TimeRange, anchor: Date): Date[] {
+  if (range === "year") {
+    const start = startOfYear(anchor);
+    return Array.from({ length: 12 }, (_, index) => addMonths(start, index));
+  }
+
+  const end = startOfMonth(anchor);
+  return Array.from({ length: 6 }, (_, index) => subMonths(end, 5 - index));
+}
+
+function getPeriodLabel(range: TimeRange, anchor: Date, locale: Locale): string {
+  if (range === "week") {
+    const start = startOfWeek(anchor, { weekStartsOn: 1 });
+    const end = endOfWeek(anchor, { weekStartsOn: 1 });
+    return `${format(start, "MMM d", { locale })} - ${format(end, "MMM d, yyyy", { locale })}`;
+  }
+
+  if (range === "month") {
+    return format(anchor, "MMMM yyyy", { locale });
+  }
+
+  if (range === "year") {
+    return format(anchor, "yyyy", { locale });
+  }
+
+  const months = getPeriodMonths(range, anchor);
+  return `${format(months[0], "MMM yyyy", { locale })} - ${format(months[months.length - 1], "MMM yyyy", { locale })}`;
+}
+
+async function fetchEntriesForMonths(monthKeys: string[], projectId: string): Promise<Record<string, any>> {
+  const byMonth = await fetchEntriesByMonth(monthKeys, projectId);
+  return Object.values(byMonth).reduce<Record<string, any>>(
+    (allEntries, monthEntries) => ({ ...allEntries, ...monthEntries }),
+    {},
+  );
+}
+
+async function fetchEntriesByMonth(monthKeys: string[], projectId: string): Promise<Record<string, Record<string, any>>> {
+  const uniqueMonthKeys = Array.from(new Set(monthKeys));
+  const monthEntries: Record<string, Record<string, any>> = {};
+
+  await Promise.all(
+    uniqueMonthKeys.map(async (monthKey) => {
+      try {
+        const response = await fetchWithTokenRefresh(
+          `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/calendar/${monthKey}`,
+        );
+        if (response.ok) monthEntries[monthKey] = (await response.json()).entries ?? {};
+      } catch {}
+    }),
+  );
+
+  return monthEntries;
+}
+
+function GraphTooltip({
+  active,
+  payload,
+  pillName,
+  unit,
+  emptyLabel,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: GraphPoint }>;
+  pillName: string;
+  unit?: string;
+  emptyLabel: string;
+}) {
+  if (!active || !payload?.length || !payload[0]?.payload) return null;
+
+  const point = payload[0].payload;
+  const value = point.dosage > 0
+    ? `${point.dosage}${unit ? ` ${unit}` : ""}`
+    : emptyLabel;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+      <p className="font-medium text-foreground">{point.dateLabel}</p>
+      <p className="mt-1 text-muted-foreground">
+        {pillName}: <span className="text-foreground">{value}</span>
+      </p>
+    </div>
+  );
 }

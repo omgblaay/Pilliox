@@ -14,16 +14,50 @@ export const UNIT_OPTIONS = [
   "capsules",
   "drops",
   "pieces",
+  "units",
   "kg",
   "mg",
   "g",
   "ml",
   "mcg",
   "IU",
-  "units",
-  "mmol/L",
-  "mg/dL",
+  "mmoll",
+  "mgdl",
 ] as const;
 
-export const normalizeUnit = (unit?: string) =>
-  unit && unit !== "none" ? unit : undefined;
+const UNIT_ALIASES: Record<string, (typeof UNIT_OPTIONS)[number]> = {
+  "-": "none",
+  "": "none",
+  none: "none",
+  tablet: "tablets",
+  tablets: "tablets",
+  pill: "tablets",
+  pills: "tablets",
+  capsule: "capsules",
+  capsules: "capsules",
+  drop: "drops",
+  drops: "drops",
+  piece: "pieces",
+  pieces: "pieces",
+  unit: "units",
+  units: "units",
+  kg: "kg",
+  mg: "mg",
+  g: "g",
+  ml: "ml",
+  mcg: "mcg",
+  iu: "IU",
+  IU: "IU",
+  "mmol/l": "mmoll",
+  "mmol/L": "mmoll",
+  mmoll: "mmoll",
+  "mg/dl": "mgdl",
+  "mg/dL": "mgdl",
+  mgdl: "mgdl",
+};
+
+export const normalizeUnit = (unit?: string) => {
+  const trimmedUnit = (unit ?? "").trim();
+  const normalized = UNIT_ALIASES[trimmedUnit] ?? UNIT_ALIASES[trimmedUnit.toLowerCase()];
+  return normalized && normalized !== "none" ? normalized : undefined;
+};

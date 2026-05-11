@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Clock, Bell, Pill, Droplet, ArrowLeft, ChevronRight, Check } from "lucide-react";
+import { Trash2, Pill, Droplet, ArrowLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import {
   Select,
   SelectContent,
@@ -22,11 +21,9 @@ import {
 import { cn } from "./ui/utils";
 import { type PillSetting, type ScheduleType, type ScheduleTime } from "./PillsSettings";
 import { ColorPicker, COLORS } from "./ColorPicker";
-import { notificationService } from "../services/notificationService";
 import { toast } from "sonner";
-import { DAYS, UNIT_OPTIONS } from "../constants/medicationOptions";
-  
-const normalizeUnit = (unit?: string) => unit && unit !== "none" ? unit : undefined;
+import { UNIT_OPTIONS, normalizeUnit } from "../constants/medicationOptions";
+import { MedicationScheduleForm, normalizeScheduleTimes } from "./MedicationScheduleForm";
 
 interface MedicationEditDialogProps {
   open: boolean;
@@ -95,20 +92,6 @@ export function MedicationEditDialog({
   const updatePill = (updates: Partial<PillSetting>) =>
     setEditingPill((prev) => prev ? { ...prev, ...updates } : prev);
 
-  const toggleDay = (d: number) =>
-    setSpecificDays((prev) => {
-      const next = new Set(prev);
-      next.has(d) ? next.delete(d) : next.add(d);
-      return next;
-    });
-
-  const addTime = () => setTimes([...times, { time: "12:00", dose: times[0]?.dose ?? 1, unit: times[0]?.unit ?? editingPill?.unit }]);
-  const removeTime = (i: number) => setTimes(times.filter((_, idx) => idx !== i));
-  const updateTime = (i: number, field: "time" | "dose" | "unit", val: string) =>
-    setTimes(times.map((t, idx) =>
-      idx === i ? { ...t, [field]: field === "dose" ? parseFloat(val) || 0 : normalizeUnit(val) } : t,
-    ));
-
   const checkCalendarEntries = async (pillId: string) => {
     try {
       const response = await fetch(
@@ -163,7 +146,7 @@ export function MedicationEditDialog({
       const firstDose = times[0]?.dose ?? 1;
       const firstUnit = normalizeUnit(times[0]?.unit ?? editingPill.unit);
       const scheduleTimes = scheduleType !== "as_needed"
-        ? times.map((time) => ({ ...time, unit: normalizeUnit(time.unit ?? firstUnit) }))
+        ? normalizeScheduleTimes(times, firstUnit)
         : [];
       const pillToSave: PillSetting = {
         ...editingPill,
@@ -200,19 +183,11 @@ export function MedicationEditDialog({
     finally { setIsSaving(false); }
   };
 
-  const SCHEDULE_TYPES: { value: ScheduleType; label: string; description: string }[] = [
-    { value: "daily", label: t("schedule.daily") || "Daily", description: t("schedule.dailyDescription") || "Take this medication every day." },
-    { value: "cyclic", label: t("schedule.cyclic") || "Every X days", description: t("schedule.cyclicDescription") || "Repeat after a custom number of days." },
-    { value: "specific_days", label: t("schedule.specificDays") || "Specific days", description: t("schedule.specificDaysDescription") || "Choose the weekdays when this medication is scheduled." },
-    { value: "as_needed", label: t("schedule.asNeeded") || "As needed", description: t("schedule.asNeededDescription") || "No fixed schedule. Log it only when you take it." },
-  ];
-
   if (!editingPill) return null;
 
-  const currentUnit = normalizeUnit(times[0]?.unit ?? editingPill.unit);
+  const currentUnit = normalizeUnit(editingPill.unit ?? times[0]?.unit);
   const showBasics = !isAddingNew || step === 0;
   const showSchedule = !isAddingNew || step === 1;
-  const currentScheduleType = SCHEDULE_TYPES.find((s) => s.value === scheduleType) ?? SCHEDULE_TYPES[0];
 
   return (
     <>
@@ -264,35 +239,21 @@ export function MedicationEditDialog({
 
           <div className={cn("flex-1 overflow-y-auto", !isAddingNew && "space-y-6")}>
             {frequencyPickerOpen ? (
-              <div className="mx-auto w-full space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {t("schedule.frequencyDescription") || "Choose how this medication should appear in your schedule."}
-                </p>
-                {SCHEDULE_TYPES.map((s) => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() => {
-                      setScheduleType(s.value);
-                      setFrequencyPickerOpen(false);
-                    }}
-                    className={cn(
-                      "w-full rounded-xl border p-4 text-left transition-colors",
-                      scheduleType === s.value
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50 hover:bg-muted/40",
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <p className="font-medium">{s.label}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{s.description}</p>
-                      </div>
-                      {scheduleType === s.value && <Check className="size-5 text-primary" />}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <MedicationScheduleForm
+                pill={editingPill}
+                scheduleType={scheduleType}
+                onScheduleTypeChange={setScheduleType}
+                cycleDays={cycleDays}
+                onCycleDaysChange={setCycleDays}
+                specificDays={specificDays}
+                onSpecificDaysChange={setSpecificDays}
+                times={times}
+                onTimesChange={setTimes}
+                notificationsEnabled={notificationsEnabled}
+                onNotificationsEnabledChange={setNotificationsEnabled}
+                frequencyPickerOpen={frequencyPickerOpen}
+                onFrequencyPickerOpenChange={setFrequencyPickerOpen}
+              />
             ) : showBasics && (
               <div className="mx-auto w-full space-y-6">
                 {isAddingNew && (
@@ -379,116 +340,21 @@ export function MedicationEditDialog({
                   </Select>
                 </div>
 
-                {/* Schedule */}
-                <div className="space-y-4 border-t pt-4">
-                  <Label className="text-base font-semibold">{t("schedule.title") || "Schedule"}</Label>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">{t("schedule.frequency") || "Frequency"}</Label>
-                    <button
-                      type="button"
-                      onClick={() => setFrequencyPickerOpen(true)}
-                      className="w-full rounded-xl border border-border p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium">{currentScheduleType.label}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{currentScheduleType.description}</p>
-                        </div>
-                        <ChevronRight className="size-5 text-muted-foreground" />
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Cyclic */}
-                  {scheduleType === "cyclic" && (
-                    <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground">{t("schedule.everyXDays") || "Every how many days"}</Label>
-                      <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => setCycleDays(Math.max(2, cycleDays - 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">−</button>
-                        <span className="w-12 text-center text-lg font-semibold">{cycleDays}</span>
-                        <button type="button" onClick={() => setCycleDays(Math.min(60, cycleDays + 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">+</button>
-                        <span className="text-sm text-muted-foreground">{t("schedule.days") || "days"}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Specific days */}
-                  {scheduleType === "specific_days" && (
-                    <div className="space-y-2">
-                      <Label className="text-sm text-muted-foreground">{t("schedule.selectDays") || "Select days"}</Label>
-                      <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-1">
-                        {DAYS.map((day, i) => (
-                          <Button
-                            key={i}
-                            type="button"
-                            variant="tabGroup"
-                            data-state={specificDays.has(i) ? "active" : "inactive"}
-                            onClick={() => toggleDay(i)}
-                            className="flex-1 h-9 text-xs"
-                          >
-                            {t(day.labelKey, day.fallback)}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Times & Doses */}
-                  {scheduleType !== "as_needed" && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm text-muted-foreground">{t("calendar.notification") || "Times & Doses"}</Label>
-                        <Button type="button" variant="secondary" size="sm" onClick={addTime}>
-                          <Plus className="size-4" />
-                          {t("basic.add") || "Add"}
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {times.map((entry, i) => (
-                          <div key={i} className="grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_88px_minmax(104px,132px)_auto] items-center gap-2">
-                            <Input type="time" value={entry.time} onChange={(e) => updateTime(i, "time", e.target.value)} />
-                            <Input type="number" min="0" step="0.5" value={entry.dose} onChange={(e) => updateTime(i, "dose", e.target.value)} className="text-center" />
-                            <Select value={entry.unit ?? currentUnit ?? "none"} onValueChange={(unit) => updateTime(i, "unit", unit)}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {UNIT_OPTIONS.map((unit) => (
-                                  <SelectItem key={unit} value={unit}>
-                                    {unit === "none" ? "-" : t(`units.${unit}`) || unit}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {times.length > 1 && (
-                              <Button type="button" variant="destructive" size="icon" onClick={() => removeTime(i)}>
-                                <Trash2 className="size-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notifications */}
-                  <div className="flex items-center gap-3 pt-1">
-                    <Bell className="size-4 text-muted-foreground flex-shrink-0" />
-                    <Label className="flex-1">{t("pillsSettings.notifications") || "Notifications"}</Label>
-                    <Switch
-                      checked={notificationsEnabled}
-                      onCheckedChange={(checked) => {
-                        setNotificationsEnabled(checked);
-                        if (checked) {
-                          notificationService.ensurePermissions()
-                            .then((granted) => { if (!granted) toast.error("Notification permissions denied."); })
-                            .catch(() => toast.error("Failed to request notification permissions"));
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
+                <MedicationScheduleForm
+                  pill={editingPill}
+                  scheduleType={scheduleType}
+                  onScheduleTypeChange={setScheduleType}
+                  cycleDays={cycleDays}
+                  onCycleDaysChange={setCycleDays}
+                  specificDays={specificDays}
+                  onSpecificDaysChange={setSpecificDays}
+                  times={times}
+                  onTimesChange={setTimes}
+                  notificationsEnabled={notificationsEnabled}
+                  onNotificationsEnabledChange={setNotificationsEnabled}
+                  frequencyPickerOpen={frequencyPickerOpen}
+                  onFrequencyPickerOpenChange={setFrequencyPickerOpen}
+                />
               </div>
             )}
           </div>
