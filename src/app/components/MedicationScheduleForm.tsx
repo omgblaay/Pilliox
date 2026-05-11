@@ -105,7 +105,7 @@ export function MedicationScheduleForm({
 
   if (frequencyPickerOpen) {
     return (
-      <div className="mx-auto w-full space-y-3">
+      <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
           {t("schedule.frequencyDescription") || "Choose how this medication should appear in your schedule."}
         </p>
@@ -146,7 +146,7 @@ export function MedicationScheduleForm({
         </div>
       )}
 
-      <div className="space-y-4 border-t pt-4">
+      <div className="space-y-4">
         {showSectionTitle && (
           <Label className="text-base font-semibold">{t("schedule.title") || "Schedule"}</Label>
         )}

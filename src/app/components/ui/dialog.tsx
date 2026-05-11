@@ -29,7 +29,7 @@ function DialogPortal({
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return (
     <DialogPrimitive.Portal
-      data-slot="dialog-portal"
+      data-slot="dialog-portal"      
       {...props}
     />
   );
@@ -79,11 +79,12 @@ function DialogContent({
 
   return (
     <DialogPortal data-slot="dialog-portal">
+      <div className="fixed inset-0 z-50 flex sm:items-center items-end justify-end sm:justify-center p-0 sm:p-4 sm:mt-0">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "overflow-x-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-0 left-0 bottom-0 sm:top-[50%] sm:left-[50%] z-50 grid w-full sm:translate-x-[-50%] sm:translate-y-[-50%] gap-4 border sm:p-8 p-4 shadow-lg duration-200 sm:max-h-[90vh] overflow-y-auto sm:rounded-2xl bg-popover border-borde flex flex-col",
+          "sm:overflow-x-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 relative z-50 w-full gap-4 sm:border p-4 shadow-lg duration-200 bg-popover flex flex-col sm:p-8 sm:max-h-[90vh] sm:overflow-y-auto sm:rounded-2xl sm:border-border bottom-0 h-[calc(100vh-2rem)] rounded-t-xl overflow-hidden sm:flex-initial sm:h-auto",
           sizeClasses[size],
           className,
         )}
@@ -91,6 +92,7 @@ function DialogContent({
       >
         {children}
       </DialogPrimitive.Content>
+      </div>
     </DialogPortal>
   );
 }
@@ -107,11 +109,12 @@ function DialogHeader({
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex min-h-10 w-full items-center space-between gap-2 text-left relative",
+        "sm:static absolute p-4 sm:p-0 sm:bg-none bg-gradient-to-b from-popover to-transparent top-0 left-0 right-0 flex min-h-20 sm:min-h-auto w-full items-center space-between gap-2 text-left",
         className,
       )}
       {...props}
-    ><div className="flex flex-1 flex-col gap-2">
+    >
+      <div className="flex flex-1 flex-col gap-2">
       {children}
        </div>
       {!hideClose && (

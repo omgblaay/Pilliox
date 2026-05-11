@@ -83,7 +83,7 @@ export function MedicationScheduleEditor({
           <DialogDescription className="sr-only">Edit medication schedule</DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-5 py-2">
+        <div className="flex-1 overflow-y-auto space-y-5 pt-12">
           <MedicationScheduleForm
             pill={pill}
             scheduleType={scheduleType}
@@ -104,7 +104,7 @@ export function MedicationScheduleEditor({
           />
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             {t("calendar.cancel") || "Cancel"}
           </Button>

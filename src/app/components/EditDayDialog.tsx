@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -221,52 +222,52 @@ export function EditDayDialog({
       <DialogContent size="small">
         {/* Header */}
         <DialogHeader hideClose>
-            <div className="flex items-center justify-between gap-2">
-              <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
-                <ChevronLeft />
-              </Button>
-              <motion.div
-                className="overflow-hidden flex-auto"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.2}
-                onDragEnd={handleDayModalSwipe}
-              >
-                <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
-                  <DialogTitle asChild>
-                    <motion.div
-                      key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
-                      custom={swipeDirectionRef.current}
-                      variants={headerSlideVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="text-foreground !font-normal !w-auto text-center"
-                    >
-                      {selectedDate && (() => {
-                        const [weekday, ...dateParts] = formatDialogDate(selectedDate).split(",");
-                        const dateText = dateParts.join(",").trim();
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" size="icon" onClick={navigateToPreviousDay}>
+              <ChevronLeft />
+            </Button>
+            <motion.div
+              className="overflow-hidden flex-auto"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDayModalSwipe}
+            >
+              <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
+                <DialogTitle asChild>
+                  <motion.div
+                    key={selectedDate ? format(selectedDate, "yyyy-MM-dd") : "none"}
+                    custom={swipeDirectionRef.current}
+                    variants={headerSlideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="text-foreground !font-normal !w-auto text-center"
+                  >
+                    {selectedDate && (() => {
+                      const [weekday, ...dateParts] = formatDialogDate(selectedDate).split(",");
+                      const dateText = dateParts.join(",").trim();
 
-                        return (
-                          <>
-                            {weekday}
-                            {dateText && (
-                              <span className="text-muted-foreground">
-                                {`, ${dateText}`}
-                              </span>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </motion.div>
-                  </DialogTitle>
-                </AnimatePresence>
-              </motion.div>
-              <Button variant="ghost" size="icon" onClick={navigateToNextDay}>
-                <ChevronRight />
-              </Button>
-            </div>
+                      return (
+                        <>
+                          {weekday}
+                          {dateText && (
+                            <span className="text-muted-foreground">
+                              {`, ${dateText}`}
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </motion.div>
+                </DialogTitle>
+              </AnimatePresence>
+            </motion.div>
+            <Button variant="ghost" size="icon" onClick={navigateToNextDay}>
+              <ChevronRight />
+            </Button>
+          </div>
           <DialogDescription className="sr-only">
             {t("calendar.day", { count: selectedDates.size })}
           </DialogDescription>
@@ -278,6 +279,7 @@ export function EditDayDialog({
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={handleDayModalSwipe}
+          className="h-full mt-20 sm:mt-0"
         >
           <AnimatePresence mode="wait" initial={false} custom={swipeDirectionRef.current}>
             <motion.div
@@ -462,7 +464,7 @@ export function EditDayDialog({
                                     setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
                                   }
                                 }}
-                             >
+                              >
                                 <Minus className="size-4" />
                               </Button>
                               <Input
@@ -629,20 +631,20 @@ export function EditDayDialog({
                 )}
               </Button>
 
-              <div className="flex gap-2 mt-4">
-                <Button variant="destructive" onClick={onClearDay}>
-                  <Trash2 className="size-4" />
-                </Button>
-                <Button variant="outline" onClick={onCancel} className="flex-1">
-                  {t("basic.cancel") || "Cancel"}
-                </Button>
-                <Button onClick={handleSave} className="flex-1">
-                  <Check className="size-5" / >
-                </Button>
-              </div>
             </motion.div>
           </AnimatePresence>
         </motion.div>
+          <div className="flex w-full gap-2 mt-4">
+            <Button variant="destructive" onClick={onClearDay}>
+              <Trash2 className="size-4" />
+            </Button>
+            <Button variant="outline" onClick={onCancel} className="flex-1">
+              {t("basic.cancel") || "Cancel"}
+            </Button>
+            <Button onClick={handleSave} className="flex-1">
+              <Check className="size-5" />
+            </Button>
+          </div>
       </DialogContent>
 
       <NoteDialog

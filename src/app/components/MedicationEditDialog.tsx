@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "./ui/dialog";
 import { cn } from "./ui/utils";
 import { type PillSetting, type ScheduleType, type ScheduleTime } from "./PillsSettings";
@@ -210,15 +211,8 @@ export function MedicationEditDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className={cn(
-            "overflow-hidden flex flex-col",
-            isAddingNew
-              ? "w-screen max-w-none h-[100dvh] max-h-[100dvh] sm:w-[min(760px,calc(100vw-2rem))] sm:h-[90vh] sm:max-h-[90vh]"
-              : "sm:max-w-[640px] max-h-[90vh]",
-          )}
-        >
-          <DialogHeader hideClose>
+        <DialogContent size="large">
+          <DialogHeader>
             {isAddingNew && !frequencyPickerOpen && (
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {addMedicationSteps.map((item) => (
@@ -235,7 +229,7 @@ export function MedicationEditDialog({
                 ))}
               </div>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center h-full gap-3">
               {frequencyPickerOpen && (
                 <Button type="button" variant="ghost" size="icon" onClick={() => setFrequencyPickerOpen(false)}>
                   <ArrowLeft className="size-4" />
@@ -269,7 +263,7 @@ export function MedicationEditDialog({
             )}
           </DialogHeader>
 
-          <div className={cn("flex-1 overflow-y-auto px-1", !isAddingNew && "space-y-6")}>
+          <div className="h-full sm:pt-0 pt-16 overflow-y-auto">
             {frequencyPickerOpen ? (
               <MedicationScheduleForm
                 pill={editingPill}
@@ -415,7 +409,7 @@ export function MedicationEditDialog({
           </div>
 
           {/* Footer */}
-          <div className="border-t pt-4 flex gap-4">
+          <DialogFooter className="flex-row">
             {!frequencyPickerOpen && !isAddingNew && editingPill.name && (
               <Button variant="destructive" onClick={handleDeleteClick}>
                 <Trash2 className="h-4 w-4" strokeWidth={2} />
@@ -452,7 +446,7 @@ export function MedicationEditDialog({
                 {isSaving ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : isAddingNew && step === 0 ? (t("onboarding.next") || "Next") : <Check className="size-5" />}
               </Button>
             )}
-          </div>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
 

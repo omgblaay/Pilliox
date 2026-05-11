@@ -180,7 +180,7 @@ export function MedicationDetailPage({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent size="large" className="max-h-[90vh] overflow-y-auto">
+        <DialogContent size="large">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="h-4 w-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
@@ -193,7 +193,7 @@ export function MedicationDetailPage({
           </DialogHeader>
 
           {/* Time range selector */}
-          <div className="flex gap-1 p-1 rounded-[18px] bg-gray-100 dark:bg-[#2a2a2a]">
+          <div className="flex gap-1 p-1 rounded-[18px] sm:mt-0 mt-16 bg-gray-100 dark:bg-[#2a2a2a]">
             {TIME_RANGES.map((r) => (
               <Button
                 key={r.value}
