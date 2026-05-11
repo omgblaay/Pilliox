@@ -54,7 +54,7 @@ export function MedicationEditDialog({
   onDeleted,
   onDiscard,
 }: MedicationEditDialogProps) {
-  const { t } = useTranslation();  
+  const { t } = useTranslation();
 
   const [editingPill, setEditingPill] = useState<PillSetting | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -244,26 +244,21 @@ export function MedicationEditDialog({
                   </DialogTitle>
                   {isAddingNew && !frequencyPickerOpen && (
                     <>
-                      <span className="text-base font-medium text-muted-foreground">-</span>
-                      <h3 className="text-base font-medium leading-none">
+                      <span className="text-base font-light text-muted-foreground">-</span>
+                      <h3 className="text-base font-light leading-none">
                         {currentAddMedicationStep.label}
                       </h3>
                     </>
                   )}
                 </div>
-                {isAddingNew && !frequencyPickerOpen && (
-                  <DialogDescription>
-                    {currentAddMedicationStep.description}
-                  </DialogDescription>
-                )}
+
               </div>
             </div>
-            {(!isAddingNew || frequencyPickerOpen) && (
-              <DialogDescription className="sr-only">Medication settings</DialogDescription>
-            )}
+
           </DialogHeader>
 
-          <div className="sm:pt-0 pt-24 px-1 overflow-y-auto h-full">
+          <div className="sm:pt-0 pt-16 px-1 overflow-y-auto h-full">
+
             {frequencyPickerOpen ? (
               <MedicationScheduleForm
                 pill={editingPill}
@@ -310,58 +305,58 @@ export function MedicationEditDialog({
               <div>
                 {/* Type */}
                 <div className="flex w-full gap-4 sm:gap-6">
-                <div className="space-y-2 flex-1">
-                  <Label>{t("pillsSettings.type")}</Label>
-                  <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-1 flex h-12 gap-0">
-                    <Button
-                      type="button"
-                      variant="tabGroup"
-                      className="!min-h-8 h-full"
-                      data-state={(editingPill.type || "pills") === "pills" ? "active" : "inactive"}
-                      onClick={() => updatePill({ type: "pills", icon: editingPill.icon ?? "capsule" })}
-                    >
-                      <Pill className="size-5 hidden sm:block" strokeWidth={1.33} />
-                      <span>{t("pillsSettings.typePills")}</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="tabGroup"
-                      className="!min-h-8 h-full"
-                      data-state={(editingPill.type || "pills") === "value" ? "active" : "inactive"}
-                      onClick={() => updatePill({ type: "value" })}
-                    >
-                      <Droplet className="size-5 hidden sm:block" strokeWidth={1.33} />
-                      <span>{t("pillsSettings.typeValue")}</span>
-                    </Button>
+                  <div className="space-y-2 flex-1">
+                    <Label>{t("pillsSettings.type")}</Label>
+                    <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-1 flex h-12 gap-0">
+                      <Button
+                        type="button"
+                        variant="tabGroup"
+                        className="!min-h-8 h-full"
+                        data-state={(editingPill.type || "pills") === "pills" ? "active" : "inactive"}
+                        onClick={() => updatePill({ type: "pills", icon: editingPill.icon ?? "capsule" })}
+                      >
+                        <Pill className="size-5 hidden sm:block" strokeWidth={1.33} />
+                        <span>{t("pillsSettings.typePills")}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="tabGroup"
+                        className="!min-h-8 h-full"
+                        data-state={(editingPill.type || "pills") === "value" ? "active" : "inactive"}
+                        onClick={() => updatePill({ type: "value" })}
+                      >
+                        <Droplet className="size-5 hidden sm:block" strokeWidth={1.33} />
+                        <span>{t("pillsSettings.typeValue")}</span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2 flex-1">
-                  <Label>{t("pillsSettings.unit") || "Unit"}</Label>
-                  <Select
-                    value={currentUnit ?? "none"}
-                    onValueChange={(unit) => {
-                      const nextUnit = normalizeUnit(unit);
-                      updatePill({ unit: nextUnit });
-                      setTimes(times.map((time) => ({ ...time, unit: nextUnit })));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UNIT_OPTIONS.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit === "none" ? "-" : getUnitLabel(unit, t)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div></div>
+                  <div className="space-y-2 flex-1">
+                    <Label>{t("pillsSettings.unit") || "Unit"}</Label>
+                    <Select
+                      value={currentUnit ?? "none"}
+                      onValueChange={(unit) => {
+                        const nextUnit = normalizeUnit(unit);
+                        updatePill({ unit: nextUnit });
+                        setTimes(times.map((time) => ({ ...time, unit: nextUnit })));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UNIT_OPTIONS.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit === "none" ? "-" : getUnitLabel(unit, t)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div></div>
 
                 {(editingPill.type || "pills") === "pills" && (
                   <div className="space-y-2">
                     <Label>{t("pillsSettings.icon") || "Icon"}</Label>
-                  <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+                    <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                       {MEDICATION_ICON_IDS.map((icon) => {
                         const isSelected = (editingPill.icon ?? "capsule") === icon;
 
@@ -370,7 +365,7 @@ export function MedicationEditDialog({
                             key={icon}
                             type="button"
                             onClick={() => updatePill({ icon })}
-                            variant="tabGroup" 
+                            variant="tabGroup"
                             data-state={isSelected ? "active" : "inactive"}
                             aria-label={`${t("pillsSettings.icon") || "Icon"} ${icon}`}
                           >
@@ -414,18 +409,18 @@ export function MedicationEditDialog({
               <Button variant="destructive" onClick={handleDeleteClick}>
                 <Trash2 className="h-4 w-4" strokeWidth={2} />
               </Button>
-            )}            
+            )}
             {!frequencyPickerOpen && isAddingNew && step === 1 && (
               <Button variant="outline" className="flex-1" onClick={() => setStep(0)} disabled={isSaving}>
                 <ArrowLeft className="size-4" />
               </Button>
             )}
             {!frequencyPickerOpen && isAddingNew && step === 0 && (
- <Button variant="outline" className="flex-1" onClick={onDiscard} disabled={isSaving}>
-              {t("basic.cancel") || "Cancel"}
-            </Button>
+              <Button variant="outline" className="flex-1" onClick={onDiscard} disabled={isSaving}>
+                {t("basic.cancel") || "Cancel"}
+              </Button>
             )}
-           
+
 
             {!frequencyPickerOpen && (
               <Button
@@ -446,7 +441,7 @@ export function MedicationEditDialog({
                 {isSaving ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : isAddingNew && step === 0 ? (t("onboarding.next") || "Next") : <Check className="size-5" />}
               </Button>
             )}
-            </DialogFooter>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

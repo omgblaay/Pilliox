@@ -30,7 +30,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        <div className="flex flex-col gap-6 pt-20">
           <div className="flex flex-col gap-3 pb-2">
             <div className="h-[40px] w-[160px]">
               <Logo />

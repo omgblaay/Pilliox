@@ -44,8 +44,8 @@ export function BottomNavigation() {
     })?.id || "calendar";
 
   return (
-    <nav className="fixed lg:hidden bottom-0 left-0 right-0 bg-card border-t border-border safe-area-bottom z-40">
-      <div className="flex justify-around items-center h-16 max-w-screen-lg mx-auto px-2">
+    <nav className="fixed lg:hidden bottom-4 left-12 right-12 bg-popover rounded-xl px-2 gap-12 dark:border-gray-200/10 safe-area-bottom z-40">
+      <div className="flex justify-around items-center h-14 max-w-screen-lg mx-auto">
         {tabs.map((tab) => {
           const isActive = currentTab === tab.id;
           const Icon = tab.icon;
@@ -60,7 +60,7 @@ export function BottomNavigation() {
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-blue-600 rounded-b-full"
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-blue-600 rounded-b-full"
                   transition={{
                     type: "spring",
                     stiffness: 500,
@@ -78,20 +78,20 @@ export function BottomNavigation() {
                 transition={{ duration: 0.2 }}
               >
                 <Icon
-                  className={`w-6 h-6 transition-colors ${
+                  className={`size-4 transition-colors ${
                     isActive
-                      ? "text-blue-600 dark:text-blue-400"
+                      ? "text-foreground"
                       : "text-gray-500 dark:text-gray-400"
                   }`}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  strokeWidth={isActive ? 2 : 1}
                 />
               </motion.div>
 
               {/* Label */}
               <span
-                className={`text-xs mt-1 font-medium transition-colors ${
+                className={`text-[0.64rem] mt-1 font-medium transition-colors ${
                   isActive
-                    ? "text-blue-600 dark:text-blue-400"
+                    ? "text-foreground"
                     : "text-gray-500 dark:text-gray-400"
                 }`}
               >

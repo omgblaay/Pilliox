@@ -203,7 +203,7 @@ export function MedicationsPage({
               <ArrowLeft />
             </Button>
             <div className="flex-1">
-              <h1>{t("medications.title") || "Medications"}</h1>
+              <h1 className="!text-base">{t("medications.title") || "Medications"}</h1>
             </div>
             <Button onClick={addPill}>
               <Plus className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2} />
@@ -234,8 +234,8 @@ export function MedicationsPage({
             {pills.filter((p) => (p.type || "pills") === "pills").length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-foreground px-1">
-                  <Pill className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">{t("medications.pills") || "Pills"}</h3>
+                  <Pill className="size-4 text-muted-foreground" />
+                  <h3 className="text-sm">{t("medications.pills") || "Pills"}</h3>
                 </div>
                 <Card className="divide-y divide-border">
                   {pills.filter((p) => (p.type || "pills") === "pills").map((pill) => (
@@ -277,8 +277,8 @@ export function MedicationsPage({
             {pills.filter((p) => p.type === "value").length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-foreground px-1">
-                  <Activity className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-semibold">{t("medications.values") || "Medical Values"}</h3>
+                  <Activity className="size-4 text-muted-foreground" />
+                  <h3 className="text-sm">{t("medications.values") || "Medical Values"}</h3>
                 </div>
                 <Card className="divide-y divide-border">
                   {pills.filter((p) => p.type === "value").map((pill) => (

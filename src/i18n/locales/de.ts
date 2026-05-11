@@ -422,8 +422,8 @@ export default {
     none: "Keine",
   },
   medications: {
-    title: "Medikamente",
-    subtitle: "Verwalten Sie Ihre Medikamente",
+    title: " Medikamenteinstellungen",
+    subtitle: "Verwalten",
     add: "Hinzufügen",
     pills: "Tabletten",
     values: "Medizinische Werte",
