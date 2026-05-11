@@ -278,7 +278,7 @@ export function MedicationEditDialog({
                 onFrequencyPickerOpenChange={setFrequencyPickerOpen}
               />
             ) : showBasics && (
-              <div className="mx-auto w-full flex-1 space-y-6">
+              <div className="mx-auto w-full flex-1 space-y-5 mb-5">
                 {/* Name */}
                 <div className="space-y-2">
                   <Label>{t("pillsSettings.medicationName")}</Label>
@@ -290,7 +290,7 @@ export function MedicationEditDialog({
                 </div>
 
                 {/* Color */}
-                <div className="space-y-2 mx-1">
+                <div className="space-y-2">
                   <Label>{t("pillsSettings.color")}</Label>
                   <ColorPicker
                     colors={medicationColors}
@@ -302,7 +302,7 @@ export function MedicationEditDialog({
             )}
 
             {!frequencyPickerOpen && showSchedule && (
-              <div>
+              <div className="space-y-5">
                 {/* Type */}
                 <div className="flex w-full gap-4 sm:gap-6">
                   <div className="space-y-2 flex-1">
