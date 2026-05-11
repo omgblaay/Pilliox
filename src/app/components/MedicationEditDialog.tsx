@@ -263,7 +263,7 @@ export function MedicationEditDialog({
             )}
           </DialogHeader>
 
-          <div className="sm:pt-0 pt-16 overflow-y-auto">
+          <div className="sm:pt-0 pt-24 px-1 overflow-y-auto h-full">
             {frequencyPickerOpen ? (
               <MedicationScheduleForm
                 pill={editingPill}
@@ -283,7 +283,7 @@ export function MedicationEditDialog({
                 onFrequencyPickerOpenChange={setFrequencyPickerOpen}
               />
             ) : showBasics && (
-              <div className="mx-auto w-full space-y-6">
+              <div className="mx-auto w-full flex-1 space-y-6">
                 {/* Name */}
                 <div className="space-y-2">
                   <Label>{t("pillsSettings.medicationName")}</Label>
@@ -307,7 +307,7 @@ export function MedicationEditDialog({
             )}
 
             {!frequencyPickerOpen && showSchedule && (
-              <div className="mx-auto w-full space-y-5 mt-5">
+              <div>
                 {/* Type */}
                 <div className="flex w-full gap-4 sm:gap-6">
                 <div className="space-y-2 flex-1">
