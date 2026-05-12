@@ -13,17 +13,23 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+html {
+  background-color: var(--background);
+}
+
 body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   overflow: auto;
+  background-color: var(--background);
 }
 
 #root {
   width: 100%;
-  min-height: 100%;
+  min-height: 100dvh;
+  background-color: var(--background);
 }
 
 /* Safe area insets for iOS */

@@ -11,7 +11,7 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="">
       {/* Header */}
       <div>
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">

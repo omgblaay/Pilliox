@@ -28,7 +28,7 @@ export function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="">
         <div className="animate-pulse text-muted-foreground">
           {t("subscription.loading") || "Loading..."}
         </div>
@@ -55,7 +55,7 @@ export function SubscriptionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background">
         <div className="max-w-2xl mx-auto px-4 py-4 sm:py-8 flex items-center gap-4">

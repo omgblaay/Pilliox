@@ -13,8 +13,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Ensure background fills the full viewport before React mounts
+const isDarkMode = document.documentElement.classList.contains('dark') ||
+  window.matchMedia('(prefers-color-scheme: dark)').matches;
+const bg = isDarkMode ? '#111113' : '#f1f1f1';
+document.documentElement.style.cssText += `min-height:100dvh;background-color:${bg};`;
+document.body.style.cssText += `min-height:100dvh;background-color:${bg};`;
+
 const rootElement = document.getElementById('root');
 if (rootElement) {
+  rootElement.style.cssText += `min-height:100dvh;background-color:${bg};`;
   createRoot(rootElement).render(
     <App />
   );

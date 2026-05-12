@@ -339,7 +339,7 @@ export function ProfilePage({
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="">
       {/* Header */}
       <div className="sticky top-0 bg-background">
         <div className="max-w-screen-lg mx-auto px-4 sm:py-8 py-4">

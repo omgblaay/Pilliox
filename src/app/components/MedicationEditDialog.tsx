@@ -447,8 +447,8 @@ export function MedicationEditDialog({
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-[500px] p-6">
-          <DialogHeader className="flex-row mb-4">
+        <DialogContent className="h-auto w-full sm:p-8 p-4">
+          <DialogHeader className="flex-row mb-4 static p-0">
             <div className="flex flex-col gap-2 flex-1">
               <DialogTitle className="text-red-600 dark:text-red-400">
                 {t("pillsSettings.deleteConfirmTitle") || "Delete Medication?"}
@@ -461,18 +461,18 @@ export function MedicationEditDialog({
             </div>
           </DialogHeader>
           {entryCount > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2 ">
               <Label>{t("pillsSettings.deleteKeywordPrompt")}</Label>
               <Input value={deleteKeyword} onChange={(e) => setDeleteKeyword(e.target.value)} placeholder={t("pillsSettings.deleteKeywordPlaceholder")} autoFocus />
             </div>
           )}
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => { setDeleteConfirmOpen(false); setDeleteKeyword(""); }} disabled={isDeleting}>
+          <div className="flex gap-3 justify-end pt-24">
+            <Button variant="outline" className="flex-1" onClick={() => { setDeleteConfirmOpen(false); setDeleteKeyword(""); }} disabled={isDeleting}>
               {t("basic.cancel") || "Cancel"}
             </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting || (entryCount > 0 && !deleteKeyword)}>
+            <Button variant="destructive" className="flex-1" onClick={confirmDelete} disabled={isDeleting || (entryCount > 0 && !deleteKeyword)}>
               {isDeleting ? <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" /> : <Trash2 className="h-4 w-4" strokeWidth={2} />}
-              {t("basic.apply") || "Confirm Delete"}
+              {t("basic.delete") || "Confirm Delete"}
             </Button>
           </div>
         </DialogContent>

@@ -155,7 +155,7 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="">
       <Card className="w-full max-w-md p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">

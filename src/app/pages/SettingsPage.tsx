@@ -125,7 +125,7 @@ export function SettingsPage({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="">
       {/* Header */}
       <div className="sticky top-0 bg-background">
         <div className="max-w-screen-lg flex gap-5 items-center mx-auto px-4 sm:py-8 py-4">

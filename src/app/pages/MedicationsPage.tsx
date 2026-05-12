@@ -183,7 +183,7 @@ export function MedicationsPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-700 border-t-blue-400" />
           <p className="mt-4 text-muted-foreground">{t("common.loading") || "Loading..."}</p>
@@ -193,7 +193,7 @@ export function MedicationsPage({
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="">
       {/* Header */}
 
       <div className="sticky top-0 bg-background">

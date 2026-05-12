@@ -80,7 +80,7 @@ export function OnboardingPage() {
     currentStep === ONBOARDING_STEPS.length - 1;
 
   return (
-    <div className="min-h-screen bg-card flex flex-col">
+    <div className="min-h-[100dvh] bg-card flex flex-col">
       {/* Header with Logo */}
       <div className="flex justify-between w-full p-4 lg:max-w-[800px] m-auto items-center">
         <div className="h-[32px] w-[128px]">

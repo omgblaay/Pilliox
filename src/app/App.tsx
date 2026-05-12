@@ -381,6 +381,7 @@ function AppRoutes() {
 
   return (
     <>
+      <div className="min-h-[100dvh] bg-background dark:bg-gradient-to-b dark:from-background dark:to-slate-950">
       <Routes>
         {/* Public Routes */}
         <Route
@@ -543,6 +544,7 @@ function AppRoutes() {
         {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </div>
       <Toaster position="top-center" richColors />
       <CookieBanner />
     </>
