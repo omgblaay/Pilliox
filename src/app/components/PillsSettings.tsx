@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchWithTokenRefresh } from "../../utils/api-client";
+import { applyDeviceNotifications, setDeviceNotificationEnabled } from "../../utils/deviceNotifications";
 import {
   format,
   addDays,
@@ -165,7 +166,7 @@ export function PillsSettings({
 
       if (response.ok) {
         const data = await response.json();
-        setPills(data.pills || []);
+        setPills(applyDeviceNotifications(data.pills || []));
       } else {
         const errorText = await response.text();
         toast.error(t("pillsSettings.loadError"));
@@ -205,6 +206,7 @@ export function PillsSettings({
       );
 
       if (response.ok) {
+        pills.forEach((p) => setDeviceNotificationEnabled(p.id, p.notificationsEnabled ?? false));
         await syncNotifications(pills);
         toast.success(t("pillsSettings.saveSuccess"));
         onOpenChange(false);

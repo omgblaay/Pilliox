@@ -23,6 +23,7 @@ import { MedicationDetailPage } from "../components/MedicationDetailPage";
 import { MedicationScheduleEditor } from "../components/MedicationScheduleEditor";
 import { MedicationIcon } from "../components/MedicationIcon";
 import { notificationService } from "../services/notificationService";
+import { applyDeviceNotifications, removeDeviceNotification, setDeviceNotificationEnabled } from "../../utils/deviceNotifications";
 import { toast } from "sonner";
 
 interface MedicationsPageProps {
@@ -111,7 +112,7 @@ export function MedicationsPage({
       );
       if (response.ok) {
         const data = await response.json();
-        setPills(data.pills || []);
+        setPills(applyDeviceNotifications(data.pills || []));
       }
     } catch {}
     finally { setLoading(false); }
@@ -138,6 +139,7 @@ export function MedicationsPage({
   };
 
   const handleSaved = (pill: PillSetting, isNew: boolean) => {
+    setDeviceNotificationEnabled(pill.id, pill.notificationsEnabled ?? false);
     setPills((prev) =>
       isNew ? [...prev, pill] : prev.map((p) => (p.id === pill.id ? pill : p)),
     );
@@ -146,6 +148,7 @@ export function MedicationsPage({
   };
 
   const handleDeleted = (pillId: string) => {
+    removeDeviceNotification(pillId);
     void notificationService.cancelPillNotifications(pillId).catch(() => {});
     setPills((prev) => prev.filter((p) => p.id !== pillId));
     setEditingPill(null);
@@ -174,6 +177,7 @@ export function MedicationsPage({
       throw new Error("Failed to save medication schedule");
     }
 
+    setDeviceNotificationEnabled(updatedPill.id, updatedPill.notificationsEnabled ?? false);
     setPills((prev) => prev.map((p) => (p.id === updatedPill.id ? updatedPill : p)));
     setDetailPill(updatedPill);
     await notificationService.updatePillNotifications(updatedPill).catch(() => {
