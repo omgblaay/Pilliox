@@ -33,6 +33,7 @@ import {
 import {
   Pill,
   Droplet,
+  Leaf,
   Trash2,
   Plus,
   Save,
@@ -71,7 +72,7 @@ export interface PillSetting {
   defaultDosage: number;
   color?: string;
   icon?: MedicationIconId;
-  type?: "pills" | "value";
+  type?: "medication" | "supplement" | "value" | "pills";
   unit?: string;
   notificationsEnabled?: boolean;
   notificationTime?: string;
@@ -224,7 +225,7 @@ export function PillsSettings({
       name: "",
       defaultDosage: 1,
       color: PILL_COLORS[0].value,
-      type: "pills",
+      type: "medication",
       icon: "capsule",
     };
     setPills([...pills, newPill]);
@@ -399,11 +400,12 @@ export function PillsSettings({
 
                         {/* Pills/Value Counter */}
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          {(pill.type || "pills") ===
-                          "pills" ? (
-                            <Pill className="h-4 w-4" />
-                          ) : (
+                          {pill.type === "value" ? (
                             <Droplet className="h-4 w-4" />
+                          ) : pill.type === "supplement" ? (
+                            <Leaf className="h-4 w-4" />
+                          ) : (
+                            <Pill className="h-4 w-4" />
                           )}
                           <span>{pill.defaultDosage}</span>
                         </div>
@@ -582,57 +584,45 @@ export function PillsSettings({
                       variant="tabGroup"
                       className="px-[8px] py-[0px]"
                       data-state={
-                        (editingPill.type || "pills") ===
-                        "pills"
+                        (editingPill.type === "medication" || editingPill.type === "pills" || !editingPill.type)
                           ? "active"
                           : "inactive"
                       }
                       onClick={() => {
-                        updatePill(editingPill.id, {
-                          type: "pills",
-                        });
-                        setEditingPill({
-                          ...editingPill,
-                          type: "pills",
-                        });
+                        updatePill(editingPill.id, { type: "medication" });
+                        setEditingPill({ ...editingPill, type: "medication" });
                       }}
                     >
-                      <Pill
-                        className="h-3 w-3"
-                        strokeWidth={1.33}
-                      />
-                      <span>
-                        {t("pillsSettings.typePills")}
-                      </span>
+                      <Pill className="h-3 w-3" strokeWidth={1.33} />
+                      <span>{t("pillsSettings.typeMedication")}</span>
                     </Button>
                     <Button
                       size="sm"
                       type="button"
                       variant="tabGroup"
                       className="px-[8px] py-[0px]"
-                      data-state={
-                        (editingPill.type || "pills") ===
-                        "value"
-                          ? "active"
-                          : "inactive"
-                      }
+                      data-state={editingPill.type === "supplement" ? "active" : "inactive"}
                       onClick={() => {
-                        updatePill(editingPill.id, {
-                          type: "value",
-                        });
-                        setEditingPill({
-                          ...editingPill,
-                          type: "value",
-                        });
+                        updatePill(editingPill.id, { type: "supplement" });
+                        setEditingPill({ ...editingPill, type: "supplement" });
                       }}
                     >
-                      <Droplet
-                        className="h-3 w-3"
-                        strokeWidth={1.33}
-                      />
-                      <span>
-                        {t("pillsSettings.typeValue")}
-                      </span>
+                      <Leaf className="h-3 w-3" strokeWidth={1.33} />
+                      <span>{t("pillsSettings.typeSupplement")}</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      type="button"
+                      variant="tabGroup"
+                      className="px-[8px] py-[0px]"
+                      data-state={editingPill.type === "value" ? "active" : "inactive"}
+                      onClick={() => {
+                        updatePill(editingPill.id, { type: "value" });
+                        setEditingPill({ ...editingPill, type: "value" });
+                      }}
+                    >
+                      <Droplet className="h-3 w-3" strokeWidth={1.33} />
+                      <span>{t("pillsSettings.typeValue")}</span>
                     </Button>
                   </div>
                 </div>
@@ -640,7 +630,7 @@ export function PillsSettings({
                 {/* Default Dosage */}
                 <div className="flex-1">
                   <Label>
-                    {(editingPill.type || "pills") === "pills"
+                    {editingPill.type !== "value"
                       ? t("pillsSettings.defaultDosage")
                       : t("pillsSettings.defaultValue")}
                   </Label>
@@ -648,7 +638,7 @@ export function PillsSettings({
                     type="number"
                     min="0"
                     step={
-                      (editingPill.type || "pills") === "pills"
+                      editingPill.type !== "value"
                         ? "0.5"
                         : "0.01"
                     }
@@ -897,7 +887,7 @@ export function PillsSettings({
               ) : (
                 <CalendarDays className="size-4" />
               )}
-              {filling ? "Filling days…" : `Fill empty days with ${fillTargetPill?.defaultDosage} ${(fillTargetPill?.type || "pills") === "pills" ? "pill(s)" : "dose"} per day`}
+              {filling ? "Filling days…" : `Fill empty days with ${fillTargetPill?.defaultDosage} ${fillTargetPill?.type !== "value" ? "pill(s)" : "dose"} per day`}
             </Button>
           </div>
         </DialogContent>

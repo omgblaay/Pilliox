@@ -428,7 +428,8 @@ export default {
     title: "Medications",
     subtitle: "Manage your medications",
     add: "Add",
-    pills: "Pills",
+    medications: "Medications",
+    supplements: "Supplements",
     values: "Medical Values",
     empty: {
       title: "No medications yet",
@@ -464,6 +465,8 @@ export default {
     type: "Type",
     icon: "Icon",
     typePills: "Medication",
+    typeMedication: "Medication",
+    typeSupplement: "Supplement",
     typeValue: "Value",
     unit: "Unit",
     defaultDosage: "Default Dosage",

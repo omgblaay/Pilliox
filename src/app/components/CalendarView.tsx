@@ -1231,8 +1231,7 @@ export function CalendarView({
       ];
 
   return (
-    <div className="min-h-[100dvh]">
-      {/* Added pb-20 for bottom nav space */}
+    <div className="min-h-[100dvh">
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-50">
@@ -1754,7 +1753,7 @@ export function CalendarView({
                               return (
                                 <>
                                   {pillsSettings
-                                    .filter((ps) => (ps.type || "pills") === "pills")
+                                    .filter((ps) => ps.type !== "value")
                                     .map((pillSetting) => {
                                       const pill = pillsData.find((p) => p.pillId === pillSetting.id);
                                       const isTaken = !!pill;
@@ -1903,7 +1902,7 @@ export function CalendarView({
                               return (
                                 <>
                                   {pillsSettings
-                                    .filter((ps) => (ps.type || "pills") === "pills")
+                                    .filter((ps) => ps.type !== "value")
                                     .map((pillSetting) => {
                                       const pill = pillsData.find((p) => p.pillId === pillSetting.id);
                                       const ghostDosage = entryOverrides[pillSetting.id] ?? pillSetting.defaultDosage;

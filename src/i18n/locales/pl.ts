@@ -461,6 +461,8 @@ export default {
     saveChanges: "Zapisz Zmiany",
     discard: "Odrzuć",
     noPills: "Brak",
+    typeSupplement: "Suplement",
+    typeMedication: "Lek",
     deleteMedication: "Usuń",
     deleteConfirmTitle: "Usunąć?",
     deleteConfirmDescription: "Ten lek ma {count} wpisów w kalendarzu. Wszystkie wpisy zostaną trwale usunięte.",

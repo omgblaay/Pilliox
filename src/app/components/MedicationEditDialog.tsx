@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, Pill, Droplet, ArrowLeft, Check } from "lucide-react";
+import { Trash2, Pill, Droplet, Leaf, ArrowLeft, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -312,17 +312,27 @@ export function MedicationEditDialog({
                         type="button"
                         variant="tabGroup"
                         className="!min-h-8 h-full"
-                        data-state={(editingPill.type || "pills") === "pills" ? "active" : "inactive"}
-                        onClick={() => updatePill({ type: "pills", icon: editingPill.icon ?? "capsule" })}
+                        data-state={(editingPill.type === "medication" || editingPill.type === "pills" || !editingPill.type) ? "active" : "inactive"}
+                        onClick={() => updatePill({ type: "medication", icon: editingPill.icon ?? "capsule" })}
                       >
                         <Pill className="size-5 hidden sm:block" strokeWidth={1.33} />
-                        <span>{t("pillsSettings.typePills")}</span>
+                        <span>{t("pillsSettings.typeMedication")}</span>
                       </Button>
                       <Button
                         type="button"
                         variant="tabGroup"
                         className="!min-h-8 h-full"
-                        data-state={(editingPill.type || "pills") === "value" ? "active" : "inactive"}
+                        data-state={editingPill.type === "supplement" ? "active" : "inactive"}
+                        onClick={() => updatePill({ type: "supplement", icon: editingPill.icon ?? "capsule" })}
+                      >
+                        <Leaf className="size-5 hidden sm:block" strokeWidth={1.33} />
+                        <span>{t("pillsSettings.typeSupplement")}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="tabGroup"
+                        className="!min-h-8 h-full"
+                        data-state={editingPill.type === "value" ? "active" : "inactive"}
                         onClick={() => updatePill({ type: "value" })}
                       >
                         <Droplet className="size-5 hidden sm:block" strokeWidth={1.33} />
@@ -353,7 +363,7 @@ export function MedicationEditDialog({
                     </Select>
                   </div></div>
 
-                {(editingPill.type || "pills") === "pills" && (
+                {editingPill.type !== "value" && (
                   <div className="space-y-2">
                     <Label>{t("pillsSettings.icon") || "Icon"}</Label>
                     <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">

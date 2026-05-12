@@ -405,11 +405,11 @@ export function EditDayDialog({
               )}
               <div className="space-y-3">
                 {/* Pills Section */}
-                {pillsSettings.filter((ps) => (ps.type || "pills") === "pills").length > 0 && (
+                {pillsSettings.filter((ps) => ps.type !== "value").length > 0 && (
 
                   <div className="space-y-2">
                     {pillsSettings
-                      .filter((ps) => (ps.type || "pills") === "pills")
+                      .filter((ps) => ps.type !== "value")
                       .map((pillSetting) => {
                         const pillDosage = pills.find((p) => p.pillId === pillSetting.id);
                         const isSelected = !!pillDosage;

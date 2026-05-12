@@ -8,6 +8,7 @@ import {
   Plus,
   ArrowLeft,
   Pill,
+  Leaf,
   Activity,
   Bell,
   BellOff,
@@ -62,7 +63,7 @@ export function MedicationsPage({
         name: "",
         defaultDosage: 1,
         color: COLORS[0].hex,
-        type: "pills",
+        type: "medication",
         icon: "capsule",
       };
       setEditingPill(newPill);
@@ -122,7 +123,7 @@ export function MedicationsPage({
       name: "",
       defaultDosage: 1,
       color: COLORS[0].hex,
-      type: "pills",
+      type: "medication",
       icon: "capsule",
     };
     setEditingPill(newPill);
@@ -230,34 +231,71 @@ export function MedicationsPage({
           </motion.div>
         ) : (
           <div className="space-y-6">
-            {/* Pills Group */}
-            {pills.filter((p) => (p.type || "pills") === "pills").length > 0 && (
+            {/* Medications Group */}
+            {pills.filter((p) => !p.type || p.type === "medication" || p.type === "pills").length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-foreground px-1">
                   <Pill className="size-4 text-muted-foreground" />
-                  <h3 className="text-sm">{t("medications.pills") || "Pills"}</h3>
+                  <h3 className="text-sm">{t("pillsSettings.typeMedication") || "Medications"}</h3>
                 </div>
                 <Card className="divide-y divide-border">
-                  {pills.filter((p) => (p.type || "pills") === "pills").map((pill) => (
+                  {pills.filter((p) => !p.type || p.type === "medication" || p.type === "pills").map((pill) => (
                     <div key={pill.id} className="items-center">
                       <Button
                         variant="menuItem"
                         className="flex-1 sm:!px-5 !gap-5 sm:!py-3"
-                        onClick={() => {
-                          setDetailPill({ ...pill });
-                          setDetailOpen(true);
-                        }}
+                        onClick={() => { setDetailPill({ ...pill }); setDetailOpen(true); }}
                       >
                         <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
                         <div className="flex-1 flex-col items-center gap-2">
                           <span className="flex-1 font-normal text-foreground">
-                          {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
-                        </span>
-                        <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                          <MedicationIcon icon={pill.icon} className="size-4" />
-                          <span>{pill.defaultDosage}</span>
+                            {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
+                          </span>
+                          <div className="flex items-center text-sm gap-2 text-muted-foreground">
+                            <MedicationIcon icon={pill.icon} className="size-4" />
+                            <span>{pill.defaultDosage}</span>
+                          </div>
                         </div>
-                         </div>
+                        {pill.notificationsEnabled ? (
+                          <div className="flex items-center text-sm gap-2">
+                            <Bell className="size-4 text-blue-500" />
+                            <span>{pill.notificationTime && ` ${pill.notificationTime}`}</span>
+                          </div>
+                        ) : (
+                          <BellOff className="size-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+
+            {/* Supplements Group */}
+            {pills.filter((p) => p.type === "supplement").length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-foreground px-1">
+                  <Leaf className="size-4 text-muted-foreground" />
+                  <h3 className="text-sm">{t("medications.supplements") || "Supplements"}</h3>
+                </div>
+                <Card className="divide-y divide-border">
+                  {pills.filter((p) => p.type === "supplement").map((pill) => (
+                    <div key={pill.id} className="items-center">
+                      <Button
+                        variant="menuItem"
+                        className="flex-1 sm:!px-5 !gap-5 sm:!py-3"
+                        onClick={() => { setDetailPill({ ...pill }); setDetailOpen(true); }}
+                      >
+                        <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
+                        <div className="flex-1 flex-col items-center gap-2">
+                          <span className="flex-1 font-normal text-foreground">
+                            {pill.name || t("pillsSettings.medicationPlaceholder") || "Supplement"}
+                          </span>
+                          <div className="flex items-center text-sm gap-2 text-muted-foreground">
+                            <MedicationIcon icon={pill.icon} className="size-4" />
+                            <span>{pill.defaultDosage}</span>
+                          </div>
+                        </div>
                         {pill.notificationsEnabled ? (
                           <div className="flex items-center text-sm gap-2">
                             <Bell className="size-4 text-blue-500" />
@@ -286,21 +324,17 @@ export function MedicationsPage({
                       <Button
                         variant="menuItem"
                         className="flex-1 sm:!px-5 !gap-5 sm:!py-3"
-                        onClick={() => {
-                          setDetailPill({ ...pill });
-                          setDetailOpen(true);
-                        }}
+                        onClick={() => { setDetailPill({ ...pill }); setDetailOpen(true); }}
                       >
-
                         <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: pill.color || "#a855f7" }} />
                         <div className="flex-1 flex-col items-center gap-2">
-                        <span className="flex-1 font-medium text-foreground">
-                          {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
-                        </span>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Droplet className="size-3" />
-                          <span>{pill.defaultDosage}{pill.unit ? ` ${pill.unit}` : ""}</span>
-                        </div>
+                          <span className="flex-1 font-medium text-foreground">
+                            {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
+                          </span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Droplet className="size-3" />
+                            <span>{pill.defaultDosage}{pill.unit ? ` ${pill.unit}` : ""}</span>
+                          </div>
                         </div>
                         {pill.notificationsEnabled ? (
                           <div className="flex items-center text-sm gap-2">

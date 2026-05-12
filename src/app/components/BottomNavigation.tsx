@@ -44,8 +44,8 @@ export function BottomNavigation() {
     })?.id || "calendar";
 
   return (
-    <nav className="fixed lg:hidden bottom-4 left-12 right-12 bg-popover rounded-xl px-2 gap-12 dark:border-gray-200/10 safe-area-bottom z-40">
-      <div className="flex justify-around items-center h-14 max-w-screen-lg mx-auto">
+    <nav className="fixed lg:hidden bottom-4 left-12 right-12 flex space-between bg-white/5 border border-white/20 rounded-full backdrop-blur-lg saturate-150 px-4 backdrop-filter bg-opacity-10 safe-area-bottom z-40">
+
         {tabs.map((tab) => {
           const isActive = currentTab === tab.id;
           const Icon = tab.icon;
@@ -54,7 +54,7 @@ export function BottomNavigation() {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center flex-1 h-full relative"
+              className="flex flex-col w-full items-center justify-center gap-1 flex-1 h-14 relative"
             >
               {/* Active indicator */}
               {isActive && (
@@ -89,7 +89,7 @@ export function BottomNavigation() {
 
               {/* Label */}
               <span
-                className={`text-[0.64rem] mt-1 font-medium transition-colors ${
+                className={`text-[0.64rem] font-medium transition-colors ${
                   isActive
                     ? "text-foreground"
                     : "text-gray-500 dark:text-gray-400"
@@ -100,7 +100,7 @@ export function BottomNavigation() {
             </button>
           );
         })}
-      </div>
+
     </nav>
   );
 }

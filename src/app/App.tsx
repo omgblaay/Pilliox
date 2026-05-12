@@ -381,7 +381,7 @@ function AppRoutes() {
 
   return (
     <>
-      <div className="min-h-[100dvh] bg-background dark:bg-gradient-to-b dark:from-background dark:to-slate-950">
+      <div className="min-h-[100dvh] bg-background dark:bg-gradient-to-b dark:from-background #18181b dark:to-[#09080f] relative">
       <Routes>
         {/* Public Routes */}
         <Route
