@@ -26,21 +26,17 @@ export function useNotifications() {
   useEffect(() => {
     let mounted = true;
 
-    const initialize = async () => {
+    const checkAndSet = async () => {
       try {
         await notificationService.initialize();
-        
-        const status = await notificationService.checkPermissions();
-        
+
         const isWeb = typeof window !== 'undefined' && 'Notification' in window;
-        const actualPermission = isWeb ? Notification.permission : status.display;
-        
+        const granted = isWeb
+          ? Notification.permission === 'granted'
+          : (await notificationService.checkPermissions()).display === 'granted';
+
         if (mounted) {
-          setPermissions({
-            granted: actualPermission === 'granted',
-            loading: false,
-            error: null,
-          });
+          setPermissions({ granted, loading: false, error: null });
         }
       } catch (error) {
         if (mounted) {
@@ -53,10 +49,17 @@ export function useNotifications() {
       }
     };
 
-    initialize();
+    checkAndSet();
+
+    // Re-check when user comes back from browser settings after granting permission
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkAndSet();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       mounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

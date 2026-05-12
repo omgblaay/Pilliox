@@ -25,6 +25,7 @@ import { SubscriptionPaywall } from "./components/SubscriptionPaywall";
 import { NotificationPermissionBanner } from "./components/NotificationPermissionBanner";
 import { Toaster } from "sonner";
 import { CookieBanner } from "./components/CookieBanner";
+import { IOSInstallPrompt } from "./components/IOSInstallPrompt";
 import CalendarPage from "./pages/CalendarPage";
 import { MedicationsPage } from "./pages/MedicationsPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -547,6 +548,7 @@ function AppRoutes() {
       </div>
       <Toaster position="top-center" richColors />
       <CookieBanner />
+      <IOSInstallPrompt />
     </>
   );
 }

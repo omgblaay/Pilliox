@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Bell, ChevronRight, Check } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { cn } from "./ui/utils";
-import { notificationService } from "../services/notificationService";
 import { toast } from "sonner";
 import type { PillSetting, ScheduleTime, ScheduleType } from "./PillsSettings";
 import { DAYS, getUnitLabel, normalizeUnit } from "../constants/medicationOptions";
@@ -94,13 +93,31 @@ export function MedicationScheduleForm({
 
   const handleNotificationToggle = (checked: boolean) => {
     onNotificationsEnabledChange(checked);
-    if (checked) {
-      notificationService.ensurePermissions()
-        .then((granted) => {
-          if (!granted) toast.error("Notification permissions denied. Please enable them in your browser settings.");
-        })
-        .catch(() => toast.error("Failed to request notification permissions"));
+    if (!checked) return;
+
+    if (typeof Notification === 'undefined') {
+      toast.error("This browser doesn't support notifications.");
+      return;
     }
+
+    if (Notification.permission === 'granted') return;
+
+    // Always request directly in the user-gesture handler.
+    // On Chrome Android, permission may appear as 'denied' even when never
+    // explicitly blocked — calling requestPermission() is the only way to
+    // trigger the actual prompt or confirm a true block.
+    Notification.requestPermission().then((result) => {
+      if (result === 'denied') {
+        toast.error(
+          "Notifications are blocked for this site. In Chrome: tap the lock icon → Site settings → Notifications → Allow.",
+          { duration: 7000 }
+        );
+      } else if (result === 'default') {
+        toast.info("Tap 'Allow' on the notification prompt to receive reminders.");
+      }
+    }).catch(() => {
+      toast.error("Unable to request notification permission.");
+    });
   };
 
   if (frequencyPickerOpen) {

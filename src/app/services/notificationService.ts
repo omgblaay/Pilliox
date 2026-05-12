@@ -374,30 +374,35 @@ class NotificationService {
 
     const options: NotificationOptions = {
       body,
-      icon: 'dist/logo-big.png',
-      badge: 'dist/logo-big.pngg',
+      icon: '/favicon_b.png',
+      badge: '/favicon_b.png',
       tag: `pill-${pillId}-${notificationId}`,
       requireInteraction: false,
       data: { pillId, notificationId, url: '/' },
     };
 
-    // Always prefer SW notifications when a service worker is registered.
-    // navigator.serviceWorker.controller is null on first load (before claim()),
-    // but navigator.serviceWorker.ready resolves as soon as an active SW exists.
+    // Service worker notifications are required on mobile Chrome.
+    // new Notification() is blocked on mobile browsers — always prefer SW path.
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
         await registration.showNotification(title, options);
         return;
       } catch (e) {
+        // SW path failed — fall through to direct Notification as desktop fallback
       }
     }
 
-    const notification = new Notification(title, options);
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-    };
+    // Desktop-only fallback: new Notification() throws on mobile Chrome
+    try {
+      const notification = new Notification(title, options);
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    } catch {
+      // Silently ignore — mobile Chrome blocks direct Notification constructor
+    }
   }
 
   /**

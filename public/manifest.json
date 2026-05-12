@@ -1,33 +1,40 @@
 {
-  "name": "Pilliox - INR Blood Test & Medication Tracker",
+  "id": "/",
+  "name": "Pilliox - Medication & Health Tracker",
   "short_name": "Pilliox",
-  "description": "Track your INR blood test values, medication, and medical notes with Pilliox",
+  "description": "Track your medications, supplements, and medical values with Pilliox",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#4F46E5",
+  "background_color": "#111113",
+  "theme_color": "#111113",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "dist/logo-big.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "dist/logo-big.pngg",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["health", "productivity", "utilities"],
-  "screenshots": [
-    {
-      "src": "/screenshot1.png",
-      "sizes": "1170x2532",
-      "type": "image/png"
-    }
-  ],
   "prefer_related_applications": false
 }
