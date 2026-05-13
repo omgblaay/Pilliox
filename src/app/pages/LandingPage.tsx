@@ -20,7 +20,7 @@ import { LanguageSelector } from "../components/LanguageSelector";
 import { Logo } from "../components/Logo";
 import { useTheme } from "../hooks/useTheme";
 import { supabase } from "../../../utils/supabase/client";
-import calendarMockup from "../assets/lightApp.png";
+import calendarMockup from "../assets/lightapp.png";
 import carePhoto from "../../assets/bg.png";
 
 const pillIcons = [
