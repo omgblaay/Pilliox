@@ -140,10 +140,10 @@ export function MedicationScheduleForm({
             type="button"
             onClick={() => onScheduleTypeChange(type.value)}
             className={cn(
-              "w-full rounded-xl border p-4 text-left transition-colors",
+              "w-full rounded-xl cursor-pointer border p-4 text-left transition-colors",
               scheduleType === type.value
                 ? "border-blue-500 bg-blue-500/10"
-                : "border-gray-1000/20 hover:border-border/50 hover:bg-muted/40",
+                : "border-inputborder hover:bg-muted/40",
             )}
           >
             <div className="flex items-start gap-3">
@@ -229,7 +229,7 @@ export function MedicationScheduleForm({
           <button
             type="button"
             onClick={() => onFrequencyPickerOpenChange(true)}
-            className="w-full rounded-xl border border-border cursor-pointer p-4 text-left transition-colors hover:border-gray/20 hover:bg-muted/30"
+            className="w-full rounded-xl border border-inputborder cursor-pointer p-4 text-left transition-colors hover:border-gray/20 hover:bg-muted/30"
           >
             <div className="flex items-center gap-3">
               <div className="flex-1">

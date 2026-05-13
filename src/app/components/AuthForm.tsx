@@ -190,7 +190,8 @@ export function AuthForm({
   };
 
   return (
-    <div className="min-h-full bg-input-background dark:bg-[#0a0a0a] flex gap-4 flex-col md:items-center md:justify-center p-4 py-8 md:py-4 relative">
+    <div className="mmin-h-[100dvh] flex gap-4 flex-col md:items-center md:justify-center p-4 py-8 md:py-4 relative">
+
       {/* Back to Landing Page Button */}
       <Button
         variant="ghost"

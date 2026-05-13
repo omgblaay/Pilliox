@@ -12,9 +12,9 @@ const inputVariants = cva(
     variants: {
       variant: {
         default:
-          "h-12 rounded-lg border border-gray-300 bg-input px-3 focus:border-transparent focus:ring-2 focus:ring-[#155dfc] disabled:border-gray-200 disabled:bg-gray-100 dark:border-[#4d4c54] dark:disabled:border-[#2a2a2a] dark:disabled:bg-[#0f0f0f]",
+          "h-12 rounded-lg border border-inputborder bg-input px-3 focus:border-transparent focus:ring-2 focus:ring-[#155dfc] disabled:border-gray-200 disabled:bg-gray-100 dark:disabled:border-[#2a2a2a] dark:disabled:bg-[#0f0f0f]",
         underline:
-          "h-10 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 font-[family-name:var(--font-geist-mono)] focus:border-[#155dfc] focus:ring-0 disabled:border-gray-200 dark:border-[#4d4c54] dark:disabled:border-[#2a2a2a] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+          "h-10 rounded-none border-0 border-b border-inputborder bg-transparent px-0 font-[family-name:var(--font-geist-mono)] focus:border-[#155dfc] focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
       },
     },
     defaultVariants: {

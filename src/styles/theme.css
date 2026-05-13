@@ -21,6 +21,7 @@
   --border: rgba(0, 0, 0, 0.1);
   --input: #ffffff;
   --input-background: #f3f3f5;
+  --inputborder: var(--gray-300);
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -60,9 +61,10 @@
   --accent-foreground: #f4f4f5;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: #3f3f46;
+  --border: #2a2a2c;
   --input: #27272a;
   --input-background: #1c1c1f;
+  --inputborder: #434346;
   --switch-background: #52525b;
   --ring: #52525b;
   --font-weight-medium: 500;
@@ -105,6 +107,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-input-background: var(--input-background);
+  --color-inputborder: var(--inputborder);
   --color-switch-background: var(--switch-background);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
