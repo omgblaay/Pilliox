@@ -262,7 +262,7 @@ export function AuthForm({
           </div>
 
           {/* Tab Buttons */}
-          <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-[20px] p-1 mb-4 flex gap-0">
+          <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-[20px] p-1 mb-4 flex gap-0">
             <Button
               variant="tabGroup"
               onClick={() => setActiveTab("login")}

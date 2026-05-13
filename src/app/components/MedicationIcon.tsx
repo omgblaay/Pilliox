@@ -16,13 +16,28 @@ interface MedicationIconProps {
   icon?: MedicationIconId;
   color?: string;
   className?: string;
+  name?: string;
 }
 
 export function MedicationIcon({
-  icon = "capsule",
+  icon,
   color = "currentColor",
   className,
+  name,
 }: MedicationIconProps) {
+  if (!icon) {
+    if (!name) return null;
+    return (
+      <span
+        className={cn("size-4 flex items-center justify-center leading-none select-none", className)}
+        style={{ color, fontSize: "1em" }}
+        aria-hidden="true"
+      >
+        {name.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 18 18"

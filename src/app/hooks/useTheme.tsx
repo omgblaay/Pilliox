@@ -3,7 +3,14 @@ import { useState, useEffect } from 'react';
 export type Theme = 'light' | 'dark' | 'system';
 
 export function useTheme(initialTheme: Theme = 'system') {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const saved = localStorage.getItem('pilliox-theme') as Theme | null;
+      return saved || initialTheme;
+    } catch {
+      return initialTheme;
+    }
+  });
 
   useEffect(() => {
     const applyTheme = (currentTheme: Theme) => {

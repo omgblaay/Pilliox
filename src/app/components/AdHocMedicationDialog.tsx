@@ -143,7 +143,7 @@ export function AdHocMedicationDialog({
           {/* Type Switch */}
           <div className="space-y-2">
             <Label>{t("pillsSettings.type") || "Type"}</Label>
-            <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+            <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
               <Button
                 type="button"
                 variant="tabGroup"

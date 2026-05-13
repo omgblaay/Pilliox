@@ -1,6 +1,3 @@
-import { add } from "date-fns";
-import { Donut } from "lucide-react";
-
 export default {
   app: {
     name: "Pilliox",
@@ -16,98 +13,120 @@ export default {
   basic: {
     ok: "Ok",
     add: "Hinzufügen",
+    edit: "Bearbeiten",
     cancel: "Abbrechen",
     delete: "Löschen",
     save: "Speichern",
     mark: "Markieren",
-    clear: "Löschen",
+    clear: "Leeren",
+  },
+  notifications: {
+    scheduleError: "Gespeichert, aber Benachrichtigungsplanung fehlgeschlagen",
   },
   landing: {
+    nav: {
+      features: "Funktionen",
+      why: "Warum Pilliox",
+      pricing: "Preise",
+    },
     header: {
       signIn: "Anmelden",
       getStarted: "Jetzt starten",
       goToApp: "Zur App",
     },
     hero: {
-      title: "Ihre medizinischen Werte,",
-      titleHighlight: "Perfekt erfasst",
+      badge: "Für Marcumar, INR und tägliche Routinen",
+      title: "Verfolgen Sie jede Dosis, jeden Wert und Zeitplan in",
+      titleHighlight: "einem Kalender.",
       description:
-        "Verfolgen Sie INR, Bluttests und Medikamente mit einer schönen Kalenderoberfläche. Für Einfachheit entwickelt, für Zuverlässigkeit gebaut.",
-      startTrial: "Kostenlose Testversion starten",
+        "Pilliox hilft Ihnen, Medikamente, Nahrungsergänzungsmittel und medizinische Werte wie INR zu protokollieren, ohne Ihre Gesundheitsroutine in eine Tabelle zu verwandeln.",
+      cta: "Jetzt verfolgen",
       pricing: "3 Tage kostenlos, dann 2,99 €/Monat",
-      trustedBadge: "Your new tracking app",
+      pillCardName: "Marcumar-Dosis",
+      pillCardTime: "08:00 bestätigt",
+    },
+    trustBar: {
+      medications: "Medikamente",
+      supplements: "Nahrungsergänzung",
+      values: "Medizinische Werte",
     },
     features: {
-      title: "Alles, was Sie brauchen",
+      eyebrow: "Pilliox",
+      title: "Gebaut um die Art und Weise, wie Pilliox wirklich funktioniert.",
       description:
-        "Leistungsstarke Funktionen für müheloses medizinisches Tracking",
+        "Ein praktischer Tracker für tägliche Medikamentenroutinen, gelegentliche Nahrungsergänzungsmittel und numerische Gesundheitswerte.",
       calendar: {
-        title: "Intelligente Kalenderansicht",
+        title: "Kalender-zuerst Tracking",
         description:
-          "Verfolgen Sie medizinische Werte wie INR und Bluttestergebnisse mit einer intuitiven Kalenderoberfläche.",
+          "Sehen Sie jede Dosis, jedes Nahrungsergänzungsmittel und jeden medizinischen Wert am Tag, an dem es passiert ist, mit Wochen- und Monatsansichten.",
       },
-      pillCounter: {
-        title: "Tablettenzähler",
+      pills: {
+        title: "Medikamente und Nahrungsergänzung",
         description:
-          "Verpassen Sie keine Dosis mit unserem intelligenten Tracking-System für Ihre Medikamente.",
+          "Erstellen Sie separate Tracker für verschriebene Medikamente, Nahrungsergänzungsmittel und Pillen-Zeitpläne mit Dosierung, Einheit, Farbe und Symbol.",
       },
-      colorCoded: {
-        title: "Farbcodierte Verfolgung",
+      colors: {
+        title: "Farbcodierte Perioden",
         description:
-          "Mehrtägige Auswahl mit Farbcodierung für Behandlungsperioden und Tags zur einfachen visuellen Organisation.",
+          "Markieren Sie Behandlungsphasen, Dosierungsänderungen und wiederkehrende Zeitpläne, damit wichtige Abschnitte sofort auffallen.",
       },
       secure: {
-        title: "Sicher & Privat",
+        title: "Privatsphäre durch Design",
         description:
-          "Ihre medizinischen Daten werden verschlüsselt und sicher mit Unternehmenssicherheit gespeichert.",
+          "Ihre Kontodaten werden pro Benutzer gespeichert und sind an Ihr authentifiziertes Profil gebunden.",
+        feature1: "Verschlüsselte Synchronisierung",
+        feature2: "Private Notizen",
+        feature3: "Cloud-Backup",
       },
-      multiLanguage: {
-        title: "Mehrsprachig",
+      multilingual: {
+        title: "Web, Mobil und mehrsprachig",
         description:
-          "Verfügbar in Deutsch, Polnisch und Englisch für Benutzer weltweit.",
+          "Verwenden Sie Pilliox als PWA oder mobile App mit Unterstützung für Englisch, Deutsch und Polnisch.",
+      },
+    },
+    why: {
+      eyebrow: "Echter Einsatz",
+      title:
+        "Zuerst für Marcumar und INR-Tracking entwickelt, dann für breitere Routinen ausgebaut.",
+      fastLogging: {
+        title: "Schnelle tägliche Protokollierung",
+        description:
+          "Öffnen Sie den Kalender, markieren Sie was Sie genommen haben, fügen Sie einen Wert hinzu wenn nötig und machen Sie mit Ihrem Tag weiter.",
+      },
+      yourData: {
+        title: "Ihre Daten, Ihr Konto",
+        description:
+          "Pilliox speichert Tracker pro authentifiziertem Benutzer und hält Gesundheitsprotokolle im Umfang Ihres Profils.",
+      },
+      realRoutines: {
+        title: "Für echte Routinen gemacht",
+        description:
+          "Tägliche, spezifische Tage, Intervall- und Bedarfszeitpläne sind alle Teil desselben Modells.",
       },
     },
     pricing: {
-      title: "Einfache, transparente Preise",
+      eyebrow: "Premium",
+      title: "Einfaches Abonnement für einen zuverlässigen Tracker.",
       description:
-        "Beginnen Sie mit einer kostenlosen Testversion, dann weniger als eine Tasse Kaffee pro Monat",
-      plan: "Premium",
+        "Beginnen Sie mit einer kurzen Testphase, dann behalten Sie unbegrenztes Kalender-Tracking, Zeitpläne, Backups und mehrsprachigen Zugang.",
+      feature1: "Unbegrenzte Medikamenten- und Nahrungsergänzungs-Tracker",
+      feature2: "Verfolgung medizinischer Werte für INR, Gewicht und mehr",
+      feature3: "Tägliche, spezifische Tage, Intervall- und Bedarfszeitpläne",
+      feature4: "Farbcodierte Kalenderperioden und Tags",
+      feature5: "Sicheres Cloud-Backup über Ihr Konto",
+      feature6: "Englisch, Deutsch und Polnisch",
+      popular: "Beliebt",
       price: "2,99 €",
       perMonth: "/Monat",
-      trialIncluded:
-        "3-tägige kostenlose Testversion inklusive",
-      features: {
-        tracking: "Unbegrenzte Verfolgung medizinischer Werte",
-        pillCounter: "Intelligenter Tablettenzähler",
-        colorCoded: "Mehrtägige farbcodierte Auswahl",
-        tags: "Benutzerdefinierte Tags und Labels",
-        backup: "Sichere Cloud-Sicherung",
-        multiLanguage: "Mehrsprachige Unterstützung",
-        support: "Prioritäts-Kundensupport",
-      },
-      cta: "Starten Sie Ihre kostenlose Testversion",
-      cancelAnytime:
-        "Jederzeit kündbar. Keine Verpflichtung erforderlich.",
+      trialIncluded: "3-tägige kostenlose Testversion inklusive",
+      cta: "Kostenlose Testversion starten",
+      cancelAnytime: "Jederzeit kündbar. Keine Verpflichtung.",
     },
     cta: {
-      title: "Bereit, die Kontrolle zu übernehmen?",
-      description: "Tausende Nutzer vertrauen Pilliox mit ihrer medizinischen Verfolgung",
+      title: "Legen Sie Ihren Medikamentenplan in einem Kalender ab, der Sinn macht.",
+      description:
+        "Verfolgen Sie was Sie genommen haben, wann Sie es genommen haben und wie sich Ihre Werte im Laufe der Zeit verändert haben.",
       button: "Jetzt starten",
-    },
-    whyChoose: {
-      title: "Warum Pilliox wählen?",
-      easyTracking: {
-        title: "Einfache Verfolgung",
-        description: "Intuitive Kalenderoberfläche, speziell für INR-Werte und Medikamentenverwaltung entwickelt",
-      },
-      privacyFirst: {
-        title: "Datenschutz zuerst",
-        description: "Ihre medizinischen Daten sind verschlüsselt und sicher. Wir geben Ihre Informationen niemals an Dritte weiter",
-      },
-      builtForYou: {
-        title: "Für Sie gebaut",
-        description: "Entwickelt von Gesundheitsenthusiasten, die die Herausforderungen der Medikamentenverfolgung verstehen",
-      },
     },
     footer: {
       copyright: "© 2026 Pilliox. Alle Rechte vorbehalten.",
@@ -149,6 +168,7 @@ export default {
     resetPassword: "Passwort zurücksetzen",
     resetPasswordDescription: "Geben Sie Ihre E-Mail ein, um Anweisungen zum Zurücksetzen zu erhalten",
     resetPasswordButton: "Passwort zurücksetzen",
+    resetPasswordSubtitle: "Geben Sie unten Ihr neues Passwort ein",
     backToLogin: "Zurück zur Anmeldung",
     backToHome: "Zurück zur Startseite",
     enterNewPassword: "Geben Sie unten Ihr neues Passwort ein",
@@ -190,7 +210,7 @@ export default {
     pillsUnit: "Tabletten",
     noPillsConfigured:
       "Noch keine Medikamente konfiguriert. Konfigurieren Sie sie in den Einstellungen.",
-    otherMedications: "Andere Medikamente",
+    otherMedications: "Bedarfseinträge",
     addMed: "Hinzufügen",
     addOtherMedication: "Andere hinzufügen",
     addOtherMedicationDesc: "Fügen Sie ein einmaliges Medikament hinzu, das nicht zu Ihrem regulären Zeitplan gehört.",
@@ -263,21 +283,7 @@ export default {
   },
   settings: {
     title: "App-Einstellungen",
-    description: "Passen Sie Ihre App-Einstellungen an",
-    subtitle: "Anpassen Sie Ihr Erlebnis",
-    settings: "Einstellungen",
-    profile: "Profil",
-    preferences: "Präferenzen",
-    weekStartsOnMonday: "Woche beginnt am:",
-    mondayFirst: "Montag ist der erste Tag",
-    sundayFirst: "Sonntag ist der erste Tag",
     changePassword: "Passwort ändern",
-    newPassword: "Neues Passwort",
-    clearAllData: "Alle Daten löschen",
-    deleteAccount: "Konto löschen",
-    confirmDelete: "Geben Sie 'DELETE' ein, um zu bestätigen",
-    saveChanges: "Änderungen speichern",
-    logoutButton: "Abmelden",
     appearance: {
       title: "Erscheinungsbild",
     },
@@ -290,9 +296,6 @@ export default {
     },
     language: {
       title: "Sprache",
-    },
-    calendar: {
-      title: "Kalender",
     },
     weekStart: {
       title: "Woche beginnt am:",
@@ -309,6 +312,18 @@ export default {
       confirm: "Sind Sie sicher, dass Sie alle Kalenderdaten löschen möchten? Dies kann nicht rückgängig gemacht werden.",
       success: "Alle Daten erfolgreich gelöscht",
       error: "Fehler beim Löschen der Daten",
+    },
+    notifications: {
+      title: "Benachrichtigungen",
+      menuItem: "Benachrichtigungseinstellungen",
+      dialogDescription: "Verwalten Sie, wie Pilliox Sie über Ihre Medikamente benachrichtigt.",
+      appNotifications: "App-Benachrichtigungen",
+      appNotificationsDesc: "Push-Erinnerungen, wenn ein Medikament fällig ist.",
+      enabled: "Aktiviert",
+      blocked: "Vom Browser blockiert. Erlauben Sie in den Websiteeinstellungen.",
+      enableButton: "Benachrichtigungen aktivieren",
+      emailReminders: "E-Mail-Erinnerungen",
+      emailRemindersDesc: "Wochentliche Zusammenfassung Ihrer anstehenden Medikamente per E-Mail.",
     },
     legal: {
       title: "Andere",
@@ -385,6 +400,7 @@ export default {
     signOut: "Abmelden",
     logoutButton: "Vom Konto abmelden",
     changePassword: "Passwort ändern",
+    currentPassword: "Aktuelles Passwort",
     newPassword: "Neues Passwort",
     newPasswordPlaceholder: "Neues Passwort eingeben",
     confirmPassword: "Neues Passwort bestätigen",
@@ -422,8 +438,7 @@ export default {
     none: "Keine",
   },
   medications: {
-    title: " Medikamenteinstellungen",
-    subtitle: "Verwalten",
+    title: "Medikamente",
     add: "Hinzufügen",
     medications: "Medikamente",
     supplements: "Nahrungsergänzung",
@@ -432,11 +447,9 @@ export default {
       title: "Noch keine Medikamente",
       description: "Fügen Sie Ihr erstes Medikament hinzu, um mit der Verfolgung zu beginnen",
     },
-    addFirst: "Ihr erstes hinzufügen",
-        emtpyAdHoc: {
+    emptyAdHoc: {
       title: "Keine einmaligen Medikamente",
-      description:
-        "Fügen Sie ein einziges Medikament für besondere Anlässe oder temporäre Behandlungen hinzu",
+      description: "Fügen Sie ein einmaliges Medikament für besondere Anlässe oder temporäre Behandlungen hinzu",
     },
   },
   common: {
@@ -447,7 +460,7 @@ export default {
   },
   pillsSettings: {
     title: "Medikamenteneinstellungen",
-    subtitle: "Verwalten Sie Ihre Medikamente und Werte",
+    description: "Verwalten Sie Ihre Medikamente, Nahrungsergänzungsmittel und Gesundheitswerte",
     addMedication: "Hinzufügen",
     editMedication: "Bearbeiten",
     addMedicationDescription: "Fügen Sie ein neues Medikament hinzu",
@@ -470,10 +483,20 @@ export default {
     daily: "Täglich",
     every2days: "Alle 2 Tage",
     every3days: "Alle 3 Tage",
+    save: "Speichern",
+    saving: "Speichern...",
     saveChanges: "Änderungen speichern",
+    saveSuccess: "Änderungen gespeichert",
+    saveError: "Änderungen konnten nicht gespeichert werden",
+    loadError: "Medikamente konnten nicht geladen werden",
+    invalidData: "Ungültige Daten, bitte überprüfen Sie Ihre Eingaben",
     discard: "Verwerfen",
+    delete: "Löschen",
     noPills: "Noch keine Medikamente",
+    medicationDeleted: "Medikament gelöscht",
     deleteMedication: "Medikament löschen",
+    deleteSupplement: "Nahrungsergänzung löschen",
+    deleteValue: "Wert löschen",
     deleteConfirmTitle: "Medikament löschen?",
     deleteConfirmDescription: "Dieses Medikament hat {count} Kalendereinträge. Alle Einträge werden dauerhaft gelöscht.",
     deleteConfirmNoEntries: "Sind Sie sicher, dass Sie dieses Medikament löschen möchten?",
@@ -503,22 +526,21 @@ export default {
     thisWeek: "Woche",
     thisMonth: "Monat",
     thisYear: "Jahr",
-    range: "Bereich",
+    range: "Datumsbereich",
   },
   schedule: {
     title: "Zeitplan",
     editSchedule: "Zeitplan bearbeiten",
     addSchedule: "Zeitplan hinzufügen",
-    scheduleFrequency: "Zeitplantyp",
     daily: "Täglich",
-    everyXDays: "Alle paar Tage",
+    everyXDays: "Wie viele Tage",
     cyclic: "Zyklisch",
     specificDays: "Bestimmte Tage",
     asNeeded: "Bei Bedarf",
-    customDescription: "Wählen Sie bestimmte Tage für dieses Medikament",
     selectDays: "Tage auswählen",
     noSchedule: "Noch kein Zeitplan",
     tapToSet: "Tippen, um den Zeitplan festzulegen",
+    notSet: "Nicht festgelegt",
     frequency: "Häufigkeit",
     frequencyDescription: "Wählen Sie, wie dieses Medikament im Zeitplan erscheinen soll.",
     dailyDescription: "Nehmen Sie dieses Medikament jeden Tag ein.",
@@ -526,8 +548,12 @@ export default {
     specificDaysDescription: "Wählen Sie die Wochentage, an denen dieses Medikament geplant ist.",
     asNeededDescription: "Kein fester Zeitplan. Nur protokollieren, wenn Sie es einnehmen.",
     from: "Ab",
+    to: "Bis (optional)",
     days: "Tage",
-    timesAndDoses: "Zeiten & Dosen",
+    activePeriod: "Aktiver Zeitraum",
+    reminderTimes: "Erinnerungszeiten",
+    enableReminder: "Erinnerung aktivieren",
+    disableReminder: "Erinnerung deaktivieren",
   },
   graph: {
     week: "Woche",

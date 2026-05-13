@@ -20,92 +20,113 @@ export default {
     mark: "Oznacz",
     clear: "Wyczyść",
   },
+  notifications: {
+    scheduleError: "Zapisano, ale nie udało się zaplanować powiadomień",
+  },
   landing: {
+    nav: {
+      features: "Funkcje",
+      why: "Dlaczego Pilliox",
+      pricing: "Cennik",
+    },
     header: {
       signIn: "Zaloguj się",
       getStarted: "Rozpocznij",
       goToApp: "Przejdź do aplikacji",
     },
     hero: {
-      title: "Twoje wartości medyczne,",
-      titleHighlight: "Idealnie śledzone",
+      badge: "Stworzony dla Marcumar, INR i codziennych rutyn",
+      title: "Śledź każdą dawkę, wartość i harmonogram w",
+      titleHighlight: "jednym kalendarzu.",
       description:
-        "Śledź INR, badania krwi i leki za pomocą pięknego interfejsu kalendarza. Zaprojektowany dla prostoty, zbudowany dla niezawodności.",
-      startTrial: "Rozpocznij darmowy okres próbny",
+        "Pilliox pomaga rejestrować leki, suplementy i pomiary medyczne jak INR, bez zamieniania rutyny zdrowotnej w arkusz kalkulacyjny.",
+      cta: "Zacznij śledzić",
       pricing: "3 dni za darmo, potem 2,99 €/miesiąc",
-      trustedBadge: "Twoja nowa aplikacja do śledzenia",
+      pillCardName: "Dawka Marcumar",
+      pillCardTime: "08:00 potwierdzone",
+    },
+    trustBar: {
+      medications: "Leki",
+      supplements: "Suplementy",
+      values: "Pomiary medyczne",
     },
     features: {
-      title: "Wszystko, czego potrzebujesz",
+      eyebrow: "Pilliox",
+      title: "Zaprojektowany z myślą o Twojej codziennej rutynie zdrowotnej.",
       description:
-        "Potężne funkcje zaprojektowane, aby śledzenie medyczne było bezwysiłkowe",
+        "Praktyczny tracker do codziennych rutyn lekowych, okazjonalnych suplementów i pomiarów zdrowotnych wymagających kontekstu w czasie.",
       calendar: {
-        title: "Inteligentny widok kalendarza",
+        title: "Śledzenie z kalendarzem w centrum",
         description:
-          "Śledź wartości medyczne, takie jak INR i wyniki badań krwi za pomocą intuicyjnego interfejsu kalendarza.",
+          "Zobacz każdą dawkę, suplement i pomiar medyczny w dniu, w którym się wydarzyły, z widokami tygodnia i miesiąca.",
       },
-      pillCounter: {
-        title: "Licznik tabletek",
+      pills: {
+        title: "Leki i suplementy",
         description:
-          "Nigdy nie przegap dawki dzięki naszemu inteligentnemu systemowi śledzenia leków.",
+          "Twórz osobne trackery dla przepisanych leków, suplementów i harmonogramów tabletek z dawkowaniem, jednostką, kolorem i ikoną.",
       },
-      colorCoded: {
-        title: "Kolorowe śledzenie",
+      colors: {
+        title: "Kolorowe okresy",
         description:
-          "Wielodniowy wybór z kodowaniem kolorami dla okresów leczenia i tagami dla łatwej wizualnej organizacji.",
+          "Oznaczaj fazy leczenia, zmiany dawkowania i powtarzające się harmonogramy, aby ważne odcinki były widoczne od razu.",
       },
       secure: {
-        title: "Bezpieczne i prywatne",
+        title: "Prywatność przez projekt",
         description:
-          "Twoje dane medyczne są szyfrowane i bezpiecznie przechowywane z zabezpieczeniami klasy korporacyjnej.",
+          "Dane Twojego konta są przechowywane per użytkownik i powiązane z Twoim uwierzytelnionym profilem.",
+        feature1: "Zaszyfrowana synchronizacja",
+        feature2: "Prywatne notatki",
+        feature3: "Kopia w chmurze",
       },
-      multiLanguage: {
-        title: "Wielojęzyczne",
+      multilingual: {
+        title: "Web, mobile i wielojęzyczne",
         description:
-          "Dostępne w języku niemieckim, polskim i angielskim, aby obsługiwać użytkowników na całym świecie.",
+          "Używaj Pilliox jako PWA lub aplikacji mobilnej, z obsługą angielskiego, niemieckiego i polskiego.",
+      },
+    },
+    why: {
+      eyebrow: "Prawdziwe użycie",
+      title:
+        "Zaprojektowany najpierw dla Marcumar i śledzenia INR, potem dopasowany do szerszych rutyn.",
+      fastLogging: {
+        title: "Szybkie codzienne rejestrowanie",
+        description:
+          "Otwórz kalendarz, zaznacz co wziąłeś, dodaj pomiar gdy potrzeba i wróć do swojego dnia.",
+      },
+      yourData: {
+        title: "Twoje dane, Twoje konto",
+        description:
+          "Pilliox przechowuje trackery per uwierzytelniony użytkownik i utrzymuje logi zdrowotne w zakresie Twojego profilu.",
+      },
+      realRoutines: {
+        title: "Stworzone dla prawdziwych rutyn",
+        description:
+          "Codzienne, określone dni, interwałowe i w razie potrzeby harmonogramy są częścią tego samego modelu.",
       },
     },
     pricing: {
-      title: "Proste, przejrzyste ceny",
+      eyebrow: "Premium",
+      title: "Prosta subskrypcja dla trackera, na którym możesz polegać.",
       description:
-        "Zacznij od darmowego okresu próbnego, kontynuuj za mniej niż filiżanka kawy miesięcznie",
-      plan: "Premium",
+        "Zacznij od krótkiego okresu próbnego, potem utrzymuj nieograniczone śledzenie kalendarza, harmonogramy, kopie zapasowe i dostęp wielojęzyczny.",
+      feature1: "Nieograniczone trackery leków i suplementów",
+      feature2: "Śledzenie pomiarów medycznych dla INR, wagi i nie tylko",
+      feature3: "Codzienne, określone dni, interwałowe i w razie potrzeby harmonogramy",
+      feature4: "Kolorowe okresy i tagi w kalendarzu",
+      feature5: "Bezpieczna kopia zapasowa w chmurze przez Twoje konto",
+      feature6: "Angielski, Niemiecki i Polski",
+      popular: "Popularne",
       price: "2,99 €",
       perMonth: "/miesiąc",
       trialIncluded: "3-dniowy darmowy okres próbny wliczony",
-      features: {
-        tracking:
-          "Nieograniczone śledzenie wartości medycznych",
-        pillCounter: "Inteligentny licznik tabletek",
-        colorCoded: "Wielodniowy wybór z kodowaniem kolorami",
-        tags: "Niestandardowe tagi i etykiety",
-        backup: "Bezpieczna kopia zapasowa w chmurze",
-        multiLanguage: "Wsparcie wielojęzyczne",
-        support: "Priorytetowe wsparcie klienta",
-      },
       cta: "Rozpocznij darmowy okres próbny",
-      cancelAnytime:
-        "Anuluj w dowolnym momencie. Bez zobowiązań.",
+      cancelAnytime: "Anuluj w dowolnym momencie. Bez zobowiązań.",
     },
     cta: {
-      title: "Gotowy przejąć kontrolę?",
-      description: "Tysiące użytkowników ufa Pilliox w śledzeniu wartości medycznych",
-      button: "Rozpocznij teraz",
-    },
-    whyChoose: {
-      title: "Dlaczego Pilliox?",
-      easyTracking: {
-        title: "Łatwe śledzenie",
-        description: "Intuicyjny interfejs kalendarza zaprojektowany specjalnie dla wartości INR i zarządzania lekami",
-      },
-      privacyFirst: {
-        title: "Prywatność przede wszystkim",
-        description: "Twoje dane medyczne są zaszyfrowane i bezpieczne. Nigdy nie udostępniamy Twoich informacji stronom trzecim",
-      },
-      builtForYou: {
-        title: "Stworzone dla Ciebie",
-        description: "Zaprojektowane przez entuzjastów opieki zdrowotnej, którzy rozumieją wyzwania związane ze śledzeniem leków",
-      },
+      title: "Twoje leki, suplementy i pomiary zdrowotne — wszystko w jednym kalendarzu.",
+      description:
+        "Śledź co wziąłeś, kiedy to wziąłeś i jak Twoje pomiary zmieniały się w czasie.",
+      button: "Zacznij teraz",
     },
     footer: {
       copyright: "© 2026 Pilliox. Wszelkie prawa zastrzeżone.",
@@ -147,6 +168,7 @@ export default {
     resetPassword: "Zresetuj hasło",
     resetPasswordDescription: "Wprowadź swój e-mail, aby otrzymać instrukcje resetowania",
     resetPasswordButton: "Zresetuj hasło",
+    resetPasswordSubtitle: "Wprowadź nowe hasło poniżej",
     backToLogin: "Powrót do logowania",
     backToHome: "Powrót do strony głównej",
     enterNewPassword: "Wprowadź nowe hasło poniżej",
@@ -171,7 +193,7 @@ export default {
     privacyPolicy: "Politykę prywatności",
     invalidLoginCredentials: "Nieprawidłowe dane logowania",
     features: {
-      title: "Śledź swoje wartości medyczne, leki i suplementację z łatwością",
+      title: "Śledź swoje pomiary medyczne, leki i suplementy z łatwością",
       medications: "Codzienne śledzenie leków z niestandardowymi dawkami",
       inrTracking: "Monitorowanie wyników badań krwi",
       colorCoded: "Kodowanie kolorami okresów leczenia z tagami",
@@ -185,7 +207,7 @@ export default {
     pillsUnit: "tabletek",
     noPillsConfigured:
       "Nie skonfigurowano jeszcze leków. Skonfiguruj je w Ustawieniach.",
-    otherMedications: "Inne",
+    otherMedications: "Wpisy doraźne",
     addMed: "Dodaj",
     addOtherMedication: "Dodaj inny ",
     addOtherMedicationDesc: "Dodaj jednorazowo - nie w twoim regularnym harmonogramie.",
@@ -193,7 +215,7 @@ export default {
     editOtherMedicationDesc: "Zaktualizuj szczegóły",
     medicationName: "Nazwa",
     medicationNamePlaceholder: "np. Aspiryna, Ibuprofen",
-    pillsAndValues: "Tabletki i wartości",
+    pillsAndValues: "Tabletki i pomiary",
     dosage: "Dawka",
     unit: "Jednostka",
     tablets: "tabletki",
@@ -236,7 +258,7 @@ export default {
     monthlyPreview: "Miesiąc",
   },
   day: {
-    description: "Śledź swoje wartości INR, leki i notatki",
+    description: "Śledź swoje pomiary INR, leki i notatki",
     notePlaceholder: "Dodaj notatkę...",
     delete: "Wyczyść",
     saveChanges: "Ok",
@@ -256,21 +278,7 @@ export default {
   },
   settings: {
     title: "Ustawienia aplikacji",
-    description: "Dostosuj preferencje aplikacji",
-    subtitle: "Dostosuj swoje doświadczenie",
-    settings: "Ustawienia",
-    profile: "Profil",
-    preferences: "Preferencje",
-    weekStartsOnMonday: "Tydzień zaczyna się w:",
-    mondayFirst: "Poniedziałek jest pierwszym dniem",
-    sundayFirst: "Niedziela jest pierwszym dniem",
     changePassword: "Zmień hasło",
-    newPassword: "Nowe hasło",
-    clearAllData: "Wyczyść wszystkie dane",
-    deleteAccount: "Usuń konto",
-    confirmDelete: "Wpisz 'DELETE', aby potwierdzić",
-    saveChanges: "Zapisz zmiany",
-    logoutButton: "Wyloguj",
     appearance: {
       title: "Wygląd",
     },
@@ -283,9 +291,6 @@ export default {
     },
     language: {
       title: "Język",
-    },
-    calendar: {
-      title: "Kalendarz",
     },
     weekStart: {
       title: "Tydzień zaczyna się w:",
@@ -302,6 +307,18 @@ export default {
       confirm: "Czy na pewno chcesz usunąć wszystkie dane kalendarza? Tej operacji nie można cofnąć.",
       success: "Wszystkie dane zostały pomyślnie usunięte",
       error: "Nie udało się usunąć danych",
+    },
+    notifications: {
+      title: "Powiadomienia",
+      menuItem: "Ustawienia powiadomień",
+      dialogDescription: "Zarządzaj powiadomieniami Pilliox o Twoich lekach.",
+      appNotifications: "Powiadomienia aplikacji",
+      appNotificationsDesc: "Przypomnienia push, gdy lek jest do wzięcia.",
+      enabled: "Włączone",
+      blocked: "Zablokowane przez przeglądarkę. Zezwól w ustawieniach strony.",
+      enableButton: "Włącz powiadomienia",
+      emailReminders: "Przypomnienia e-mail",
+      emailRemindersDesc: "Cotygodniowy e-mail z podsumowaniem nadchodzących leków.",
     },
     legal: {
       title: "Inne",
@@ -377,6 +394,7 @@ export default {
     signOut: "Wyloguj się",
     logoutButton: "Wyloguj z konta",
     changePassword: "Zmień hasło",
+    currentPassword: "Aktualne hasło",
     newPassword: "Nowe hasło",
     newPasswordPlaceholder: "Wprowadź nowe hasło",
     confirmPassword: "Potwierdź nowe hasło",
@@ -414,19 +432,17 @@ export default {
   },
   medications: {
     title: "Zarządzanie",
-    subtitle: "Zarządzaj",
     add: "Dodaj",
-    pills: "Suplementy i leki",
-    values: "Wartości medyczne",
+    medications: "Leki",
+    supplements: "Suplementy",
+    values: "Pomiary medyczne",
     empty: {
       title: "Nie ma jeszcze leków",
       description: "Dodaj swój pierwszy lek, aby rozpocząć śledzenie dawek",
     },
-    addFirst: "Dodaj swój pierwszy lek",
     emptyAdHoc: {
       title: "Brak jednorazowych leków",
-      description:
-        "Dodaj jednorazowy lek dla specjalnych okazji lub tymczasowych leczeń",
+      description: "Dodaj jednorazowy lek dla specjalnych okazji lub tymczasowych leczeń",
     },
   },
   common: {
@@ -437,7 +453,7 @@ export default {
   },
   pillsSettings: {
     title: "Ustawienia",
-    subtitle: "Zarządzaj lekami, suplementami i wartościami",
+    description: "Zarządzaj lekami, suplementami i pomiarami zdrowotnymi",
     addMedication: "Dodaj",
     editMedication: "Edytuj",
     addMedicationDescription: "Dodaj nowy lek do listy",
@@ -458,12 +474,22 @@ export default {
     daily: "Codziennie",
     every2days: "Co 2 Dni",
     every3days: "Co 3 Dni",
+    save: "Zapisz",
+    saving: "Zapisywanie...",
     saveChanges: "Zapisz Zmiany",
+    saveSuccess: "Zmiany zapisane",
+    saveError: "Nie udało się zapisać zmian",
+    loadError: "Nie udało się załadować leków",
+    invalidData: "Nieprawidłowe dane, sprawdź swoje wpisy",
     discard: "Odrzuć",
+    delete: "Usuń",
     noPills: "Brak",
+    medicationDeleted: "Lek usunięty",
     typeSupplement: "Suplement",
     typeMedication: "Lek",
-    deleteMedication: "Usuń",
+    deleteMedication: "Usuń lek",
+    deleteSupplement: "Usuń suplement",
+    deleteValue: "Usuń wartość",
     deleteConfirmTitle: "Usunąć?",
     deleteConfirmDescription: "Ten lek ma {count} wpisów w kalendarzu. Wszystkie wpisy zostaną trwale usunięte.",
     deleteConfirmNoEntries: "Czy na pewno chcesz usunąć?",
@@ -491,30 +517,34 @@ export default {
     thisWeek: "Tydzień",
     thisMonth: "Miesiąc",
     thisYear: "Rok",
-    range: "Zakres",
+    range: "Zakres dat",
   },
-    schedule: {
-    title: "Harmonogram",  
-    editSchedule: "Edytuj Harmonogram",
-    addSchedule: "Dodaj Harmonogram",
+  schedule: {
+    title: "Harmonogram",
+    editSchedule: "Edytuj harmonogram",
+    addSchedule: "Dodaj harmonogram",
     frequency: "Jak często?",
     daily: "Codziennie",
-    everyXDays: "Co kilka dni",
+    everyXDays: "Co ile dni",
     cyclic: "Cyklicznie",
     specificDays: "Określone dni",
     asNeeded: "Gdy potrzeba",
-    customDescription: "Wybierz konkretne dni dla tego leku lub suplementu",
-    selectDays: "Wybierz Dni",
+    selectDays: "Wybierz dni",
     noSchedule: "Brak harmonogramu",
     tapToSet: "Dotknij, aby ustawić harmonogram",
-    frequencyDescription: "Wybierz, jak ma pojawiać się w harmonogramie.",
-    dailyDescription: "Przyjmuj codziennie",
-    cyclicDescription: "Powtarzaj po wybranej liczbie dni",
-    specificDaysDescription: "Wybierz dni tygodnia, w które lek lub suplement jest zaplanowany.",
+    notSet: "Nie ustawiono",
+    frequencyDescription: "Wybierz, jak lek ma pojawiać się w harmonogramie.",
+    dailyDescription: "Przyjmuj codziennie.",
+    cyclicDescription: "Powtarzaj po wybranej liczbie dni.",
+    specificDaysDescription: "Wybierz dni tygodnia, w które lek jest zaplanowany.",
     asNeededDescription: "Bez stałego harmonogramu. Zapisuj tylko wtedy, gdy go przyjmiesz.",
     from: "Od",
+    to: "Do (opcjonalnie)",
     days: "dni",
-    timesAndDoses: "Godziny i dawki",
+    activePeriod: "Okres aktywności",
+    reminderTimes: "Godziny przypomnień",
+    enableReminder: "Włącz przypomnienie",
+    disableReminder: "Wyłącz przypomnienie",
   },
   graph: {
     week: "Tydzień",
@@ -533,9 +563,9 @@ export default {
     title: "O Pilliox",
     description: "Twój kompan do śledzenia danych medycznych",
     tagline:
-      "Śledź swoje wartości medyczne z łatwością i precyzją",
+      "Śledź swoje pomiary medyczne z łatwością i precyzją",
     features: "Kluczowe funkcje:",
-    feature1: "Śledź wartości INR i wyniki badań krwi",
+    feature1: "Śledź pomiary INR i wyniki badań krwi",
     feature2: "Monitoruj codzienne leki z licznikiem tabletek",
     feature3:
       "Oznaczaj okresy leczenia kolorami z własnymi tagami",
@@ -726,7 +756,7 @@ export default {
     getStarted: "Rozpocznij",
     step1: {
       title: "Śledź swoje zdrowie",
-      description: "Śledź wartości INR, wyniki badań krwi i harmonogram leków w jednym miejscu.",
+      description: "Śledź pomiary INR, wyniki badań krwi i harmonogram leków w jednym miejscu.",
     },
     step2: {
       title: "Zarządzaj lekami",

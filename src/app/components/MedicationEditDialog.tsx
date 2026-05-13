@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, Pill, Droplet, Leaf, ArrowLeft, Check } from "lucide-react";
+import { Trash2, Pill, Droplet, Leaf, ArrowLeft, Check, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -59,6 +59,7 @@ export function MedicationEditDialog({
   const [editingPill, setEditingPill] = useState<PillSetting | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState<0 | 1>(0);
+  const [isDirty, setIsDirty] = useState(false);
 
   // Delete state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -70,10 +71,10 @@ export function MedicationEditDialog({
   const [scheduleType, setScheduleType] = useState<ScheduleType>("daily");
   const [frequencyPickerOpen, setFrequencyPickerOpen] = useState(false);
   const [scheduleStartDate, setScheduleStartDate] = useState(formatDateInputValue());
+  const [scheduleEndDate, setScheduleEndDate] = useState("");
   const [cycleDays, setCycleDays] = useState(2);
   const [specificDays, setSpecificDays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [times, setTimes] = useState<ScheduleTime[]>([{ time: "09:00", dose: 1 }]);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     if (open && pill) {
@@ -82,19 +83,33 @@ export function MedicationEditDialog({
       setScheduleStartDate(pill.scheduleStartDate ?? formatDateInputValue());
       setCycleDays(pill.scheduleCycleDays ?? 2);
       setSpecificDays(new Set(pill.scheduleSpecificDays ?? [1, 2, 3, 4, 5]));
+      setScheduleEndDate(pill.scheduleEndDate ?? "");
       setTimes(
         pill.scheduleTimes?.length
-          ? pill.scheduleTimes.map((time) => ({ ...time, unit: time.unit ?? pill.unit }))
-          : [{ time: "09:00", dose: pill.defaultDosage || 1, unit: pill.unit }],
+          ? pill.scheduleTimes.map((time) => ({
+            ...time,
+            unit: time.unit ?? pill.unit,
+            notificationEnabled: time.notificationEnabled !== undefined
+              ? time.notificationEnabled
+              : pill.notificationEnabledTimes
+                ? pill.notificationEnabledTimes.includes(time.time)
+                : (pill.notificationsEnabled ?? false),
+          }))
+          : [{ time: "09:00", dose: pill.defaultDosage || 1, unit: pill.unit, notificationEnabled: pill.notificationsEnabled ?? false }],
       );
-      setNotificationsEnabled(pill.notificationsEnabled ?? false);
       setStep(0);
       setFrequencyPickerOpen(false);
+      setIsDirty(false);
     }
   }, [open, pill]);
 
-  const updatePill = (updates: Partial<PillSetting>) =>
+  // Mark dirty after initial load whenever any edit state changes
+  const markDirty = () => setIsDirty(true);
+
+  const updatePill = (updates: Partial<PillSetting>) => {
+    markDirty();
     setEditingPill((prev) => prev ? { ...prev, ...updates } : prev);
+  };
 
   const checkCalendarEntries = async (pillId: string) => {
     try {
@@ -152,17 +167,24 @@ export function MedicationEditDialog({
       const scheduleTimes = scheduleType !== "as_needed"
         ? normalizeScheduleTimes(times, firstUnit)
         : [];
+      const notificationsEnabled = times.some((t) => t.notificationEnabled === true);
+      const firstNotifiedTime = times.find((t) => t.notificationEnabled === true);
+      const notificationEnabledTimes = times
+        .filter((t) => t.notificationEnabled === true)
+        .map((t) => t.time);
       const pillToSave: PillSetting = {
         ...editingPill,
         defaultDosage: firstDose,
         unit: firstUnit,
         scheduleType,
-        scheduleStartDate: scheduleType === "cyclic" ? scheduleStartDate : undefined,
+        scheduleStartDate: scheduleType !== "as_needed" ? (scheduleStartDate || undefined) : undefined,
+        scheduleEndDate: scheduleType !== "as_needed" ? (scheduleEndDate || undefined) : undefined,
         scheduleCycleDays: scheduleType === "cyclic" ? cycleDays : undefined,
         scheduleSpecificDays: scheduleType === "specific_days" ? Array.from(specificDays) : undefined,
         scheduleTimes,
         notificationsEnabled,
-        notificationTime: notificationsEnabled && times.length > 0 ? times[0].time : undefined,
+        notificationEnabledTimes,
+        notificationTime: notificationsEnabled && firstNotifiedTime ? firstNotifiedTime.time : undefined,
       };
 
       const method = isAddingNew ? "POST" : "PUT";
@@ -263,17 +285,17 @@ export function MedicationEditDialog({
               <MedicationScheduleForm
                 pill={editingPill}
                 scheduleType={scheduleType}
-                onScheduleTypeChange={setScheduleType}
+                onScheduleTypeChange={(v) => { markDirty(); setScheduleType(v); }}
                 scheduleStartDate={scheduleStartDate}
-                onScheduleStartDateChange={setScheduleStartDate}
+                onScheduleStartDateChange={(v) => { markDirty(); setScheduleStartDate(v); }}
+                scheduleEndDate={scheduleEndDate}
+                onScheduleEndDateChange={(v) => { markDirty(); setScheduleEndDate(v); }}
                 cycleDays={cycleDays}
-                onCycleDaysChange={setCycleDays}
+                onCycleDaysChange={(v) => { markDirty(); setCycleDays(v); }}
                 specificDays={specificDays}
-                onSpecificDaysChange={setSpecificDays}
+                onSpecificDaysChange={(v) => { markDirty(); setSpecificDays(v); }}
                 times={times}
-                onTimesChange={setTimes}
-                notificationsEnabled={notificationsEnabled}
-                onNotificationsEnabledChange={setNotificationsEnabled}
+                onTimesChange={(v) => { markDirty(); setTimes(v); }}
                 frequencyPickerOpen={frequencyPickerOpen}
                 onFrequencyPickerOpenChange={setFrequencyPickerOpen}
               />
@@ -307,7 +329,7 @@ export function MedicationEditDialog({
                 <div className="flex w-full gap-4 sm:gap-6">
                   <div className="space-y-2 flex-1">
                     <Label>{t("pillsSettings.type")}</Label>
-                    <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-1 flex h-12 gap-0">
+                    <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-2xl p-1 flex h-12 gap-0">
                       <Button
                         type="button"
                         variant="tabGroup"
@@ -366,10 +388,21 @@ export function MedicationEditDialog({
                 {editingPill.type !== "value" && (
                   <div className="space-y-2">
                     <Label>{t("pillsSettings.icon") || "Icon"}</Label>
-                    <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+                    <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+                      {/* None option — shows letter initial */}
+                      <Button
+                        type="button"
+                        onClick={() => updatePill({ icon: undefined })}
+                        variant="tabGroup"
+                        data-state={!editingPill.icon ? "active" : "inactive"}
+                        aria-label="No icon"
+                        className="font-bold text-sm"
+                        style={{ color: editingPill.color || "currentColor" }}
+                      >
+                        <X className="size-5 hidden sm:block text-gray-400" strokeWidth={2} />
+                      </Button>
                       {MEDICATION_ICON_IDS.map((icon) => {
-                        const isSelected = (editingPill.icon ?? "capsule") === icon;
-
+                        const isSelected = editingPill.icon === icon;
                         return (
                           <Button
                             key={icon}
@@ -398,26 +431,37 @@ export function MedicationEditDialog({
                   onScheduleTypeChange={setScheduleType}
                   scheduleStartDate={scheduleStartDate}
                   onScheduleStartDateChange={setScheduleStartDate}
+                  scheduleEndDate={scheduleEndDate}
+                  onScheduleEndDateChange={setScheduleEndDate}
                   cycleDays={cycleDays}
                   onCycleDaysChange={setCycleDays}
                   specificDays={specificDays}
                   onSpecificDaysChange={setSpecificDays}
                   times={times}
                   onTimesChange={setTimes}
-                  notificationsEnabled={notificationsEnabled}
-                  onNotificationsEnabledChange={setNotificationsEnabled}
                   frequencyPickerOpen={frequencyPickerOpen}
                   onFrequencyPickerOpenChange={setFrequencyPickerOpen}
                 />
               </div>
             )}
+            <div className="border-t mt-4 pt-4">{!frequencyPickerOpen && !isAddingNew && editingPill.name && (<>
+              <Button variant="ghost" size="sm" onClick={handleDeleteClick}>
+                <Trash2 className="size-3 text-red-400" strokeWidth={2} />
+                {editingPill.type === "supplement"
+                  ? t("pillsSettings.deleteSupplement") || "Delete Supplement"
+                  : editingPill.type === "value"
+                    ? t("pillsSettings.deleteValue") || "Delete Value"
+                    : t("pillsSettings.deleteMedication") || "Delete Medication"}
+              </Button></>
+            )}</div>
           </div>
 
           {/* Footer */}
           <DialogFooter className="flex-row">
-            {!frequencyPickerOpen && !isAddingNew && editingPill.name && (
-              <Button variant="destructive" onClick={handleDeleteClick}>
-                <Trash2 className="h-4 w-4" strokeWidth={2} />
+
+            {!frequencyPickerOpen && !isAddingNew && isDirty && (
+              <Button variant="outline" className="flex-1" onClick={onDiscard} disabled={isSaving}>
+                {t("pillsSettings.discard") || "Discard"}
               </Button>
             )}
             {!frequencyPickerOpen && isAddingNew && step === 1 && (

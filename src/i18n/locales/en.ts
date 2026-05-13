@@ -1,6 +1,3 @@
-import { Title } from "@radix-ui/react-dialog";
-import { Edit } from "lucide-react";
-
 export default {
   app: {
     name: "Pilliox",
@@ -23,108 +20,113 @@ export default {
     mark: "Mark",
     clear: "Clear",
   },
-      // Unit translations
-  units: {
-      none: " ",
-      mg: "mg",
-      kg: "kg",
-      IU: "IU",
-      mmoll: "mmol/L",
-      mgdl: "mg/dL",
-      g: "g",
-      ml: "ml",
-      mcg: "mcg",
-      tablets: "tablets",
-      capsules: "capsules",
-      drops: "drops",
-      pieces: "pieces",
-      units: "units",
-    },
+  notifications: {
+    scheduleError: "Saved, but notification scheduling failed",
+  },
   landing: {
+    nav: {
+      features: "Features",
+      why: "Why Pilliox",
+      pricing: "Pricing",
+    },
     header: {
       signIn: "Sign In",
       getStarted: "Get Started",
       goToApp: "Go to App",
     },
     hero: {
-      title: "Your Medical Values,",
-      titleHighlight: "Perfectly Tracked",
+      badge: "Built for Marcumar, INR, and everyday routines",
+      title: "Track every dose, value, and schedule in",
+      titleHighlight: "one calendar.",
       description:
-        "Track INR, blood tests, and medications with a beautiful calendar interface. Designed for simplicity, built for reliability.",
-      startTrial: "Start Free Trial",
+        "Pilliox helps you log medications, supplements, and medical values like INR without turning your health routine into a spreadsheet.",
+      cta: "Start tracking",
       pricing: "3 days free, then €2.99/month",
-      trustedBadge: "Your new tracking app",
+      pillCardName: "Marcumar dose",
+      pillCardTime: "08:00 confirmed",
+    },
+    trustBar: {
+      medications: "Medications",
+      supplements: "Supplements",
+      values: "Medical values",
     },
     features: {
-      title: "Everything You Need",
+      eyebrow: "Pilliox",
+      title: "Built around the way Pilliox actually works.",
       description:
-        "Powerful features designed to make medical tracking effortless",
+        "A practical tracker for daily medication routines, occasional supplements, and numeric health values that need context over time.",
       calendar: {
-        title: "Smart Calendar View",
+        title: "Calendar-first tracking",
         description:
-          "Track medical values like INR and blood test results with an intuitive calendar interface.",
+          "See every dose, supplement, and medical value on the day it happened, with week and month views built for repeat use.",
       },
-      pillCounter: {
-        title: "Pill Counter",
+      pills: {
+        title: "Medications and supplements",
         description:
-          "Never miss a dose with our smart pill tracking system that keeps count of your medications.",
+          "Create separate trackers for prescribed medication, supplements, and legacy pill schedules with dosage, unit, color, and icon.",
       },
-      colorCoded: {
-        title: "Color-Coded Tracking",
+      colors: {
+        title: "Color-coded periods",
         description:
-          "Multi-day selection with color coding for treatment periods and tags for easy visual organization.",
+          "Mark treatment phases, dosage changes, and repeating schedules so important stretches stand out immediately.",
       },
       secure: {
-        title: "Secure & Private",
+        title: "Private by design",
         description:
-          "Your medical data is encrypted and securely stored with enterprise-grade security.",
+          "Your account data is stored per user and stays tied to your authenticated profile.",
+        feature1: "Encrypted sync",
+        feature2: "Private notes",
+        feature3: "Cloud backup",
       },
-      multiLanguage: {
-        title: "Multi-Language",
+      multilingual: {
+        title: "Web, mobile, and multilingual",
         description:
-          "Available in German, Polish, and English to serve users worldwide.",
+          "Use Pilliox as a PWA or mobile app, with English, German, and Polish support.",
+      },
+    },
+    why: {
+      eyebrow: "Real use",
+      title:
+        "Designed first for Marcumar and INR tracking, then shaped for broader routines.",
+      fastLogging: {
+        title: "Fast daily logging",
+        description:
+          "Open the calendar, mark what you took, add a value when needed, and move on with your day.",
+      },
+      yourData: {
+        title: "Your data, your account",
+        description:
+          "Pilliox stores trackers per authenticated user and keeps health logs scoped to your profile.",
+      },
+      realRoutines: {
+        title: "Made for real routines",
+        description:
+          "Daily, specific-day, interval, and as-needed schedules are all part of the same model.",
       },
     },
     pricing: {
-      title: "Simple, Transparent Pricing",
+      eyebrow: "Premium",
+      title: "Simple subscription for a tracker you can rely on.",
       description:
-        "Start with a free trial, continue for less than a cup of coffee per month",
-      plan: "Premium",
+        "Start with a short trial, then keep unlimited calendar tracking, schedules, backups, and multilingual access active.",
+      feature1: "Unlimited medication and supplement trackers",
+      feature2: "Medical value tracking for INR, weight, and more",
+      feature3: "Daily, specific-day, interval, and as-needed schedules",
+      feature4: "Color-coded calendar periods and tags",
+      feature5: "Secure cloud backup through your account",
+      feature6: "English, German, and Polish",
+      popular: "Popular",
       price: "€2.99",
       perMonth: "/month",
       trialIncluded: "3-day free trial included",
-      features: {
-        tracking: "Unlimited medical value tracking",
-        pillCounter: "Smart pill counter",
-        colorCoded: "Multi-day color-coded selections",
-        tags: "Custom tags and labels",
-        backup: "Secure cloud backup",
-        multiLanguage: "Multi-language support",
-        support: "Priority customer support",
-      },
-      cta: "Start Your Free Trial",
+      cta: "Start free trial",
       cancelAnytime: "Cancel anytime. No commitment required.",
     },
     cta: {
-      title: "Ready to Take Control?",
+      title: "Put your medication routine on a calendar that makes sense.",
       description:
-        "Join thousands of users who trust Pilliox with their medical tracking",
-      button: "Get Started Now",
-    },
-    whyChoose: {
-      title: "Why Choose Pilliox?",
-      easyTracking: {
-        title: "Easy Tracking",
-        description: "Intuitive calendar interface designed specifically for INR values and medication management",
-      },
-      privacyFirst: {
-        title: "Privacy First",
-        description: "Your medical data is encrypted and secure. We never share your information with third parties",
-      },
-      builtForYou: {
-        title: "Built for You",
-        description: "Designed by healthcare enthusiasts who understand the challenges of medication tracking",
-      },
+        "Track what you took, when you took it, and how your values changed over time.",
+      button: "Get started",
     },
     footer: {
       copyright: "© 2026 Pilliox. All rights reserved.",
@@ -168,6 +170,7 @@ export default {
     resetPasswordDescription:
       "Enter your email to receive reset instructions",
     resetPasswordButton: "Reset Password",
+    resetPasswordSubtitle: "Enter your new password below",
     backToLogin: "Back to Login",
     backToHome: "Back to Home",
     enterNewPassword: "Enter your new password below",
@@ -212,7 +215,7 @@ export default {
     pillsUnit: "pills",
     noPillsConfigured:
       "No medications configured yet. Configure them in Settings.",
-    otherMedications: "Other Medications",
+    otherMedications: "Ad-hoc entries",
     addMed: "Add",
     addOtherMedication: "Add Other",
     addOtherMedicationDesc:
@@ -229,7 +232,22 @@ export default {
     drops: "drops",
     delete: "Delete",
     cancel: "Cancel",
-
+    units: {
+      none: " ",
+      mg: "mg",
+      kg: "kg",
+      IU: "IU",
+      mmoll: "mmol/L",
+      mgdl: "mg/dL",
+      g: "g",
+      ml: "ml",
+      mcg: "mcg",
+      tablets: "tablets",
+      capsules: "capsules",
+      drops: "drops",
+      pieces: "pieces",
+      units: "units",
+    },
     notification: "Notification",
     enableNotification: "Enable Reminder",
     notificationTime: "Time",
@@ -267,21 +285,7 @@ export default {
   },
   settings: {
     title: "App Settings",
-    description: "Customize your app preferences",
-    subtitle: "Customize your experience",
-    settings: "Settings",
-    profile: "Profile",
-    preferences: "Preferences",
-    weekStartsOnMonday: "Week starts on:",
-    mondayFirst: "Monday is the first day",
-    sundayFirst: "Sunday is the first day",
     changePassword: "Change Password",
-    newPassword: "New Password",
-    clearAllData: "Clear All Data",
-    deleteAccount: "Delete Account",
-    confirmDelete: "Type 'DELETE' to confirm",
-    saveChanges: "Save Changes",
-    logoutButton: "Logout",
     appearance: {
       title: "Appearance",
     },
@@ -295,9 +299,6 @@ export default {
     language: {
       title: "Language",
     },
-    calendar: {
-      title: "Calendar",
-    },
     weekStart: {
       title: "Week starts on:",
       description: "Change calendar week start day",
@@ -310,10 +311,21 @@ export default {
     subscription: "Subscription",
     clearData: {
       title: "Clear All Data",
-      confirm:
-        "Are you sure you want to clear all calendar data? This cannot be undone.",
+      confirm: "Are you sure you want to clear all calendar data? This cannot be undone.",
       success: "All data cleared successfully",
       error: "Failed to clear data",
+    },
+    notifications: {
+      title: "Notifications",
+      menuItem: "Notification settings",
+      dialogDescription: "Manage how Pilliox notifies you about your medications.",
+      appNotifications: "App notifications",
+      appNotificationsDesc: "Push reminders when a medication is due.",
+      enabled: "Enabled",
+      blocked: "Blocked by browser. Allow in site settings to enable.",
+      enableButton: "Enable notifications",
+      emailReminders: "Email reminders",
+      emailRemindersDesc: "Receive a weekly summary email with your upcoming medications.",
     },
     legal: {
       title: "Other",
@@ -388,6 +400,7 @@ export default {
     signOut: "Sign Out",
     logoutButton: "Logout from Account",
     changePassword: "Change Password",
+    currentPassword: "Current Password",
     newPassword: "New Password",
     newPasswordPlaceholder: "Enter new password",
     confirmPassword: "Confirm new password",
@@ -426,21 +439,17 @@ export default {
   },
   medications: {
     title: "Medications",
-    subtitle: "Manage your medications",
     add: "Add",
     medications: "Medications",
     supplements: "Supplements",
     values: "Medical Values",
     empty: {
       title: "No medications yet",
-      description:
-        "Add your first medication to start tracking doses",
+      description: "Add your first medication to start tracking doses",
     },
-    addFirst: "Add your first medication",
-    emtpyAdHoc: {
+    emptyAdHoc: {
       title: "No one-time medications",
-      description:
-        "Add a one-time medication for special occasions or temporary treatments",
+      description: "Add a one-time medication for special occasions or temporary treatments",
     },
   },
   common: {
@@ -451,7 +460,7 @@ export default {
   },
   pillsSettings: {
     title: "Pills Settings",
-    subtitle: "Manage your medications and values",
+    description: "Manage your medications, supplements and health values",
     addMedication: "Add Medication",
     editMedication: "Edit Medication",
     addMedicationDescription:
@@ -475,10 +484,20 @@ export default {
     daily: "Daily",
     every2days: "Every 2 Days",
     every3days: "Every 3 Days",
+    save: "Save",
+    saving: "Saving...",
     saveChanges: "Save Changes",
+    saveSuccess: "Changes saved",
+    saveError: "Failed to save changes",
+    loadError: "Failed to load medications",
+    invalidData: "Invalid data, please check your inputs",
     discard: "Discard",
+    delete: "Delete",
     noPills: "No medications yet",
+    medicationDeleted: "Medication deleted",
     deleteMedication: "Delete Medication",
+    deleteSupplement: "Delete Supplement",
+    deleteValue: "Delete Value",
     deleteConfirmTitle: "Delete Medication?",
     deleteConfirmDescription:
       "This medication has {count} calendar entries. All entries will be permanently deleted.",
@@ -493,19 +512,18 @@ export default {
     confirmDelete: "Confirm Delete",
   },  
   schedule: {
-    title: "Schedule",  
+    title: "Schedule",
     editSchedule: "Edit Schedule",
     addSchedule: "Add Schedule",
-    scheduleFrequency: "Schedule Type",
     daily: "Daily",
-    everyXDays: "Every Few Days",
-    cyclic: "Cyclic",
-    specificDays: "Specific Days",
-    asNeeded: "As Needed",
-    customDescription: "Select specific days for this medication",
-    selectDays: "Select Days",
+    everyXDays: "Every how many days",
+    cyclic: "Every X days",
+    specificDays: "Specific days",
+    asNeeded: "As needed",
+    selectDays: "Select days",
     noSchedule: "No schedule yet",
     tapToSet: "Tap to set schedule",
+    notSet: "Not set",
     frequency: "Frequency",
     frequencyDescription: "Choose how this medication should appear in your schedule.",
     dailyDescription: "Take this medication every day.",
@@ -513,8 +531,12 @@ export default {
     specificDaysDescription: "Choose the weekdays when this medication is scheduled.",
     asNeededDescription: "No fixed schedule. Log it only when you take it.",
     from: "From",
+    to: "To (optional)",
     days: "days",
-    timesAndDoses: "Times & Doses",
+    activePeriod: "Active period",
+    reminderTimes: "Reminder times",
+    enableReminder: "Enable reminder",
+    disableReminder: "Disable reminder",
   },
   graph: {
     week: "Week",
@@ -536,7 +558,6 @@ export default {
     thisMonth: "Month",
     thisYear: "Year",
     range: "Date Range",
-    fillEmpty: "Fill empty days in range",
   },
   deleteConfirm: {
     title: "Remove Tag",

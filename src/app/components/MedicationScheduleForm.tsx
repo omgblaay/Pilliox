@@ -1,9 +1,9 @@
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, ChevronRight, Check } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Check, Bell, BellOff, XIcon, CalendarX } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import { cn } from "./ui/utils";
 import { toast } from "sonner";
 import type { PillSetting, ScheduleTime, ScheduleType } from "./PillsSettings";
@@ -15,14 +15,14 @@ interface MedicationScheduleFormProps {
   onScheduleTypeChange: (scheduleType: ScheduleType) => void;
   scheduleStartDate: string;
   onScheduleStartDateChange: (date: string) => void;
+  scheduleEndDate?: string;
+  onScheduleEndDateChange?: (date: string) => void;
   cycleDays: number;
   onCycleDaysChange: (cycleDays: number) => void;
   specificDays: Set<number>;
   onSpecificDaysChange: (specificDays: Set<number>) => void;
   times: ScheduleTime[];
   onTimesChange: (times: ScheduleTime[]) => void;
-  notificationsEnabled: boolean;
-  onNotificationsEnabledChange: (enabled: boolean) => void;
   frequencyPickerOpen: boolean;
   onFrequencyPickerOpenChange: (open: boolean) => void;
   introTitle?: string;
@@ -36,14 +36,14 @@ export function MedicationScheduleForm({
   onScheduleTypeChange,
   scheduleStartDate,
   onScheduleStartDateChange,
+  scheduleEndDate,
+  onScheduleEndDateChange,
   cycleDays,
   onCycleDaysChange,
   specificDays,
   onSpecificDaysChange,
   times,
   onTimesChange,
-  notificationsEnabled,
-  onNotificationsEnabledChange,
   frequencyPickerOpen,
   onFrequencyPickerOpenChange,
   introTitle,
@@ -51,6 +51,12 @@ export function MedicationScheduleForm({
   showSectionTitle = true,
 }: MedicationScheduleFormProps) {
   const { t } = useTranslation();
+  const [showEndDate, setShowEndDate] = useState(!!scheduleEndDate);
+
+  // Sync expanded state when end date is set/cleared externally
+  useEffect(() => {
+    setShowEndDate(!!scheduleEndDate);
+  }, [scheduleEndDate]);
 
   const scheduleTypes: { value: ScheduleType; label: string; description: string }[] = [
     { value: "daily", label: t("schedule.daily") || "Daily", description: t("schedule.dailyDescription") || "Take this medication every day." },
@@ -60,8 +66,20 @@ export function MedicationScheduleForm({
   ];
 
   const currentScheduleType = scheduleTypes.find((type) => type.value === scheduleType) ?? scheduleTypes[0];
-  const getDoseUnitLabel = (unit?: string) => {
-    return getUnitLabel(unit ?? pill.unit, t);
+
+  const getDoseUnitLabel = (unit?: string) => getUnitLabel(unit ?? pill.unit, t);
+
+  const getScheduleInfoLabel = () => {
+    switch (scheduleType) {
+      case "daily": return t("schedule.daily") || "Daily";
+      case "cyclic": return `Every ${cycleDays} days`;
+      case "specific_days": {
+        const dayLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+        const selected = Array.from(specificDays).sort().map((d) => dayLabels[d]).join(", ");
+        return selected || (t("schedule.specificDays") || "Specific days");
+      }
+      default: return "";
+    }
   };
 
   const toggleDay = (day: number) => {
@@ -73,51 +91,41 @@ export function MedicationScheduleForm({
   const addTime = () => {
     onTimesChange([
       ...times,
-      { time: "12:00", dose: times[0]?.dose ?? pill.defaultDosage, unit: times[0]?.unit ?? pill.unit },
+      { time: "12:00", dose: times[0]?.dose ?? pill.defaultDosage, unit: times[0]?.unit ?? pill.unit, notificationEnabled: false },
     ]);
   };
 
   const removeTime = (index: number) => {
-    onTimesChange(times.filter((_, itemIndex) => itemIndex !== index));
+    onTimesChange(times.filter((_, i) => i !== index));
   };
 
-  const updateTime = (index: number, field: "time" | "dose", value: string) => {
+  const updateTime = (index: number, updates: Partial<ScheduleTime>) => {
     onTimesChange(
-      times.map((time, itemIndex) =>
-        itemIndex === index
-          ? { ...time, [field]: field === "dose" ? parseFloat(value) || 0 : value }
-          : time,
-      ),
+      times.map((time, i) => (i === index ? { ...time, ...updates } : time)),
     );
   };
 
-  const handleNotificationToggle = (checked: boolean) => {
-    onNotificationsEnabledChange(checked);
-    if (!checked) return;
+  const handleBellToggle = (index: number) => {
+    const current = times[index].notificationEnabled ?? false;
+    const next = !current;
 
-    if (typeof Notification === 'undefined') {
-      toast.error("This browser doesn't support notifications.");
+    if (next && typeof Notification !== "undefined" && Notification.permission !== "granted") {
+      Notification.requestPermission().then((result) => {
+        if (result === "denied") {
+          toast.error(
+            "Notifications are blocked. In Chrome: tap the lock icon → Site settings → Notifications → Allow.",
+            { duration: 7000 },
+          );
+          return;
+        }
+        updateTime(index, { notificationEnabled: true });
+      }).catch(() => {
+        toast.error("Unable to request notification permission.");
+      });
       return;
     }
 
-    if (Notification.permission === 'granted') return;
-
-    // Always request directly in the user-gesture handler.
-    // On Chrome Android, permission may appear as 'denied' even when never
-    // explicitly blocked — calling requestPermission() is the only way to
-    // trigger the actual prompt or confirm a true block.
-    Notification.requestPermission().then((result) => {
-      if (result === 'denied') {
-        toast.error(
-          "Notifications are blocked for this site. In Chrome: tap the lock icon → Site settings → Notifications → Allow.",
-          { duration: 7000 }
-        );
-      } else if (result === 'default') {
-        toast.info("Tap 'Allow' on the notification prompt to receive reminders.");
-      }
-    }).catch(() => {
-      toast.error("Unable to request notification permission.");
-    });
+    updateTime(index, { notificationEnabled: next });
   };
 
   if (frequencyPickerOpen) {
@@ -130,10 +138,7 @@ export function MedicationScheduleForm({
           <button
             key={type.value}
             type="button"
-            onClick={() => {
-              onScheduleTypeChange(type.value);
-              onFrequencyPickerOpenChange(false);
-            }}
+            onClick={() => onScheduleTypeChange(type.value)}
             className={cn(
               "w-full rounded-xl border p-4 text-left transition-colors",
               scheduleType === type.value
@@ -150,6 +155,56 @@ export function MedicationScheduleForm({
             </div>
           </button>
         ))}
+
+        {scheduleType !== "as_needed" && (
+          <div className="space-y-2 border-t pt-4">
+            <Label className="text-sm text-muted-foreground">{t("schedule.activePeriod") || "Active period"}</Label>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs text-muted-foreground">{t("schedule.from") || "From"}</Label>
+                <Input
+                  type="date"
+                  value={scheduleStartDate}
+                  onChange={(e) => onScheduleStartDateChange(e.target.value)}
+                />
+              </div>
+              {showEndDate ? (
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t("schedule.to") || "To"}</Label>
+                  <div className="flex gap-1">
+                    <Input
+                      type="date"
+                      value={scheduleEndDate ?? ""}
+                      onChange={(e) => onScheduleEndDateChange?.(e.target.value)}
+                      min={scheduleStartDate}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => { onScheduleEndDateChange?.(""); setShowEndDate(false); }}
+                    >
+                      <CalendarX className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-shrink-0 text-muted-foreground h-9 self-end"
+                  onClick={() => setShowEndDate(true)}
+                >
+                  <Plus className="size-3.5" />
+                  {t("schedule.to") || "End date"}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -168,17 +223,24 @@ export function MedicationScheduleForm({
           <Label className="text-base font-semibold">{t("schedule.title") || "Schedule"}</Label>
         )}
 
+        {/* Frequency picker */}
         <div className="space-y-2">
           <Label className="text-sm text-muted-foreground">{t("schedule.frequency") || "Frequency"}</Label>
           <button
             type="button"
             onClick={() => onFrequencyPickerOpenChange(true)}
-            className="w-full rounded-xl border border-border cursor-pointer p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
+            className="w-full rounded-xl border border-border cursor-pointer p-4 text-left transition-colors hover:border-gray/20 hover:bg-muted/30"
           >
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <p className="font-medium">{currentScheduleType.label}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{currentScheduleType.description}</p>
+                {scheduleType !== "as_needed" && (scheduleStartDate || scheduleEndDate) && (
+                  <p className="mt-1.5 text-xs font-mono text-muted-foreground">
+                    {scheduleStartDate || "…"}
+                    {scheduleEndDate ? ` → ${scheduleEndDate}` : ""}
+                  </p>
+                )}
               </div>
               <ChevronRight className="size-5 text-muted-foreground" />
             </div>
@@ -186,28 +248,17 @@ export function MedicationScheduleForm({
         </div>
 
         {scheduleType === "cyclic" && (
-          <div className="flex sm:items-center gap-6">
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">{t("schedule.everyXDays") || "Every how many days"}</Label>
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => onCycleDaysChange(Math.max(2, cycleDays - 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">
-                  <Plus className="size-4" />
-                </Button>
-                <span className="w-12 text-center text-lg font-semibold">{cycleDays}</span>
-                <Button variant="outline" onClick={() => onCycleDaysChange(Math.min(60, cycleDays + 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">
-                  <Plus className="size-4" />
-                </Button>
-                <span className="text-sm text-muted-foreground">{t("schedule.days") || "days"}</span>
-              </div>
-            </div>
-            <div className="space-y-2 flex-1">
-              <Label className="text-sm text-muted-foreground">{t("schedule.from") || "From"}</Label>
-              <Input
-                type="date"
-                className="w-auto"
-                value={scheduleStartDate}
-                onChange={(event) => onScheduleStartDateChange(event.target.value)}
-              />
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">{t("schedule.everyXDays") || "Every how many days"}</Label>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => onCycleDaysChange(Math.max(2, cycleDays - 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">
+                <Plus className="size-4" />
+              </Button>
+              <span className="w-12 text-center text-lg font-semibold">{cycleDays}</span>
+              <Button variant="outline" onClick={() => onCycleDaysChange(Math.min(60, cycleDays + 1))} className="h-9 w-9 rounded-lg border flex items-center justify-center text-lg font-bold hover:bg-muted">
+                <Plus className="size-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">{t("schedule.days") || "days"}</span>
             </div>
           </div>
         )}
@@ -215,7 +266,7 @@ export function MedicationScheduleForm({
         {scheduleType === "specific_days" && (
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground">{t("schedule.selectDays") || "Select days"}</Label>
-            <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-1">
+            <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-1">
               {DAYS.map((day) => (
                 <Button
                   key={day.value}
@@ -232,22 +283,31 @@ export function MedicationScheduleForm({
           </div>
         )}
 
+        {/* Times with per-slot notification toggle */}
         {scheduleType !== "as_needed" && (
-          <div className="space-y-2 border-t pt-4">
+          <div className="space-y-3 border-t pt-4">
             <div className="flex items-center justify-between">
-
-              <div className="flex w-full items-center gap-3 my-4">
-                <Label className="flex-1 text-foreground">
-                  {t("pillsSettings.notifications") || "Notifications"}
-                </Label>
-                <Switch checked={notificationsEnabled} onCheckedChange={handleNotificationToggle} />
-              </div>
-
+              <Label className="text-sm text-muted-foreground">
+                {t("schedule.reminderTimes") || "Reminder times"}
+                {getScheduleInfoLabel() && (
+                  <span className="ml-2 text-xs font-normal bg-muted px-2 py-0.5 rounded-full">
+                    {getScheduleInfoLabel()}
+                  </span>
+                )}
+              </Label>            <Button type="button" variant="secondary" size="sm" onClick={addTime}>
+              <Plus className="size-4" />
+              {t("basic.add") || "Add"}
+            </Button>
             </div>
             <div className="space-y-2">
               {times.map((entry, index) => (
                 <div key={index} className="flex items-center gap-4">
-                  <Input type="time" value={entry.time} onChange={(event) => updateTime(index, "time", event.target.value)} className="flex-1" />
+                  <Input
+                    type="time"
+                    value={entry.time}
+                    onChange={(e) => updateTime(index, { time: e.target.value })}
+                    className="flex-1"
+                  />
                   <div className="relative flex-1">
                     <Input
                       type="number"
@@ -255,7 +315,7 @@ export function MedicationScheduleForm({
                       min="0"
                       step="0.5"
                       value={entry.dose}
-                      onChange={(event) => updateTime(index, "dose", event.target.value)}
+                      onChange={(e) => updateTime(index, { dose: parseFloat(e.target.value) || 0 })}
                     />
                     {getDoseUnitLabel(entry.unit) && (
                       <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-right text-sm text-muted-foreground">
@@ -263,6 +323,24 @@ export function MedicationScheduleForm({
                       </span>
                     )}
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleBellToggle(index)}
+                    className={cn(
+                      "flex-shrink-0",
+                      entry.notificationEnabled
+                        ? "bg-cyan-500/10 border-cyan-500"
+                        : "text-muted-foreground",
+                    )}
+                    title={entry.notificationEnabled ? (t("schedule.disableReminder") || "Disable reminder") : (t("schedule.enableReminder") || "Enable reminder")}
+                  >
+                    {entry.notificationEnabled ? (
+                      <><Bell className="size-4 text-teal-500" /> <Check className="size-4 text-teakl-500" /></>
+                    ) : (
+                      <><BellOff className="size-4 text-red-500" /> <XIcon className="size-4 text-red-500" /></>
+                    )}
+                  </Button>
                   {times.length > 1 && (
                     <Button type="button" variant="destructive" size="icon" onClick={() => removeTime(index)}>
                       <Trash2 className="size-4" />
@@ -271,13 +349,9 @@ export function MedicationScheduleForm({
                 </div>
               ))}
             </div>
-                          <Button type="button" variant="secondary" size="sm" onClick={addTime}>
-                <Plus className="size-4" />
-                {t("basic.add") || "Add"}
-              </Button>
+
           </div>
         )}
-
       </div>
     </div>
   );

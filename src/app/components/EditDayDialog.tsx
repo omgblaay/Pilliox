@@ -39,6 +39,7 @@ import { MedicationIcon } from "./MedicationIcon";
 interface PillDosage {
   pillId: string;
   dosage: number;
+  time?: string;
 }
 
 interface AdHocMedication {
@@ -172,6 +173,7 @@ export function EditDayDialog({
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [editTagDialogOpen, setEditTagDialogOpen] = useState(false);
 
+
   function startEditingTag() {
     if (!selectedDate) return;
     const dateKey = format(selectedDate, "yyyy-MM-dd");
@@ -243,7 +245,7 @@ export function EditDayDialog({
                     animate="center"
                     exit="exit"
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="text-foreground !font-normal !w-auto text-center"
+                    className="text-foreground !text-base !font-medium !w-auto text-center"
                   >
                     {selectedDate && (() => {
                       const [weekday, ...dateParts] = formatDialogDate(selectedDate).split(",");
@@ -406,31 +408,73 @@ export function EditDayDialog({
               <div className="space-y-3">
                 {/* Pills Section */}
                 {pillsSettings.filter((ps) => ps.type !== "value").length > 0 && (
-
                   <div className="space-y-2">
-                    {pillsSettings
-                      .filter((ps) => ps.type !== "value")
-                      .map((pillSetting) => {
-                        const pillDosage = pills.find((p) => p.pillId === pillSetting.id);
-                        const isSelected = !!pillDosage;
-                        const currentDosage = isSelected
-                          ? pillDosage!.dosage
-                          : (dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage);
+                    {(() => {
+                      type PillRow = { pillSetting: PillSetting; scheduledTime: import("./PillsSettings").ScheduleTime | null; rowKey: string };
+                      const rows: PillRow[] = pillsSettings
+                        .filter((ps) => ps.type !== "value")
+                        .flatMap((pillSetting) => {
+                          const hasTimes =
+                            pillSetting.scheduleType !== "as_needed" &&
+                            (pillSetting.scheduleTimes?.length ?? 0) > 0;
+                          if (hasTimes) {
+                            return pillSetting.scheduleTimes!.map((st): PillRow => ({
+                              pillSetting,
+                              scheduledTime: st,
+                              rowKey: `${pillSetting.id}_${st.time}`,
+                            }));
+                          }
+                          return [{ pillSetting, scheduledTime: null, rowKey: pillSetting.id }] as PillRow[];
+                        });
+                      return rows
+                      .map(({ pillSetting, scheduledTime, rowKey }) => {
                         const medicationColor = pillSetting.color;
+                        const overrideKey = scheduledTime
+                          ? `${pillSetting.id}_${scheduledTime.time}`
+                          : pillSetting.id;
+
+                        const pillEntry = scheduledTime
+                          ? pills.find((p) => p.pillId === pillSetting.id && p.time === scheduledTime.time)
+                          : pills.find((p) => p.pillId === pillSetting.id);
+                        const isSelected = !!pillEntry;
+                        const defaultDosage = scheduledTime
+                          ? scheduledTime.dose
+                          : pillSetting.defaultDosage;
+                        const currentDosage = isSelected
+                          ? pillEntry!.dosage
+                          : (dosageOverrides[overrideKey] ?? defaultDosage);
+
+                        const scheduleLabel = (() => {
+                          switch (pillSetting.scheduleType) {
+                            case "cyclic": return `Every ${pillSetting.scheduleCycleDays ?? 2}d`;
+                            case "specific_days": return t("schedule.specificDays") || "Specific days";
+                            case "as_needed": return t("schedule.asNeeded") || "As needed";
+                            default: return t("schedule.daily") || "Daily";
+                          }
+                        })();
+
                         return (
-                          <div key={pillSetting.id} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20  hover:bg-muted/30 transition-colors">
+                          <div key={rowKey} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20 hover:bg-muted/30 transition-colors">
                             <button
                               type="button"
                               onClick={() => {
                                 if (isSelected) {
-                                  setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: pillDosage!.dosage }));
-                                  setPills(pills.filter((p) => p.pillId !== pillSetting.id));
+                                  setDosageOverrides((prev) => ({ ...prev, [overrideKey]: pillEntry!.dosage }));
+                                  if (scheduledTime) {
+                                    setPills(pills.filter((p) => !(p.pillId === pillSetting.id && p.time === scheduledTime.time)));
+                                  } else {
+                                    setPills(pills.filter((p) => p.pillId !== pillSetting.id));
+                                  }
                                 } else {
-                                  setPills([...pills, { pillId: pillSetting.id, dosage: dosageOverrides[pillSetting.id] ?? pillSetting.defaultDosage }]);
+                                  setPills([...pills, {
+                                    pillId: pillSetting.id,
+                                    dosage: currentDosage,
+                                    ...(scheduledTime ? { time: scheduledTime.time } : {}),
+                                  }]);
                                 }
                               }}
                               className={cn(
-                                "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors",
+                                "h-7 w-7 rounded-lg cursor-pointer border-2 flex items-center justify-center transition-colors flex-shrink-0",
                                 isSelected && !medicationColor && "bg-muted-foreground border-muted-foreground",
                                 !isSelected && !medicationColor && "border-gray-400 dark:border-gray-500",
                                 !isSelected && "hover:bg-muted/40",
@@ -442,14 +486,23 @@ export function EditDayDialog({
                             >
                               {isSelected && <Check className="h-4 w-4 text-white" />}
                             </button>
+
                             <MedicationIcon
                               icon={pillSetting.icon}
+                              name={pillSetting.name}
                               color={medicationColor || "currentColor"}
-                              className={cn("size-5", !isSelected && "text-muted-foreground")}
+                              className={cn("size-5 flex-shrink-0", !isSelected && "text-muted-foreground")}
                             />
-                            <span className={cn("flex-1", !isSelected && "text-muted-foreground")}>
-                              {pillSetting.name}
-                            </span>
+
+                            <div className={cn("flex-1 min-w-0", !isSelected && "text-muted-foreground")}>
+                              <span className="block truncate text-sm">{pillSetting.name}</span>
+                              {pillSetting.scheduleType !== "as_needed" && (
+                                <span className="text-xs text-muted-foreground font-mono">
+                                  {scheduledTime ? scheduledTime.time : ""}{scheduledTime ? " · " : ""}{scheduleLabel}
+                                </span>
+                              )}
+                            </div>
+
                             <div className="flex items-center">
                               <Button
                                 type="button"
@@ -459,9 +512,13 @@ export function EditDayDialog({
                                 onClick={() => {
                                   const newDosage = Math.max(0, currentDosage - 0.5);
                                   if (isSelected) {
-                                    setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
+                                    setPills(pills.map((p) =>
+                                      scheduledTime
+                                        ? (p.pillId === pillSetting.id && p.time === scheduledTime.time ? { ...p, dosage: newDosage } : p)
+                                        : (p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p)
+                                    ));
                                   } else {
-                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
+                                    setDosageOverrides((prev) => ({ ...prev, [overrideKey]: newDosage }));
                                   }
                                 }}
                               >
@@ -477,9 +534,13 @@ export function EditDayDialog({
                                 onChange={(e) => {
                                   const newDosage = parseFloat(e.target.value) || 0;
                                   if (isSelected) {
-                                    setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
+                                    setPills(pills.map((p) =>
+                                      scheduledTime
+                                        ? (p.pillId === pillSetting.id && p.time === scheduledTime.time ? { ...p, dosage: newDosage } : p)
+                                        : (p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p)
+                                    ));
                                   } else {
-                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
+                                    setDosageOverrides((prev) => ({ ...prev, [overrideKey]: newDosage }));
                                   }
                                 }}
                               />
@@ -491,9 +552,13 @@ export function EditDayDialog({
                                 onClick={() => {
                                   const newDosage = currentDosage + 0.5;
                                   if (isSelected) {
-                                    setPills(pills.map((p) => p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p));
+                                    setPills(pills.map((p) =>
+                                      scheduledTime
+                                        ? (p.pillId === pillSetting.id && p.time === scheduledTime.time ? { ...p, dosage: newDosage } : p)
+                                        : (p.pillId === pillSetting.id ? { ...p, dosage: newDosage } : p)
+                                    ));
                                   } else {
-                                    setDosageOverrides((prev) => ({ ...prev, [pillSetting.id]: newDosage }));
+                                    setDosageOverrides((prev) => ({ ...prev, [overrideKey]: newDosage }));
                                   }
                                 }}
                               >
@@ -502,7 +567,8 @@ export function EditDayDialog({
                             </div>
                           </div>
                         );
-                      })}
+                      })
+                    })()}
                   </div>
                 )}
 
@@ -514,7 +580,7 @@ export function EditDayDialog({
                     <div key={valueSetting.id} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center flex-row gap-2 flex-1">
                         <div className="h-5 w-2 rounded-full" style={{ backgroundColor: valueSetting.color }} />
-                        <Label className="text-md" htmlFor={`value-${valueSetting.id}`}>{valueSetting.name}</Label>
+                        <Label htmlFor={`value-${valueSetting.id}`}>{valueSetting.name}</Label>
                       </div>
                       <div className="flex items-center gap-2">
                         <Input
@@ -554,9 +620,11 @@ export function EditDayDialog({
                 {(pillsSettings.length > 0 || adHocMeds.length > 0) && (
                   <div className="space-y-3 py-4 border-t-1 border-border">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-
-                        <Label>{t("calendar.otherMedications") || "Other Medications"}</Label>
+                      <div className="flex flex-col gap-0.5">
+                        <p className="font-medium">{t("calendar.otherMedications") || "Other Medications"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("calendar.addOtherMedicationDesc") || "One-time entries — not part of your regular schedule"}
+                        </p>
                       </div>
                       <Button variant="secondary" size="sm" onClick={() => setAddAdHocDialogOpen(true)}>
                         <Plus className="size-4" />

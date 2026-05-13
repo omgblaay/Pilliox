@@ -1910,11 +1910,11 @@ export function CalendarView({
                                         return (
                                         <span
                                           key={pillSetting.id}
-                                          className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white leading-none font-[family-name:var(--font-geist-mono)]"
+                                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full text-white leading-none font-[family-name:var(--font-geist-mono)]"
                                           style={{ backgroundColor: pillSetting.color || "#3b82f6" }}
                                           title={`${pillSetting.name}: ${pill.dosage}`}
                                         >
-                                          <MedicationIcon icon={pillSetting.icon} className="h-2.5 w-2.5" />
+                                          <MedicationIcon icon={pillSetting.icon} name={pillSetting.name} className="h-2.5 w-2.5" />
                                           {pill.dosage}
                                         </span>
                                         );
@@ -1923,11 +1923,11 @@ export function CalendarView({
                                       return (
                                         <span
                                           key={pillSetting.id}
-                                          className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none border border-dashed font-[family-name:var(--font-geist-mono)]"
+                                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full leading-none border border-dashed font-[family-name:var(--font-geist-mono)]"
                                           style={{ borderColor: pillSetting.color || "#3b82f6", color: pillSetting.color || "#3b82f6" }}
                                           title={`${pillSetting.name}: ${ghostDosage}`}
                                         >
-                                          <MedicationIcon icon={pillSetting.icon} className="h-2.5 w-2.5" />
+                                          <MedicationIcon icon={pillSetting.icon} name={pillSetting.name} className="h-2.5 w-2.5" />
                                           {ghostDosage}
                                         </span>
                                       );

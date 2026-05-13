@@ -23,10 +23,10 @@ export function MedicationScheduleEditor({
   const { t } = useTranslation();
   const [scheduleType, setScheduleType] = useState<ScheduleType>("daily");
   const [scheduleStartDate, setScheduleStartDate] = useState(formatDateInputValue());
+  const [scheduleEndDate, setScheduleEndDate] = useState("");
   const [cycleDays, setCycleDays] = useState(2);
   const [specificDays, setSpecificDays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
   const [times, setTimes] = useState<ScheduleTime[]>([{ time: "09:00", dose: pill.defaultDosage }]);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [frequencyPickerOpen, setFrequencyPickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -36,31 +36,40 @@ export function MedicationScheduleEditor({
       setScheduleStartDate(pill.scheduleStartDate ?? formatDateInputValue());
       setCycleDays(pill.scheduleCycleDays ?? 2);
       setSpecificDays(new Set(pill.scheduleSpecificDays ?? [1, 2, 3, 4, 5]));
+      setScheduleEndDate(pill.scheduleEndDate ?? "");
       setTimes(
         pill.scheduleTimes?.length
-          ? pill.scheduleTimes.map((time) => ({ ...time, unit: time.unit ?? pill.unit }))
-          : [{ time: "09:00", dose: pill.defaultDosage, unit: pill.unit }],
+          ? pill.scheduleTimes.map((time) => ({
+              ...time,
+              unit: time.unit ?? pill.unit,
+              notificationEnabled: time.notificationEnabled !== undefined
+                ? time.notificationEnabled
+                : (pill.notificationsEnabled ?? false),
+            }))
+          : [{ time: "09:00", dose: pill.defaultDosage, unit: pill.unit, notificationEnabled: pill.notificationsEnabled ?? false }],
       );
-      setNotificationsEnabled(pill.notificationsEnabled ?? false);
       setFrequencyPickerOpen(false);
     }
   }, [open, pill]);
 
   const handleSave = async () => {
     const firstUnit = normalizeUnit(times[0]?.unit ?? pill.unit);
+    const notificationsEnabled = times.some((t) => t.notificationEnabled === true);
+    const firstNotifiedTime = times.find((t) => t.notificationEnabled === true);
     setIsSaving(true);
     try {
       await onSave({
         unit: firstUnit,
         scheduleType,
-        scheduleStartDate: scheduleType === "cyclic" ? scheduleStartDate : undefined,
+        scheduleStartDate: scheduleType !== "as_needed" ? (scheduleStartDate || undefined) : undefined,
+        scheduleEndDate: scheduleType !== "as_needed" ? (scheduleEndDate || undefined) : undefined,
         scheduleCycleDays: scheduleType === "cyclic" ? cycleDays : undefined,
         scheduleSpecificDays: scheduleType === "specific_days" ? Array.from(specificDays) : undefined,
         scheduleTimes: scheduleType !== "as_needed"
           ? normalizeScheduleTimes(times, firstUnit)
           : [],
         notificationsEnabled,
-        notificationTime: notificationsEnabled && times.length > 0 ? times[0].time : undefined,
+        notificationTime: notificationsEnabled && firstNotifiedTime ? firstNotifiedTime.time : undefined,
       });
       onOpenChange(false);
     } finally {
@@ -83,7 +92,7 @@ export function MedicationScheduleEditor({
           <DialogDescription className="sr-only">Edit medication schedule</DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-5 pt-12">
+        <div className="flex-1 overflow-y-auto space-y-5 sm:p-0 py-12">
           <MedicationScheduleForm
             pill={pill}
             scheduleType={scheduleType}
@@ -96,8 +105,8 @@ export function MedicationScheduleEditor({
             onSpecificDaysChange={setSpecificDays}
             times={times}
             onTimesChange={setTimes}
-            notificationsEnabled={notificationsEnabled}
-            onNotificationsEnabledChange={setNotificationsEnabled}
+            scheduleEndDate={scheduleEndDate}
+            onScheduleEndDateChange={setScheduleEndDate}
             frequencyPickerOpen={frequencyPickerOpen}
             onFrequencyPickerOpenChange={setFrequencyPickerOpen}
             showSectionTitle={false}

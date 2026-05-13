@@ -8,6 +8,7 @@ import {
 } from "react-router";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n/config";
+import { Capacitor } from "@capacitor/core";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import LandingPage from "./pages/LandingPage";
@@ -34,6 +35,11 @@ import { SubscriptionPage } from "./pages/SubscriptionPage";
 import { TermsOfService } from "./pages/TermsOfService";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { OnboardingPage } from "./pages/OnboardingPage";
+
+const isNativeApp = Capacitor.isNativePlatform();
+const isPWA =
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (window.navigator as any).standalone === true;
 
 function AppRoutes() {
   // Initialize theme system to detect browser preference
@@ -282,6 +288,12 @@ function AppRoutes() {
           setUserEmail(sessionEmail);
           localStorage.setItem("accessToken", session.access_token);
           localStorage.setItem("userEmail", sessionEmail);
+          // Navigate away from /home only when auto-redirected there from /
+          const wasAutoRedirected = window.history.state?.usr?.fromRoot === true;
+          if (currentPath === "/home" && wasAutoRedirected) {
+            const onboardingCompleted = localStorage.getItem("pilliox_onboarding_completed");
+            navigate(onboardingCompleted ? "/app" : "/app/onboarding");
+          }
           setIsLoading(false);
         } else {
           // No active Supabase session — clear any stale localStorage auth data.
@@ -390,11 +402,13 @@ function AppRoutes() {
           element={
             accessToken ? (
               <Navigate to="/app" replace />
-            ) : (
+            ) : (isPWA || isNativeApp) ? (
               <Navigate
                 to={`/auth${window.location.search}${window.location.hash}`}
                 replace
               />
+            ) : (
+              <Navigate to="/home" state={{ fromRoot: true }} replace />
             )
           }
         />

@@ -1,84 +1,50 @@
-import React, { useEffect, useState } from "react";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
-import {
-  projectId,
-  publicAnonKey,
-} from "../../../utils/supabase/info";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router";
-import { motion, useInView } from "motion/react";
-import { Card } from "../components/ui/card";
+import { motion } from "motion/react";
 import {
-  Sun,
-  Moon,
+  ArrowRight,
   Calendar,
-  Pill,
-  Palette,
-  Shield,
-  Globe,
   Check,
-  Heart,
-  Activity,
-  Users,
-  Star,
-  TrendingUp,
+  Globe,
+  HeartPulse,
+  Moon,
+  Palette,
+  Pill,
+  Shield,
+  Sparkles,
+  Sun,
 } from "lucide-react";
-import { useTheme } from "../hooks/useTheme";
+import { Button } from "../components/ui/button";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { Logo } from "../components/Logo";
+import { useTheme } from "../hooks/useTheme";
 import { supabase } from "../../../utils/supabase/client";
+import calendarMockup from "../assets/lightApp.png";
+import carePhoto from "../../assets/bg.png";
 
-// Animated Counter Component
-function AnimatedCounter({
-  value,
-  suffix = "",
-  duration = 2,
-}: {
-  value: number;
-  suffix?: string;
-  duration?: number;
-}) {
-  const [count, setCount] = useState(0);
-  const ref = React.useRef(null);
-  const isInView = useInView(ref, { once: true });
+const pillIcons = [
+  "/Pills Icons/SVG.svg",
+  "/Pills Icons/SVG-1.svg",
+  "/Pills Icons/SVG-2.svg",
+  "/Pills Icons/SVG-3.svg",
+  "/Pills Icons/SVG-4.svg",
+  "/Pills Icons/SVG-5.svg",
+];
 
-  useEffect(() => {
-    if (!isInView) return;
-
-    let startTime: number;
-    let animationFrame: number;
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min(
-        (timestamp - startTime) / (duration * 1000),
-        1,
-      );
-
-      setCount(Math.floor(progress * value));
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isInView, value, duration]);
-
-  return (
-    <span ref={ref}>
-      {count.toLocaleString()}
-      {suffix}
-    </span>
-  );
-}
+const doseDays = [
+  { day: "05", dose: "2", tone: "bg-violet-600" },
+  { day: "07", dose: "INR 4.77", tone: "bg-emerald-600" },
+  { day: "09", dose: "0.5", tone: "bg-orange-500" },
+  { day: "14", dose: "INR 3.7", tone: "bg-orange-500" },
+  { day: "21", dose: "1.5", tone: "bg-violet-600" },
+  { day: "23", dose: "2", tone: "bg-indigo-500" },
+  { day: "27", dose: "INR 2.7", tone: "bg-emerald-600" },
+];
 
 export default function LandingPage() {
   const { t } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme("system");
 
@@ -89,21 +55,17 @@ export default function LandingPage() {
           data: { session },
         } = await supabase.auth.getSession();
         setIsLoggedIn(!!session);
-      } catch (error) {
+      } catch {
         setIsLoggedIn(false);
-      } finally {
-        setLoading(false);
       }
     };
 
     checkAuth();
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
-      setLoading(false);
     });
 
     return () => {
@@ -111,614 +73,603 @@ export default function LandingPage() {
     };
   }, []);
 
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  const trustBarItems = [
+    t("landing.trustBar.medications"),
+    t("landing.trustBar.supplements"),
+    t("landing.trustBar.values"),
+  ];
+
   const features = [
     {
       icon: Calendar,
       title: t("landing.features.calendar.title"),
       description: t("landing.features.calendar.description"),
+      visual: "calendar",
+      className: "lg:col-span-7",
     },
     {
       icon: Pill,
-      title: t("landing.features.pillCounter.title"),
-      description: t(
-        "landing.features.pillCounter.description",
-      ),
+      title: t("landing.features.pills.title"),
+      description: t("landing.features.pills.description"),
+      visual: "pills",
+      className: "lg:col-span-5",
     },
     {
       icon: Palette,
-      title: t("landing.features.colorCoded.title"),
-      description: t("landing.features.colorCoded.description"),
+      title: t("landing.features.colors.title"),
+      description: t("landing.features.colors.description"),
+      visual: "colors",
+      className: "lg:col-span-4",
     },
     {
       icon: Shield,
       title: t("landing.features.secure.title"),
       description: t("landing.features.secure.description"),
+      visual: "secure",
+      className: "lg:col-span-4",
+      secureItems: [
+        t("landing.features.secure.feature1"),
+        t("landing.features.secure.feature2"),
+        t("landing.features.secure.feature3"),
+      ],
     },
     {
       icon: Globe,
-      title: t("landing.features.multiLanguage.title"),
-      description: t(
-        "landing.features.multiLanguage.description",
-      ),
+      title: t("landing.features.multilingual.title"),
+      description: t("landing.features.multilingual.description"),
+      visual: "languages",
+      className: "lg:col-span-4",
     },
   ];
 
-  const stats = [
-    { value: 10000, suffix: "+", label: "Active Users" },
-    { value: 50000, suffix: "+", label: "Medications Tracked" },
-    { value: 15, suffix: "+", label: "Countries" },
+  const whyItems = [
+    {
+      icon: Calendar,
+      title: t("landing.why.fastLogging.title"),
+      description: t("landing.why.fastLogging.description"),
+    },
+    {
+      icon: Shield,
+      title: t("landing.why.yourData.title"),
+      description: t("landing.why.yourData.description"),
+    },
+    {
+      icon: HeartPulse,
+      title: t("landing.why.realRoutines.title"),
+      description: t("landing.why.realRoutines.description"),
+    },
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah M.",
-      role: "Patient",
-      content:
-        "Pilliox has completely transformed how I manage my INR values. The color-coded calendar makes it so easy to track patterns.",
-      rating: 5,
-    },
-    {
-      name: "Michael K.",
-      role: "Warfarin User",
-      content:
-        "Finally, an app that understands anticoagulation therapy! The pill counter and reminders are lifesavers.",
-      rating: 5,
-    },
-    {
-      name: "Anna L.",
-      role: "Healthcare Worker",
-      content:
-        "I recommend this to all my patients. Clean interface, reliable, and actually helps with medication adherence.",
-      rating: 5,
-    },
+  const pricingFeatures = [
+    t("landing.pricing.feature1"),
+    t("landing.pricing.feature2"),
+    t("landing.pricing.feature3"),
+    t("landing.pricing.feature4"),
+    t("landing.pricing.feature5"),
+    t("landing.pricing.feature6"),
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-white/80 dark:bg-gray-950/80 ">
-      {/* Header */}
-      <header className="border-b bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="min-h-[100dvh] overflow-hidden bg-[#f7f7f5] text-[#0e0e12] dark:bg-[#08090b] dark:text-white">
+      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f7f7f5]/75 backdrop-blur-xl dark:border-white/10 dark:bg-[#08090b]/75">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-3"
+            aria-label="Pilliox"
+          >
             <Logo />
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle */}
+          </button>
+
+          <nav className="hidden items-center gap-8 text-sm text-black/55 dark:text-white/55 md:flex">
+            <a href="#features" className="transition hover:text-black dark:hover:text-white">
+              {t("landing.nav.features")}
+            </a>
+            <a href="#care" className="transition hover:text-black dark:hover:text-white">
+              {t("landing.nav.why")}
+            </a>
+            <a href="#pricing" className="transition hover:text-black dark:hover:text-white">
+              {t("landing.nav.pricing")}
+            </a>
+          </nav>
+
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                const isDark =
-                  theme === "dark" ||
-                  (theme === "system" &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches);
-                setTheme(isDark ? "light" : "dark");
-              }}
-              className="text-gray-600 dark:text-gray-300"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              className="h-9 w-9 text-black/65 hover:bg-black/10 hover:text-black dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label="Toggle theme"
             >
-              {theme === "dark" ||
-              (theme === "system" &&
-                window.matchMedia("(prefers-color-scheme: dark)").matches) ? (
+              {isDark ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
               )}
             </Button>
-
-            {/* Auth Buttons */}
-            {isLoggedIn ? (
+            {!isLoggedIn && (
               <Button
-                onClick={() => navigate("/app")}
-                className="flex-0"
+                variant="ghost"
+                onClick={() => navigate("/auth")}
+                className="hidden text-black/70 hover:bg-black/10 hover:text-black dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white sm:inline-flex"
               >
-                {t("landing.header.goToApp")}
+                {t("landing.header.signIn")}
               </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/auth")}
-                  className="flex-0 hidden sm:flex"
-                >
-                  {t("landing.header.signIn")}
-                </Button>
-                <Button
-                  onClick={() => navigate("/auth")}
-                  className="flex-0"
-                >
-                  {t("landing.header.getStarted")}
-                </Button>
-              </>
             )}
+            <Button
+              onClick={() => navigate(isLoggedIn ? "/app" : "/auth")}
+              className="bg-blue-600 text-white hover:bg-blue-500"
+            >
+              {isLoggedIn
+                ? t("landing.header.goToApp")
+                : t("landing.header.getStarted")}
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section with Floating Elements */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 relative overflow-hidden">
-        {/* Floating decorative elements */}
-        <motion.div
-          className="absolute top-20 left-10 text-blue-400 opacity-20"
-          animate={{
-            y: [0, -20, 0],
-            rotate: [0, 10, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <Pill className="w-16 h-16" />
-        </motion.div>
-
-        <motion.div
-          className="absolute top-40 right-20 text-pink-400 opacity-20"
-          animate={{
-            y: [0, 20, 0],
-            rotate: [0, -10, 0],
-          }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <Heart className="w-12 h-12" />
-        </motion.div>
-
-        <motion.div
-          className="absolute bottom-20 left-1/4 text-purple-400 opacity-20"
-          animate={{
-            y: [0, -15, 0],
-            x: [0, 10, 0],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <Activity className="w-14 h-14" />
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+      <main>
+        <section className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
+          <div className="pointer-events-none absolute inset-x-[-20%] top-0 h-[560px] bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.18),transparent_68%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.32),transparent_68%)]" />
+          <div className="relative grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="inline-block mb-4"
+              transition={{ duration: 0.55 }}
+              className="max-w-3xl"
             >
-              <span className="px-4 py-2 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
-                ✨ {t("landing.hero.trustedBadge")}
-              </span>
-            </motion.div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              {t("landing.hero.title")}
-              <br />
-              <span className="text-blue-600 dark:text-blue-500">
-                {t("landing.hero.titleHighlight")}
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-8">
-              {t("landing.hero.description")}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <Button
-                className="flex-0"
-                onClick={() => navigate("/auth")}
-              >
-                {t("landing.hero.startTrial")}
-              </Button>
-              <p className="text-sm text-gray-500 dark:text-gray-400 self-center">
-                {t("landing.hero.pricing")}
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative"
-          >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white dark:border-gray-800">
-              <img
-                src="https://images.unsplash.com/photo-1685660375327-47bcca398780?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2F0aW9uJTIwdHJhY2tlciUyMGFwcCUyMGludGVyZmFjZSUyMG1vYmlsZSUyMHBob25lfGVufDF8fHx8MTc3MDYzOTkyOHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="Pilliox App Screenshot"
-                className="w-full h-auto"
-              />
-              {/* Decorative gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/10 to-transparent pointer-events-none"></div>
-            </div>
-
-            {/* Floating stats badges */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="absolute -top-4 -right-4 bg-white dark:bg-gray-800 rounded-xl shadow-xl px-4 py-3 border border-gray-200 dark:border-gray-700"
-            >
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-500" />
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Adherence Rate
-                  </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    98%
-                  </div>
-                </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 font-mono text-xs text-black/60 dark:border-white/15 dark:bg-white/[0.04] dark:text-white/65">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.18)]" />
+                {t("landing.hero.badge")}
               </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="absolute -bottom-4 -left-4 bg-white dark:bg-gray-800 rounded-xl shadow-xl px-4 py-3 border border-gray-200 dark:border-gray-700"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white ml-1">
-                  5.0 Rating
+              <h1 className="mt-6 text-balance !text-[5.6rem] font-semibold leading-[0.96] tracking-[-0.04em] text-[#0e0e12] dark:text-white ">
+                {t("landing.hero.title")}{" "}
+                <span className="text-blue-400">
+                  {t("landing.hero.titleHighlight")}
+                </span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-black/58 dark:text-white/58 sm:text-xl">
+                {t("landing.hero.description")}
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button
+                  onClick={() => navigate("/auth")}
+                  className="h-12 rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-500"
+                >
+                  {t("landing.hero.cta")}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <span className="text-sm text-black/45 dark:text-white/42">
+                  {t("landing.hero.pricing")}
                 </span>
               </div>
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Why Choose Pilliox Section */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl p-8 sm:p-12 shadow-2xl"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-8">
-            {t("landing.whyChoose.title")}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-white">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="flex flex-col items-center gap-3"
-            >
-              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                <Calendar className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold">
-                {t("landing.whyChoose.easyTracking.title")}
-              </h3>
-              <p className="text-white/90 text-sm">
-                {t("landing.whyChoose.easyTracking.description")}
-              </p>
-            </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-col items-center gap-3"
+              initial={{ opacity: 0, y: 28, rotateX: 9, rotateZ: -4 }}
+              animate={{ opacity: 1, y: 0, rotateX: 0, rotateZ: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="relative min-h-[520px] lg:min-h-[660px]"
             >
-              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                <Shield className="w-8 h-8 text-white" />
+              <div className="absolute inset-x-0 bottom-0 top-12 rounded-[28px] border border-black/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.8),rgba(255,255,255,0.42))] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]" />
+              <img
+                src={calendarMockup}
+                alt="Pilliox calendar interface"
+                className="absolute bottom-24 left-20 w-100 rotate-[4deg]"
+              />
+              <img
+                src={carePhoto}
+                alt="Doctor reviewing medication tracking with a patient"
+                className="absolute bottom-8 right-0 hidden h-64 w-48 rounded-2xl border border-black/10 object-cover shadow-2xl dark:border-white/12 sm:block lg:h-80 lg:w-56"
+              />
+              <div className="absolute left-0 top-28 hidden max-w-[220px] rounded-2xl border border-black/10 bg-white/90 p-4 shadow-2xl backdrop-blur dark:border-white/12 dark:bg-[#111217]/90 md:block">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500/15 text-blue-300">
+                    <Pill className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium">{t("landing.hero.pillCardName")}</p>
+                    <p className="text-xs text-black/45 dark:text-white/45">{t("landing.hero.pillCardTime")}</p>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold">
-                {t("landing.whyChoose.privacyFirst.title")}
-              </h3>
-              <p className="text-white/90 text-sm">
-                {t("landing.whyChoose.privacyFirst.description")}
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-col items-center gap-3"
-            >
-              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                <Heart className="w-8 h-8 text-white" />
+              <div className="absolute bottom-16 left-0 grid w-[260px] grid-cols-4 gap-2 rounded-2xl border border-black/10 bg-white/90 p-3 shadow-2xl backdrop-blur dark:border-white/12 dark:bg-[#111217]/90">
+                {pillIcons.slice(0, 4).map((icon) => (
+                  <MedicationSvgIcon
+                    key={icon}
+                    src={icon}
+                    className="h-11 w-11 rounded-xl bg-black/[0.04] p-2 dark:bg-white/[0.04]"
+                  />
+                ))}
               </div>
-              <h3 className="text-xl font-semibold">
-                {t("landing.whyChoose.builtForYou.title")}
-              </h3>
-              <p className="text-white/90 text-sm">
-                {t("landing.whyChoose.builtForYou.description")}
-              </p>
             </motion.div>
           </div>
-        </motion.div>
-      </section>
 
-      {/* Features Section */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-4">
-            {t("landing.features.title")}
-          </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
-            {t("landing.features.description")}
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
+          <div className="relative mt-16 grid gap-3 border-y border-black/10 py-5 dark:border-white/10 sm:grid-cols-3">
+            {trustBarItems.map((label, i) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
+                key={label}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                className="rounded-lg border border-black/10 bg-white/70 px-4 py-3 text-sm text-black/60 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/65"
               >
-                <Card className="p-6 h-full flex flex-col gap-4 border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all hover:shadow-lg">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <feature.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="m-0 text-lg font-semibold">
-                    {feature.title}
-                  </h3>
-                  <p className="m-0 text-gray-500 dark:text-gray-400 text-sm">
-                    {feature.description}
-                  </p>
-                </Card>
+                <span className="mr-2 text-blue-300">●</span>
+                {label}
               </motion.div>
             ))}
           </div>
-        </motion.div>
-      </section>
+        </section>
 
-      {/* Testimonials Section */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-gradient-to-b from-transparent to-blue-50/50 dark:to-transparent">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-4">
-            What Our Users Say
-          </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
-            Join thousands of satisfied users tracking their
-            health with Pilliox
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="p-6 h-full flex flex-col gap-4 hover:shadow-lg transition-shadow">
-                  <div className="flex gap-1">
-                    {[...Array(testimonial.rating)].map(
-                      (_, i) => (
-                        <Star
-                          key={i}
-                          className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                        />
-                      ),
-                    )}
-                  </div>
-                  <p className="text-gray-700 dark:text-gray-300 italic">
-                    "{testimonial.content}"
-                  </p>
-                  <div className="mt-auto">
-                    <div className="font-semibold text-gray-900 dark:text-white">
-                      {testimonial.name}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {testimonial.role}
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 dark:text-white mb-4">
-            {t("landing.pricing.title")}
-          </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
-            {t("landing.pricing.description")}
-          </p>
-
-          <div className="max-w-md mx-auto">
+        <section id="features" className="border-t border-black/10 py-20 dark:border-white/10 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              className="max-w-3xl"
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              whileHover={{ scale: 1.02 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5 }}
             >
-              <Card className="p-8 relative overflow-hidden border-2 border-blue-500">
-                {/* Popular badge */}
-                <div className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-1 text-sm font-medium rounded-bl-lg">
-                  Popular
-                </div>
+              <p className="font-mono text-xs uppercase tracking-[0.16em] text-blue-300">
+                {t("landing.features.eyebrow")}
+              </p>
+              <h2 className="mt-4 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] text-[#0e0e12] dark:text-white sm:text-6xl">
+                {t("landing.features.title")}
+              </h2>
+              <p className="mt-4 text-lg text-black/55 dark:text-white/55">
+                {t("landing.features.description")}
+              </p>
+            </motion.div>
 
-                <div className="text-center flex flex-col gap-4 relative z-10">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {t("landing.pricing.plan")}
-                  </h3>
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-bold text-blue-600 dark:text-blue-500">
-                      {t("landing.pricing.price")}
-                    </span>
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t("landing.pricing.perMonth")}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                    {t("landing.pricing.trialIncluded")}
-                  </p>
-                </div>
-
-                <ul className="space-y-4 relative z-10">
-                  {[
-                    t("landing.pricing.features.tracking"),
-                    t("landing.pricing.features.pillCounter"),
-                    t("landing.pricing.features.colorCoded"),
-                    t("landing.pricing.features.tags"),
-                    t("landing.pricing.features.backup"),
-                    t("landing.pricing.features.multiLanguage"),
-                    t("landing.pricing.features.support"),
-                  ].map((feature, index) => (
-                    <motion.li
-                      key={index}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.3 + index * 0.05 }}
-                      className="flex items-start gap-3"
-                    >
-                      <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {feature}
+            <div className="mt-12 grid gap-4 lg:grid-cols-12">
+              {features.map((feature, index) => (
+                <motion.article
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.06 }}
+                  className={`${feature.className} min-h-[300px] overflow-hidden rounded-[18px] border border-black/10 bg-white p-6 shadow-[0_30px_90px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-[#111217] dark:shadow-[0_30px_90px_rgba(0,0,0,0.25)]`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <span className="grid h-10 w-10 place-items-center rounded-xl border border-blue-400/20 bg-blue-400/10 text-blue-300">
+                        <feature.icon className="h-5 w-5" />
                       </span>
-                    </motion.li>
-                  ))}
-                </ul>
-
-                <div className="mt-4">
-                  <Button
-                    className="w-full"
-                    onClick={() => navigate("/auth")}
-                  >
-                    {t("landing.pricing.cta")}
-                  </Button>
-
-                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
-                    {t("landing.pricing.cancelAnytime")}
-                  </p>
-                </div>
-              </Card>
-            </motion.div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl p-12 text-center relative overflow-hidden"
-        >
-          {/* Animated gradient background */}
-          <motion.div
-            className="absolute inset-0 opacity-30"
-            animate={{
-              backgroundPosition: [
-                "0% 50%",
-                "100% 50%",
-                "0% 50%",
-              ],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-            style={{
-              backgroundImage:
-                "linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%)",
-              backgroundSize: "20px 20px",
-            }}
-          />
-
-          <div className="relative z-10">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">
-              {t("landing.cta.title")}
-            </h2>
-            <p className="text-lg mb-8 max-w-2xl mx-auto text-white/90">
-              {t("landing.cta.description")}
-            </p>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                variant="secondary"
-                onClick={() => navigate("/auth")}
-                className="bg-white text-blue-600 hover:bg-gray-100"
-              >
-                {t("landing.cta.button")}
-              </Button>
-            </motion.div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t bg-white dark:bg-gray-950 mt-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            {" "}
-            <LanguageSelector
-              variant="ghost"
-              className="flex-0"
-            />
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {t("landing.footer.copyright")}
-            </p>
-            {/* Language Selector */}
-            <div className="flex gap-6">
-              <button
-                onClick={() => navigate("/docs/privacy")}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors"
-              >
-                {t("landing.footer.privacy")}
-              </button>
-              <button
-                onClick={() => navigate("/docs/terms")}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors"
-              >
-                {t("landing.footer.terms")}
-              </button>
+                      <h3 className="mt-5 text-xl font-medium text-[#0e0e12] dark:text-white">
+                        {feature.title}
+                      </h3>
+                      <p className="mt-2 max-w-md text-sm leading-6 text-black/55 dark:text-white/50">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                  <FeatureVisual visual={feature.visual} secureItems={(feature as any).secureItems} />
+                </motion.article>
+              ))}
             </div>
+          </div>
+        </section>
+
+        <section id="care" className="border-t border-black/10 py-20 dark:border-white/10 sm:py-28">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+            <motion.div
+              className="relative overflow-hidden rounded-[26px] border border-black/10 bg-white/70 dark:border-white/10 dark:bg-white/[0.03]"
+              initial={{ opacity: 0, x: -24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6 }}
+            >
+              <img
+                src={carePhoto}
+                alt="Healthcare professional using Pilliox with a patient"
+                className="h-full min-h-[520px] w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#f7f7f5] via-transparent to-transparent dark:from-[#08090b]" />
+              <div className="absolute bottom-5 left-5 right-5 ">
+                <Logo />
+              </div>
+            </motion.div>
+
+            <div className="flex flex-col justify-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.5 }}
+              >
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-blue-300">
+                  {t("landing.why.eyebrow")}
+                </p>
+                <h2 className="mt-4 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] text-[#0e0e12] dark:text-white sm:text-6xl">
+                  {t("landing.why.title")}
+                </h2>
+              </motion.div>
+              <div className="mt-8 grid gap-4">
+                {whyItems.map((item, i) => (
+                  <motion.div
+                    key={item.title}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.45, delay: i * 0.1 }}
+                    className="flex gap-4 rounded-2xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-white/[0.03]"
+                  >
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-500/12 text-blue-300">
+                      <item.icon className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-medium text-[#0e0e12] dark:text-white">{item.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-black/55 dark:text-white/50">
+                        {item.description}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="border-t border-black/10 py-20 dark:border-white/10 sm:py-28">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_440px] lg:px-8">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.5 }}
+              >
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-blue-300">
+                  {t("landing.pricing.eyebrow")}
+                </p>
+                <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] text-[#0e0e12] dark:text-white sm:text-6xl">
+                  {t("landing.pricing.title")}
+                </h2>
+                <p className="mt-4 max-w-2xl text-lg text-black/55 dark:text-white/55">
+                  {t("landing.pricing.description")}
+                </p>
+              </motion.div>
+              <div className="mt-10 grid max-w-3xl gap-3 sm:grid-cols-2">
+                {pricingFeatures.map((feature, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.4, delay: i * 0.07 }}
+                    className="flex items-start gap-3 rounded-xl border border-black/10 bg-white p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.03] dark:text-white/65"
+                  >
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+                    <span>{feature}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.55 }}
+              className="rounded-[24px] border border-blue-400/35 bg-[linear-gradient(180deg,rgba(37,99,235,0.12),rgba(255,255,255,0.9))] p-6 shadow-[0_30px_100px_rgba(37,99,235,0.16)] dark:bg-[linear-gradient(180deg,rgba(37,99,235,0.18),rgba(255,255,255,0.04))]"
+            >
+              <div className="flex items-center justify-between">
+                <Logo />
+                <span className="rounded-full bg-blue-500 px-3 py-1 text-xs font-medium text-white">
+                  {t("landing.pricing.popular")}
+                </span>
+              </div>
+              <div className="mt-10">
+                <div className="flex items-end gap-2">
+                  <span className="text-6xl font-semibold tracking-[-0.05em] text-[#0e0e12] dark:text-white">
+                    {t("landing.pricing.price")}
+                  </span>
+                  <span className="pb-2 text-black/45 dark:text-white/45">
+                    {t("landing.pricing.perMonth")}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-black/55 dark:text-white/55">
+                  {t("landing.pricing.trialIncluded")}
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate("/auth")}
+                className="mt-8 h-12 w-full"
+              >
+                {t("landing.pricing.cta")}
+              </Button>
+              <p className="mt-4 text-center text-xs text-black/45 dark:text-white/42">
+                {t("landing.pricing.cancelAnytime")}
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="border-t border-black/10 px-4 py-20 dark:border-white/10 sm:px-6 lg:px-8">
+          <motion.div
+            className="mx-auto max-w-7xl overflow-hidden rounded-[28px] border border-white/10 bg-blue-600"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.55 }}
+          >
+            <div className="grid items-center gap-8 p-8 sm:p-10 lg:grid-cols-[1fr_0.9fr] lg:p-12">
+              <div>
+                <Sparkles className="h-8 w-8 text-blue-100" />
+                <h2 className="mt-5 text-balance text-4xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-5xl">
+                  {t("landing.cta.title")}
+                </h2>
+                <p className="mt-4 max-w-xl text-blue-50/80">
+                  {t("landing.cta.description")}
+                </p>
+                <Button
+                  onClick={() => navigate("/auth")}
+                  className="mt-8 h-12 rounded-xl bg-white !text-blue-700 hover:bg-blue-50"
+                >
+                  {t("landing.cta.button")}
+                </Button>
+              </div>
+              <div className="relative hidden min-h-[280px] lg:block">
+                <img
+                  src={calendarMockup}
+                  alt="Pilliox app preview"
+                  className="absolute -bottom-32 right-10 w-100 rotate-[-8deg]"
+                />
+                <img
+                  src="/Frame 25.png"
+                  alt="Pilliox logo"
+                  className="absolute left-0 top-10 w-80 opacity-95"
+                />
+              </div>
+            </div>
+          </motion.div>
+        </section>
+      </main>
+
+      <footer className="border-t border-black/10 bg-[#f7f7f5] dark:border-white/10 dark:bg-[#08090b]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <LanguageSelector variant="ghost" className="text-black/70 dark:text-white/70" />
+          <p className="text-sm text-black/45 dark:text-white/45">
+            {t("landing.footer.copyright")}
+          </p>
+          <div className="flex gap-6">
+            <button
+              onClick={() => navigate("/docs/privacy")}
+              className="text-sm text-black/45 transition hover:text-black dark:text-white/45 dark:hover:text-white"
+            >
+              {t("landing.footer.privacy")}
+            </button>
+            <button
+              onClick={() => navigate("/docs/terms")}
+              className="text-sm text-black/45 transition hover:text-black dark:text-white/45 dark:hover:text-white"
+            >
+              {t("landing.footer.terms")}
+            </button>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function MedicationSvgIcon({
+  src,
+  className = "",
+}: {
+  src: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`block text-blue-500 ${className}`}
+      aria-hidden="true"
+    >
+      <span
+        className="block h-full w-full bg-current"
+        style={{
+          maskImage: `url("${src}")`,
+          maskPosition: "center",
+          maskRepeat: "no-repeat",
+          maskSize: "contain",
+          WebkitMaskImage: `url("${src}")`,
+          WebkitMaskPosition: "center",
+          WebkitMaskRepeat: "no-repeat",
+          WebkitMaskSize: "contain",
+        }}
+      />
+    </span>
+  );
+}
+
+function FeatureVisual({ visual, secureItems }: { visual: string; secureItems?: string[] }) {
+  if (visual === "calendar") {
+    return (
+      <div className="mt-8 grid grid-cols-7 gap-2">
+        {doseDays.map((day) => (
+          <div
+            key={day.day}
+            className="flex min-h-24 flex-col justify-between rounded-xl bg-black/[0.04] p-3 dark:bg-white/[0.04]"
+          >
+            <span className="text-lg font-medium text-black/75 dark:text-white/80">{day.day}</span>
+            <span
+              className={`${day.tone} w-fit rounded-md px-2 py-1 text-xs font-medium text-white`}
+            >
+              {day.dose}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (visual === "pills") {
+    return (
+      <div className="mt-8 grid grid-cols-3 gap-3">
+        {pillIcons.map((icon, index) => (
+          <div
+            key={icon}
+            className="rounded-2xl border bg-popover p-4"
+          >
+            <MedicationSvgIcon src={icon} className="h-14 w-14" />
+            <p className="mt-3 font-mono text-xs text-black/45 dark:text-white/45">
+              {index % 2 === 0 ? "08:00" : "20:00"}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (visual === "colors") {
+    return (
+      <div className="mt-8 flex h-32 items-end gap-3">
+        {["bg-orange-500", "bg-blue-500", "bg-emerald-500", "bg-violet-500"].map(
+          (color, index) => (
+            <div
+              key={color}
+              className={`${color} flex-1 rounded-2xl`}
+              style={{ height: `${58 + index * 12}%` }}
+            />
+          ),
+        )}
+      </div>
+    );
+  }
+
+  if (visual === "secure") {
+    const items = secureItems ?? [];
+    return (
+      <div className="mt-8 rounded-2xl border border-border p-4">
+        {items.map((item) => (
+          <div
+            key={item}
+            className="flex items-center justify-between border-b border-black/10 py-3 last:border-b-0 dark:border-white/10"
+          >
+            <span className="text-sm text-black/58 dark:text-white/58">{item}</span>
+            <Check className="h-4 w-4 text-emerald-300" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 grid grid-cols-3 gap-2">
+      {["🇬🇧 EN", "🇩🇪 DE", "🇵🇱 PL"].map((language) => (
+        <div
+          key={language}
+          className="rounded-xl border border-border bg-popover p-4 text-center text-sm font-medium text-foreground"
+        >
+          {language}
+        </div>
+      ))}
     </div>
   );
 }

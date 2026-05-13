@@ -1,5 +1,9 @@
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+
+const isPWA =
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (window.navigator as any).standalone === true;
 import {
   Calendar,
   CalendarDays,
@@ -65,7 +69,7 @@ export function SidebarMenu({
             className="fixed top-0 left-0 h-full w-[280px] bg-card border-r border-border z-50 lg:hidden overflow-y-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className={cn("flex items-center justify-between p-4 border-b border-border", isPWA ? "pt-20" : "pt-4")}>
               <Logo />
               
               <Button

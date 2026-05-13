@@ -579,7 +579,7 @@ class NotificationService {
     }
 
     const scheduledTimes = (pill.scheduleTimes ?? [])
-      .filter((entry) => /^\d{2}:\d{2}$/.test(entry.time))
+      .filter((entry) => /^\d{2}:\d{2}$/.test(entry.time) && entry.notificationEnabled !== false)
       .map((entry) => ({
         time: entry.time,
         dose: entry.dose || pill.defaultDosage,

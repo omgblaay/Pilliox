@@ -256,7 +256,7 @@ export function MedicationsPage({
                             {pill.name || t("pillsSettings.medicationPlaceholder") || "Medication"}
                           </span>
                           <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                            <MedicationIcon icon={pill.icon} className="size-4" />
+                            <MedicationIcon icon={pill.icon} name={pill.name} className="size-4" />
                             <span>{pill.defaultDosage}</span>
                           </div>
                         </div>
@@ -296,7 +296,7 @@ export function MedicationsPage({
                             {pill.name || t("pillsSettings.medicationPlaceholder") || "Supplement"}
                           </span>
                           <div className="flex items-center text-sm gap-2 text-muted-foreground">
-                            <MedicationIcon icon={pill.icon} className="size-4" />
+                            <MedicationIcon icon={pill.icon} name={pill.name} className="size-4" />
                             <span>{pill.defaultDosage}</span>
                           </div>
                         </div>

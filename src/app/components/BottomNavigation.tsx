@@ -44,7 +44,7 @@ export function BottomNavigation() {
     })?.id || "calendar";
 
   return (
-    <nav className="fixed lg:hidden bottom-4 left-12 right-12 flex space-between bg-white/5 border border-white/20 rounded-full backdrop-blur-lg saturate-150 px-4 backdrop-filter bg-opacity-10 safe-area-bottom z-40">
+    <nav className="fixed lg:hidden bottom-4 left-12 right-12 flex space-between bg-white/50 dark:bg-white/5 border border-white/20 rounded-full backdrop-blur-lg saturate-150 px-4 backdrop-filter bg-opacity-10 safe-area-bottom z-40">
 
         {tabs.map((tab) => {
           const isActive = currentTab === tab.id;

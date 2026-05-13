@@ -63,6 +63,7 @@ export interface ScheduleTime {
   time: string;
   dose: number;
   unit?: string;
+  notificationEnabled?: boolean;
 }
 
 export type ScheduleType = "daily" | "cyclic" | "specific_days" | "as_needed";
@@ -78,8 +79,10 @@ export interface PillSetting {
   notificationsEnabled?: boolean;
   notificationTime?: string;
   notificationFrequency?: "daily" | "every2days" | "every3days";
+  notificationEnabledTimes?: string[];
   scheduleType?: ScheduleType;
   scheduleStartDate?: string;
+  scheduleEndDate?: string;
   scheduleCycleDays?: number;
   scheduleSpecificDays?: number[];
   scheduleTimes?: ScheduleTime[];

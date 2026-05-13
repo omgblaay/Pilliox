@@ -3,16 +3,27 @@ import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../components/ui/dialog";
 import {
   Moon,
   Sun,
   Globe,
   FileText,
-  ChevronRight,
   ArrowLeft,
   Monitor,
   Shield,
   Info,
+  Bell,
+  Mail,
+  Smartphone,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { BottomNavigation } from "../components/BottomNavigation";
@@ -44,9 +55,17 @@ export function SettingsPage({
   const [weekStartsOnMonday, setWeekStartsOnMonday] =
     useState(true);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(false);
+  const [appNotificationPermission, setAppNotificationPermission] = useState<"granted" | "denied" | "prompt">("prompt");
 
   useEffect(() => {
     loadSettings();
+    if (typeof Notification !== "undefined") {
+      setAppNotificationPermission(
+        Notification.permission === "default" ? "prompt" : Notification.permission,
+      );
+    }
   }, []);
 
   const loadSettings = async () => {
@@ -62,10 +81,13 @@ export function SettingsPage({
       );
       const data = await response.json();
       if (data.settings) {
-        setTheme(data.settings.theme || "system");
+        const loadedTheme = data.settings.theme || "system";
+        setTheme(loadedTheme);
+        localStorage.setItem('pilliox-theme', loadedTheme);
         setWeekStartsOnMonday(
           data.settings.weekStartsOnMonday ?? true,
         );
+        setEmailNotifications(data.settings.emailNotifications ?? false);
       }
     } catch (error) {
     }
@@ -75,6 +97,7 @@ export function SettingsPage({
     newSettings: Partial<{
       theme: string;
       weekStartsOnMonday: boolean;
+      emailNotifications: boolean;
     }>,
   ) => {
     try {
@@ -92,6 +115,8 @@ export function SettingsPage({
             weekStartsOnMonday:
               newSettings.weekStartsOnMonday ??
               weekStartsOnMonday,
+            emailNotifications:
+              newSettings.emailNotifications ?? emailNotifications,
           }),
         },
       );
@@ -99,10 +124,22 @@ export function SettingsPage({
     }
   };
 
+  const handleRequestAppNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    const result = await Notification.requestPermission();
+    setAppNotificationPermission(result === "default" ? "prompt" : result);
+  };
+
+  const handleEmailNotificationsChange = (checked: boolean) => {
+    setEmailNotifications(checked);
+    saveSettings({ emailNotifications: checked });
+  };
+
   const handleThemeChange = (
     newTheme: "light" | "dark" | "system",
   ) => {
     setTheme(newTheme);
+    localStorage.setItem('pilliox-theme', newTheme);
     saveSettings({ theme: newTheme });
 
     // Apply theme
@@ -162,7 +199,7 @@ export function SettingsPage({
                       {t("settings.theme.title") || "Theme"}
                 </div>
               </div>
-              <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+              <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                 <Button
                   variant="tabGroup"
                   className="flex-col h-auto py-4 gap-2"
@@ -222,7 +259,7 @@ export function SettingsPage({
                     "Change calendar week start day"}
                 </p>
               </div>
-              <div className="bg-gray-200 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
+              <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-2xl p-[3px] flex gap-0">
                 <Button
                   variant="tabGroup"
                   onClick={() => handleWeekStartChange(false)}
@@ -243,6 +280,26 @@ export function SettingsPage({
                 </Button>
               </div>
             </div>
+          </Card>
+        </motion.div>
+
+        {/* Notifications */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            {t("settings.notifications.title")}
+          </h2>
+          <Card className="divide-y divide-border">
+            <Button
+              variant="menuItem"
+              onClick={() => setNotificationsOpen(true)}
+            >
+              <Bell className="size-5 text-muted-foreground" />
+              {t("settings.notifications.menuItem")}
+            </Button>
           </Card>
         </motion.div>
 
@@ -300,6 +357,70 @@ export function SettingsPage({
       <BottomNavigation />
 
       <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
+
+      {/* Notifications Dialog */}
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="size-5" />
+              {t("settings.notifications.menuItem")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("settings.notifications.dialogDescription")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 sm:py-2 pt-20">
+            {/* App notifications */}
+            <div className="flex items-start gap-4">
+              <div className="mt-0.5 rounded-lg bg-muted p-2">
+                <Smartphone className="size-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label className="text-base">{t("settings.notifications.appNotifications")}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.notifications.appNotificationsDesc")}
+                </p>
+                {appNotificationPermission === "granted" ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <Bell className="size-3" /> {t("settings.notifications.enabled")}
+                  </span>
+                ) : appNotificationPermission === "denied" ? (
+                  <p className="text-xs text-destructive">
+                    {t("settings.notifications.blocked")}
+                  </p>
+                ) : (
+                  <Button size="sm" variant="outline" className="mt-1" onClick={handleRequestAppNotifications}>
+                    {t("settings.notifications.enableButton")}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* Email notifications */}
+            <div className="flex items-start gap-4">
+              <div className="mt-0.5 rounded-lg bg-muted p-2">
+                <Mail className="size-5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base">{t("settings.notifications.emailReminders")}</Label>
+                  <Switch
+                    checked={emailNotifications}
+                    onCheckedChange={handleEmailNotificationsChange}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.notifications.emailRemindersDesc")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
