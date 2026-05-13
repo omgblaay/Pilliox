@@ -143,7 +143,7 @@ export function MedicationScheduleForm({
               "w-full rounded-xl cursor-pointer border p-4 text-left transition-colors",
               scheduleType === type.value
                 ? "border-blue-500 bg-blue-500/10"
-                : "border-inputborder hover:bg-muted/40",
+                : "border-inputborder hover:bg-muted/30",
             )}
           >
             <div className="flex items-start gap-3">
