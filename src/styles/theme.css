@@ -18,10 +18,10 @@
   --accent-foreground: #030213;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: #e5e7eb;
   --input: #ffffff;
   --input-background: #f3f3f5;
-  --inputborder: var(--gray-300);
+  --inputborder: #d1d5db;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
