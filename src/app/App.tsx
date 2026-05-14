@@ -149,6 +149,19 @@ function AppRoutes() {
                 "pilliox_onboarding_completed",
               );
 
+              // SIGNED_IN = fresh login (OAuth, email/password) — always redirect
+              // to /app regardless of current path (including /home).
+              // INITIAL_SESSION = page reload with existing session — respect /home
+              // so a logged-in user can browse the landing page without being
+              // bounced away every time.
+              const isFreshLogin = event === "SIGNED_IN";
+              const notAlreadyInApp =
+                !currentPath.startsWith("/app") &&
+                !currentPath.startsWith("/docs/");
+              const shouldNavigate =
+                notAlreadyInApp &&
+                (isFreshLogin || currentPath !== "/home");
+
               if (
                 !onboardingCompleted &&
                 !currentPath.includes("/onboarding")
@@ -173,11 +186,7 @@ function AppRoutes() {
                       "pilliox_onboarding_completed",
                       "true",
                     );
-                    if (
-                      !currentPath.startsWith("/app") &&
-                      !currentPath.startsWith("/docs/") &&
-                      currentPath !== "/home"
-                    ) {
+                    if (shouldNavigate) {
                       navigate("/app");
                     }
                   } else {
@@ -186,12 +195,7 @@ function AppRoutes() {
                 } catch (err) {
                   navigate("/app/onboarding");
                 }
-              } else if (
-                onboardingCompleted &&
-                !currentPath.startsWith("/app") &&
-                !currentPath.startsWith("/docs/") &&
-                currentPath !== "/home"
-              ) {
+              } else if (onboardingCompleted && shouldNavigate) {
                 navigate("/app");
               }
 

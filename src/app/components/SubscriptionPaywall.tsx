@@ -61,9 +61,7 @@ export function SubscriptionPaywall({
 
   if (loading) {
     // Don't show loading spinner if user has access (trial or active subscription)
-    if (status?.hasAccess || status?.subscription?.status === 'active' || status?.subscription?.status === 'trialing') {
-      return null;
-    }
+    if (status?.hasAccess) return null;
 
     return (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -72,10 +70,22 @@ export function SubscriptionPaywall({
     );
   }
 
-  // Don't show paywall if user has access or subscription is active.
-  if (status?.hasAccess || status?.subscription?.status === 'active' || status?.subscription?.status === 'trialing') {
-    return null;
-  }
+  // Status not yet loaded — don't block the user until we know for sure
+  if (!status) return null;
+
+  // Don't show paywall if user has access
+  if (status.hasAccess) return null;
+
+  // Show "Trial Ended" only when the account had a trial that genuinely expired.
+  // For brand-new accounts the trial is active (hasAccess=true) so the paywall
+  // never shows. This branch only fires after the trial window passes.
+  const hadTrial = status.trialEndsAt > 0;
+  const title = hadTrial
+    ? t("subscription.paywallTitle")       // "Trial Ended"
+    : t("subscription.premiumFeatures");   // "Premium Features"
+  const description = hadTrial
+    ? t("subscription.paywallDescription") // "Your 3-day trial has ended…"
+    : t("subscription.trialInfo");         // "3 days free, then €2.99/month…"
 
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -89,10 +99,10 @@ export function SubscriptionPaywall({
             <Crown className="size-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold mb-2">
-            {t("subscription.paywallTitle")}
+            {title}
           </h2>
           <p className="text-muted-foreground">
-            {t("subscription.paywallDescription")}
+            {description}
           </p>
         </div>
 

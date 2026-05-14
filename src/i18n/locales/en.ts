@@ -790,4 +790,16 @@ export default {
     decline: "Decline",
     learnMore: "Learn more",
   },
+  iosInstall: {
+    title: "Add Pilliox to Home Screen",
+    subtitle: "Install the app for quick access",
+    step1prefix: "Tap the",
+    step1share: "Share",
+    step1suffix: "button at the bottom of Safari",
+    step2prefix: "Scroll down and tap",
+    step2action: "Add to Home Screen",
+    step3prefix: "Tap",
+    step3action: "Add",
+    step3suffix: "to confirm",
+  },
 } as const;

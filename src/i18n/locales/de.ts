@@ -792,4 +792,16 @@ export default {
     decline: "Ablehnen",
     learnMore: "Mehr erfahren",
   },
+  iosInstall: {
+    title: "Pilliox zum Home-Bildschirm hinzufügen",
+    subtitle: "App installieren für schnellen Zugriff",
+    step1prefix: "Tippe auf das",
+    step1share: "Teilen",
+    step1suffix: "Symbol unten in Safari",
+    step2prefix: "Nach unten scrollen und",
+    step2action: "Zum Home-Bildschirm",
+    step3prefix: "Tippe auf",
+    step3action: "Hinzufügen",
+    step3suffix: "zum Bestätigen",
+  },
 } as const;

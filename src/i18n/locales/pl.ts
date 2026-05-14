@@ -781,4 +781,16 @@ export default {
     decline: "Odrzuć",
     learnMore: "Dowiedz się więcej",
   },
+  iosInstall: {
+    title: "Dodaj Pilliox do ekranu głównego",
+    subtitle: "Zainstaluj aplikację, aby mieć szybki dostęp",
+    step1prefix: "Stuknij przycisk",
+    step1share: "Udostępnij",
+    step1suffix: "na dole Safari",
+    step2prefix: "Przewiń w dół i stuknij",
+    step2action: "Do ekranu głównego",
+    step3prefix: "Stuknij",
+    step3action: "Dodaj",
+    step3suffix: "aby potwierdzić",
+  },
 } as const;
