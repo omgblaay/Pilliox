@@ -13,7 +13,7 @@ export function TermsOfService({
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-background to-slate-950">
+    <div>
       {/* Header */}
       <div className="sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">

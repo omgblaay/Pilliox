@@ -1,22 +1,16 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Moon, Sun } from "lucide-react";
 import {
   projectId,
   publicAnonKey,
 } from "../../../utils/supabase/info";
 import { getSupabaseClient } from "../../../utils/supabase/client";
-import { Capacitor } from "@capacitor/core";
-import { Browser } from "@capacitor/browser";
 import { LanguageSelector } from "./LanguageSelector";
-import { Label } from "./ui/label";
-import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import Vector from "../../imports/Vector";
-import svgPaths from "../../imports/svg-hepzwgk5tt";
 import { Logo } from "../components/Logo";
-import { Alert } from "./ui/alert";
+import { useTheme } from "../hooks/useTheme";
 
 interface AuthFormProps {
   onAuthSuccess: (
@@ -28,6 +22,243 @@ interface AuthFormProps {
   onNavigateToPrivacy?: () => void;
 }
 
+// ── Calendar preview ──────────────────────────────────────────────────────────
+
+const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+// May 2026 starts on Friday → 4 leading empty cells (Mon–Thu)
+const MAY_LEADING = 4;
+
+function CalendarPreview() {
+  return (
+    <div className="mt-9 rounded-[18px] border border-black/10 dark:border-white/10 bg-card p-[18px] shadow-[0_30px_80px_-30px_rgba(0,0,0,.4)]">
+      <div className="flex items-center justify-between pb-3 border-b border-border">
+        <span className="text-sm font-medium">May 2026</span>
+        <span className="font-mono text-[11px] text-muted-foreground">
+          42-day streak · 3 meds
+        </span>
+      </div>
+      <div className="grid grid-cols-7 gap-1 pt-2.5">
+        {WEEKDAY_LABELS.map((d, i) => (
+          <div
+            key={i}
+            className="text-center text-[9px] text-muted-foreground pb-1"
+          >
+            {d}
+          </div>
+        ))}
+        {Array.from({ length: MAY_LEADING }).map((_, i) => (
+          <div key={`lead-${i}`} />
+        ))}
+        {Array.from({ length: 31 }).map((_, i) => {
+          const day = i + 1;
+          const isPast = day < 7;
+          const isToday = day === 7;
+          return (
+            <div
+              key={day}
+              className={`rounded-md p-1 flex flex-col justify-between ${
+                isToday
+                  ? "bg-blue-500/15 border border-blue-500"
+                  : ""
+              }`}
+              style={{ minHeight: 36 }}
+            >
+              <span
+                className={`text-[10px] leading-none ${
+                  isToday
+                    ? "font-semibold text-foreground"
+                    : isPast
+                    ? "text-foreground/75"
+                    : "text-muted-foreground/40"
+                }`}
+              >
+                {day}
+              </span>
+              {isPast || isToday ? (
+                day === 4 ? (
+                  <div className="flex gap-0.5 mt-1">
+                    <div className="h-1 flex-1 rounded-full bg-blue-500" />
+                    <div className="h-1 flex-1 rounded-full bg-orange-500" />
+                  </div>
+                ) : (
+                  <div className="h-1 w-full rounded-full bg-blue-500 mt-1" />
+                )
+              ) : (
+                <div
+                  className="w-full rounded-full border border-dashed border-blue-500/50 mt-1 box-border"
+                  style={{ height: 5 }}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Brand panel ───────────────────────────────────────────────────────────────
+
+function BrandPanel({ onNavigateHome }: { onNavigateHome: () => void }) {
+  return (
+    <aside
+      className="hidden lg:flex flex-col justify-between relative overflow-hidden"
+      style={{
+        padding: "40px 48px",
+        background:
+          "linear-gradient(180deg, color-mix(in oklab, #3b82f6 18%, var(--background)) 0%, var(--background) 65%)",
+      }}
+    >
+      {/* Grid line overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30 dark:opacity-35"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(100,100,100,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(100,100,100,.18) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+          maskImage:
+            "radial-gradient(ellipse 80% 60% at 30% 30%, #000, transparent 80%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse 80% 60% at 30% 30%, #000, transparent 80%)",
+        }}
+      />
+
+      {/* Logo */}
+      <button
+        onClick={onNavigateHome}
+        className="relative z-10 flex items-center"
+        aria-label="Pilliox home"
+      >
+        <Logo />
+      </button>
+
+      {/* Headline + preview */}
+      <div className="relative z-10 max-w-[460px]">
+        <h1
+          className="font-semibold leading-[1.05] tracking-[-0.035em] mb-4 text-balance text-foreground"
+          style={{ fontSize: "clamp(36px, 4.2vw, 54px)" }}
+        >
+          Welcome back to your{" "}
+          <em className="not-italic text-blue-400">routine.</em>
+        </h1>
+        <p className="text-muted-foreground text-base max-w-[380px]">
+          Pick up exactly where you left off — your calendar, your reminders,
+          your streak.
+        </p>
+        <CalendarPreview />
+      </div>
+
+      {/* Footer */}
+      <div className="relative z-10 flex items-center gap-3.5 font-mono text-xs text-muted-foreground/55">
+        <span>EN · DE · PL</span>
+        <span className="w-1 h-1 rounded-full bg-current opacity-60" />
+        <span>3-day free trial</span>
+        <span className="w-1 h-1 rounded-full bg-current opacity-60" />
+        <span>No credit card</span>
+      </div>
+    </aside>
+  );
+}
+
+// ── OAuth buttons ─────────────────────────────────────────────────────────────
+
+function OAuthButton({
+  provider,
+  onClick,
+  disabled,
+}: {
+  provider: "google" | "facebook";
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  const label =
+    provider === "google" ? "Continue with Google" : "Continue with Facebook";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center justify-center gap-2.5 w-full py-[11px] px-4 rounded-[11px] border border-black/14 dark:border-white/14 bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+    >
+      {provider === "google" ? (
+        <svg width="16" height="16" viewBox="0 0 48 48">
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 5.1 29.3 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.5-.4-3.5z" />
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 5.1 29.3 3 24 3 16.3 3 9.6 7.3 6.3 14.7z" />
+          <path fill="#4CAF50" d="M24 45c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 40.6 16.2 45 24 45z" />
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.6l6.2 5.2C40.9 36 45 30.5 45 24c0-1.4-.1-2.5-.4-3.5z" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2">
+          <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.27h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z" />
+        </svg>
+      )}
+      {label}
+    </button>
+  );
+}
+
+// ── Divider ───────────────────────────────────────────────────────────────────
+
+function Divider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-5 text-muted-foreground/55 text-[11px] font-mono tracking-[0.08em] uppercase">
+      <div className="flex-1 h-px bg-border" />
+      {label}
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
+// ── Field ─────────────────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-[7px]">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+// ── Error banner ──────────────────────────────────────────────────────────────
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 px-4 py-3 rounded-xl text-sm whitespace-pre-line">
+      {message}
+    </div>
+  );
+}
+
+// ── Primary button ────────────────────────────────────────────────────────────
+
+function PrimaryButton({
+  children,
+  disabled,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={disabled}
+      className="w-full flex items-center justify-center gap-2 py-[13px] px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[14.5px] font-medium transition-colors shadow-[0_8px_24px_-10px_rgba(59,130,246,.6)] disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export function AuthForm({
   onAuthSuccess,
   onNavigateToTerms,
@@ -35,12 +266,18 @@ export function AuthForm({
 }: AuthFormProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme("system");
+
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<
-    "login" | "signup"
-  >("signup"); // 🔥 DEFAULT TO SIGNUP - Most users need to create account first
-  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("signup");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -50,11 +287,17 @@ export function AuthForm({
   const [signupName, setSignupName] = useState("");
   const [signupDateOfBirth, setSignupDateOfBirth] = useState("");
 
+  const switchTab = (tab: "login" | "signup") => {
+    setError("");
+    setActiveTab(tab);
+  };
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
     try {
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/login`,
@@ -64,22 +307,15 @@ export function AuthForm({
             "Content-Type": "application/json",
             Authorization: `Bearer ${publicAnonKey}`,
           },
-          body: JSON.stringify({
-            email: loginEmail,
-            password: loginPassword,
-          }),
+          body: JSON.stringify({ email: loginEmail, password: loginPassword }),
         },
       );
-
       const data = await response.json();
-
       if (!response.ok) {
-        // Use a single generic error message for all login failures
         setError(t("auth.invalidLoginCredentials"));
         setIsLoading(false);
         return;
       }
-
       if (data?.access_token) {
         onAuthSuccess(data.access_token, loginEmail, data.refresh_token);
       }
@@ -93,7 +329,6 @@ export function AuthForm({
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
     try {
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966/signup`,
@@ -111,25 +346,16 @@ export function AuthForm({
           }),
         },
       );
-
       const data = await response.json();
-
       if (!response.ok) {
-        // Check if email already exists
-        if (
-          data.error &&
-          data.error.includes("already been registered")
-        ) {
+        if (data.error && data.error.includes("already been registered")) {
           setError(
-            `This email is already registered. Please use "Login" tab or reset your password if you forgot it.`,
+            `This email is already registered. Please use "Sign in" or reset your password.`,
           );
-
-          // Auto-switch to login tab after 3 seconds
           setTimeout(() => {
-            setActiveTab("login");
+            switchTab("login");
             setLoginEmail(signupEmail);
             setLoginPassword(signupPassword);
-            setError("");
           }, 3000);
         } else {
           setError(data.error || "Signup failed");
@@ -137,15 +363,11 @@ export function AuthForm({
         setIsLoading(false);
         return;
       }
-
       if (data?.access_token) {
         onAuthSuccess(data.access_token, signupEmail, data.refresh_token);
       }
     } catch (err: any) {
-      setError(
-        err.message ||
-        "Signup failed. Please check console for details.",
-      );
+      setError(err.message || "Signup failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -154,10 +376,8 @@ export function AuthForm({
   const handleOAuthLogin = async (provider: "google" | "facebook") => {
     setError("");
     setIsLoading(true);
-
     try {
       const supabase = getSupabaseClient();
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -165,441 +385,311 @@ export function AuthForm({
           skipBrowserRedirect: true,
         },
       });
-
       if (error) {
         setError(error.message);
         setIsLoading(false);
         return;
       }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       setError(err.message || `${provider} login failed`);
       setIsLoading(false);
     }
   };
 
-  const openBrowser = async (url: string) => {
-    if (Capacitor.isNativePlatform()) {
-      await Browser.open({ url });
-    } else {
-      window.open(url, "_blank");
-    }
-  };
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="mmin-h-[100dvh] flex gap-4 flex-col md:items-center md:justify-center p-4 py-8 md:py-4 relative">
+    <div className="min-h-[100dvh] lg:grid lg:grid-cols-2 bg-background">
+      {/* ── LEFT: Brand panel ── */}
+      <BrandPanel onNavigateHome={() => navigate("/home")} />
 
-      {/* Back to Landing Page Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => navigate("/home")}
-        className="mx-auto"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        {t("auth.backToHome") || "Back to Home"}
-      </Button>
-
-      <div className="flex max-h-auto flex-col md:flex-row w-full max-w-[800px] rounded-[16px] overflow-hidden shadow-2xl">
-        {/* Left Side - Decorative Panel (Desktop sidebar / Mobile top) */}
-        <div className="relative w-full md:w-[320px] hidden lg:flex bg-primary dark:bg-popover flex-col gap-2 p-6 order-first">
-          {/* Background Image with Overlay */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none"
+      {/* ── RIGHT: Form panel ── */}
+      <main className="flex flex-col justify-center items-center relative min-h-[100dvh] lg:min-h-0 px-6 py-12 lg:px-14">
+        {/* Top-right controls */}
+        <div className="absolute top-7 right-6 lg:right-10 flex items-center gap-3">
+          <button
+            onClick={() => navigate("/home")}
+            className="text-muted-foreground text-sm hover:text-foreground transition-colors hidden sm:block"
           >
-            <img
-              alt=""
-              className="absolute max-w-none object-cover size-full"
-              src="src/assets/bg.png"
-              style={{ filter: "grayscale(1)" }}
-            />
-            <div className="absolute bg-popover/80  inset-0" />
+            ← {t("auth.backToHome") || "Back to site"}
+          </button>
+          {/* Theme toggle */}
+          <div className="flex p-1 border border-border rounded-full bg-card">
+            <button
+              onClick={() => setTheme("dark")}
+              aria-label="Dark theme"
+              className={`w-7 h-7 rounded-full grid place-items-center transition-colors ${
+                isDark ? "bg-muted text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Moon className="h-3 w-3" />
+            </button>
+            <button
+              onClick={() => setTheme("light")}
+              aria-label="Light theme"
+              className={`w-7 h-7 rounded-full grid place-items-center transition-colors ${
+                !isDark ? "bg-muted text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Sun className="h-3 w-3" />
+            </button>
           </div>
-
-          {/* Calendar Preview Image 
-          <div className="absolute h-[361px] left-[32px] bottom-[-100px] w-[249px] rotate-[5deg] hidden md:block">
-            <img
-              alt="Calendar preview"
-              className="absolute inset-0 max-w-none object-cover pointer-events-none size-full rounded-lg"
-              src={imgImage1}
-            />
-          </div>*/}
-
-          {/* Feature List */}
-          <ul className="relative space-y-4 text-l">
-            <li>
-              <h1>{t("auth.features.title")}</h1>
-            </li>
-            <li className="flex items-start gap-2">
-              • {t("auth.features.medications")}
-            </li>
-            <li className="flex items-start gap-2">
-              • {t("auth.features.inrTracking")}
-            </li>
-            <li className="flex items-start gap-2">
-              • {t("auth.features.colorCoded")}
-            </li>
-            <li className="flex items-start gap-2">
-              • {t("auth.features.notes")}
-            </li>
-          </ul>
+          <LanguageSelector variant="ghost" />
         </div>
 
-        {/* Right Side - Auth Card */}
-        <div className="flex-1 md:h-auto bg-popover p-4 md:p-8 flex flex-col gap-4">
-
-
-          <div className="flex w-full">
-            {/* Logo */}
-            <div className="flex-1">
-            <Logo className="h-[40px] w-[120px] flex-0" />
-            </div>
-            {/* Language Selector */}
-            <LanguageSelector variant="ghost" className="flex-0" />
-          </div>
-
-          {/* Tab Buttons */}
-          <div className="bg-gray-100 dark:bg-[#2a2a2a] rounded-[20px] p-1 mb-4 flex gap-0">
-            <Button
-              variant="tabGroup"
-              onClick={() => setActiveTab("login")}
-              data-state={
-                activeTab === "login" ? "active" : "inactive"
-              }
-              className="flex-1"
-            >
-              {t("auth.login")}
-            </Button>
-            <Button
-              variant="tabGroup"
-              onClick={() => setActiveTab("signup")}
-              data-state={
-                activeTab === "signup" ? "active" : "inactive"
-              }
-              className="flex-1"
-            >
-              {t("auth.signup")}
-            </Button>
-          </div>
-
-          {/* Login Form */}              {/* Social Login Buttons */}
-          <div className="flex flex-col gap-3">
-
-
-            {/* OAuth Buttons */}
-            <div className="flex gap-3">
-              {/* Google Login Button */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOAuthLogin("google")}
-                disabled={isLoading}
-                className="flex-1"
+        {/* Form wrap */}
+        <div className="w-full max-w-[420px]">
+          {/* Tab switcher */}
+          <div className="inline-flex p-1 bg-card border border-border rounded-xl mb-7">
+            {(["login", "signup"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => switchTab(tab)}
+                className={`px-[18px] py-[9px] rounded-[8px] text-[13.5px] font-medium transition-colors ${
+                  activeTab === tab
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Google
-              </Button>
-
-              {/* Facebook Login Button */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOAuthLogin("facebook")}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="#1877F2"
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-                Facebook
-              </Button>
-
-            </div>
-            {/* Divider with "OR" text */}
-            <div className="relative flex items-center justify-center py-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
-              </div>
-              <div className="relative px-4 bg-popover">
-                <span className="text-sm text-[#888]">
-                  {t("auth.orContinueWith")}
-                </span>
-              </div>
-            </div>
+                {tab === "login"
+                  ? t("auth.login") || "Sign in"
+                  : t("auth.signup") || "Create account"}
+              </button>
+            ))}
           </div>
+
+          {/* ── LOGIN ── */}
           {activeTab === "login" && (
-            <form
-              onSubmit={handleLogin}
-              className="flex flex-col gap-4"
-            >
-              {/* Email Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="login-email"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("auth.email")}
-                </label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder={t("auth.emailPlaceholder")}
-                  value={loginEmail}
-                  onChange={(e) =>
-                    setLoginEmail(e.target.value)
-                  }
-                  required
-                  autoComplete="email"
+            <>
+              <div className="mb-7">
+                <h2 className="text-[32px] font-semibold tracking-[-0.025em] leading-[1.05] mb-1.5 text-foreground">
+                  Sign in to Pilliox
+                </h2>
+                <p className="text-muted-foreground text-[14.5px]">
+                  New here?{" "}
+                  <button
+                    onClick={() => switchTab("signup")}
+                    className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
+                  >
+                    Create an account
+                  </button>{" "}
+                  — 3 days free.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 mb-1">
+                <OAuthButton
+                  provider="google"
+                  onClick={() => handleOAuthLogin("google")}
+                  disabled={isLoading}
+                />
+                <OAuthButton
+                  provider="facebook"
+                  onClick={() => handleOAuthLogin("facebook")}
+                  disabled={isLoading}
                 />
               </div>
 
-              {/* Password Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="login-password"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("auth.password")}
-                </label>
-                <div className="relative">
+              <Divider label={t("auth.orContinueWith") || "or with email"} />
+
+              <form onSubmit={handleLogin} className="flex flex-col gap-3.5">
+                <Field label={t("auth.email") || "Email"}>
                   <Input
-                    id="login-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder={t("auth.passwordPlaceholder")}
-                    value={loginPassword}
-                    onChange={(e) =>
-                      setLoginPassword(e.target.value)
-                    }
+                    type="email"
+                    placeholder="you@example.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required
-                    autoComplete="current-password"
+                    autoComplete="email"
                   />
-                  {/* Show password button */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowPassword(!showPassword)
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#888] hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {/* Forgot Password Link */}
-                <div className="text-right">
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={() => navigate("/forgot-password")}
-                    size="link"
-                    className="!text-sm p-0"
-                  >
-                    {t("auth.forgotPassword")}
-                  </Button>
-                </div>
-              </div>
+                </Field>
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
-                  {error}
-                </div>
-              )}
+                <Field label={t("auth.password") || "Password"}>
+                  <div className="relative">
+                    <Input
+                      type={showLoginPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showLoginPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                    >
+                      {t("auth.forgotPassword") || "Forgot password?"}
+                    </button>
+                  </div>
+                </Field>
 
-              {/* Login Button */}
-              <Button type="submit" disabled={isLoading}>
-                {isLoading
-                  ? t("auth.loggingIn")
-                  : t("auth.login")}
-              </Button>
-            </form>
+                {error && <ErrorBanner message={error} />}
+
+                <PrimaryButton disabled={isLoading}>
+                  {isLoading ? (t("auth.loggingIn") || "Signing in…") : "Sign in"}
+                  {!isLoading && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </PrimaryButton>
+              </form>
+            </>
           )}
 
-          {/* Signup Form */}
-
+          {/* ── SIGN UP ── */}
           {activeTab === "signup" && (
-            <form
-              onSubmit={handleSignup}
-              className="flex flex-col gap-6"
-            >
-              {/* Name Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="signup-name"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("auth.name")}
-                </label>
-                <Input
-                  id="signup-name"
-                  type="text"
-                  placeholder={t("auth.namePlaceholder")}
-                  value={signupName}
-                  onChange={(e) =>
-                    setSignupName(e.target.value)
-                  }
-                  autoComplete="name"
-                />
-              </div>
-
-              {/* Date of Birth Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="signup-dob"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("profile.dateOfBirth") || "Date of Birth"}{" "}
-
-                </label>
-                <Input
-                  id="signup-dob"
-                  type="date"
-                  value={signupDateOfBirth}
-                  onChange={(e) => setSignupDateOfBirth(e.target.value)}
-                  autoComplete="bday"
-                  max={new Date().toISOString().split("T")[0]}
-                />
-              </div>
-
-              {/* Email Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="signup-email"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("auth.email")}
-                </label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder={t("auth.emailPlaceholder")}
-                  value={signupEmail}
-                  onChange={(e) =>
-                    setSignupEmail(e.target.value)
-                  }
-                  required
-                  autoComplete="email"
-                />
-              </div>
-
-              {/* Password Field */}
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="signup-password"
-                  className="text-gray-900 dark:text-white text-sm font-medium"
-                >
-                  {t("auth.password")}
-                </label>
-                <div className="relative">
-                  <Input
-                    id="signup-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder={t(
-                      "auth.passwordPlaceholderDots",
-                    )}
-                    value={signupPassword}
-                    onChange={(e) =>
-                      setSignupPassword(e.target.value)
-                    }
-                    required
-                    autoComplete="new-password"
-                    minLength={6}
-                  />
-
-                  {/* Show password button */}
+            <>
+              <div className="mb-7">
+                <h2 className="text-[32px] font-semibold tracking-[-0.025em] leading-[1.05] mb-1.5 text-foreground">
+                  Create your account
+                </h2>
+                <p className="text-muted-foreground text-[14.5px]">
+                  3 days free. No credit card. Already have one?{" "}
                   <button
-                    type="button"
-                    onClick={() =>
-                      setShowPassword(!showPassword)
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#888] hover:text-gray-900 dark:hover:text-white transition-colors"
+                    onClick={() => switchTab("login")}
+                    className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    Sign in
                   </button>
-                </div>
+                  .
+                </p>
               </div>
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
-                  {error}
-                </div>
-              )}
+              <div className="flex flex-col gap-2 mb-1">
+                <OAuthButton
+                  provider="google"
+                  onClick={() => handleOAuthLogin("google")}
+                  disabled={isLoading}
+                />
+                <OAuthButton
+                  provider="facebook"
+                  onClick={() => handleOAuthLogin("facebook")}
+                  disabled={isLoading}
+                />
+              </div>
 
-              {/* Signup Button */}
-              <Button type="submit" disabled={isLoading}>
-                {isLoading
-                  ? t("auth.signingUp")
-                  : t("auth.signupButton")}
-              </Button>
-            </form>
+              <Divider label={t("auth.orContinueWith") || "or with email"} />
+
+              <form onSubmit={handleSignup} className="flex flex-col gap-3.5">
+                <Field label={t("auth.name") || "Display name"}>
+                  <Input
+                    type="text"
+                    placeholder="What should we call you?"
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
+                    autoComplete="name"
+                  />
+                </Field>
+
+                <Field label={t("auth.email") || "Email"}>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </Field>
+
+                {/* Password + DOB side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t("auth.password") || "Password"}>
+                    <div className="relative">
+                      <Input
+                        type={showSignupPassword ? "text" : "password"}
+                        placeholder="Min. 6 characters"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        required
+                        autoComplete="new-password"
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showSignupPassword ? (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </Field>
+
+                  <Field label={t("profile.dateOfBirth") || "Date of birth"}>
+                    <Input
+                      type="date"
+                      value={signupDateOfBirth}
+                      onChange={(e) => setSignupDateOfBirth(e.target.value)}
+                      autoComplete="bday"
+                      max={new Date().toISOString().split("T")[0]}
+                    />
+                  </Field>
+                </div>
+
+                {error && <ErrorBanner message={error} />}
+
+                <PrimaryButton disabled={isLoading}>
+                  {isLoading
+                    ? (t("auth.signingUp") || "Creating account…")
+                    : (t("auth.signupButton") || "Start 3-day free trial")}
+                  {!isLoading && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <path d="M5 12h14M13 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </PrimaryButton>
+              </form>
+            </>
           )}
 
-
-
-          {/* Legal Links */}
-          <div className="text-center text-gray-500 dark:text-[#888] text-sm mt-2">
-            <span>{t("auth.bySigningUp")} </span>
+          {/* Legal */}
+          <p className="!text-sm text-muted-foreground text-center mt-5 leading-relaxed">
+            {t("auth.bySigningUp") || "By continuing you agree to our"}{" "}
             {onNavigateToTerms && (
-              <>
-                <Button
-                  type="button"
-                  onClick={onNavigateToTerms}
-                  variant="link"
-                  size="link"
-                  className="!text-sm px-0.5"
-                >
-                  {t("auth.termsOfService")}
-                </Button>
-                <span> {t("auth.and")} </span>
-              </>
-            )}
-            {onNavigateToPrivacy && (
-              <Button
+              <button
                 type="button"
                 onClick={onNavigateToTerms}
-                variant="link"
-                size="link"
-                className="!text-sm px-0.5"
+                className="underline !text-sm  underline-offset-2 hover:text-muted-foreground transition-colors"
               >
-                {t("auth.privacyPolicy")}
-              </Button>
+                {t("auth.termsOfService") || "Terms"}
+              </button>
             )}
-          </div>
+            {onNavigateToTerms && onNavigateToPrivacy && (
+              <span> {t("auth.and") || "and"} </span>
+            )}
+            {onNavigateToPrivacy && (
+              <button
+                type="button"
+                onClick={onNavigateToPrivacy}
+                className="underline !text-sm  underline-offset-2 hover:text-muted-foreground transition-colors"
+              >
+                {t("auth.privacyPolicy") || "Privacy Policy"}
+              </button>
+            )}
+            {". "}{t("auth.neverShareMedicalData") || "We never share medical data."}
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

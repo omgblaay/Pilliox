@@ -198,6 +198,7 @@ export default {
     and: "and",
     termsOfService: "Terms of Service",
     privacyPolicy: "Privacy Policy",
+    neverShareMedicalData: "We never share medical data.",
     invalidLoginCredentials: "Invalid login credentials",
     features: {
       title: "Track Your Medical Values & Medications",

@@ -400,14 +400,27 @@ function AppRoutes() {
         <Route
           path="/"
           element={
+            // Logged in on any platform → app
             accessToken ? (
               <Navigate to="/app" replace />
-            ) : (isPWA || isNativeApp) ? (
+            ) : // PWA / native: wait for auth to resolve before redirecting to /auth
+            // so a user with a valid session doesn't flash the login screen
+            (isPWA || isNativeApp) && isLoading ? (
+              null
+            ) : // PWA (standalone) → always go to /auth, never show landing page
+            isPWA ? (
+              <Navigate
+                to={`/auth${window.location.search}${window.location.hash}`}
+                replace
+              />
+            ) : // Android / Capacitor (not logged in) → /auth
+            isNativeApp ? (
               <Navigate
                 to={`/auth${window.location.search}${window.location.hash}`}
                 replace
               />
             ) : (
+              // Browser, not logged in → landing page
               <Navigate to="/home" state={{ fromRoot: true }} replace />
             )
           }
