@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, Share, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
+import { Logo } from "./Logo";
 
 const DISMISSED_KEY = "pilliox_ios_install_dismissed";
 
@@ -16,6 +18,7 @@ function isInStandaloneMode(): boolean {
 }
 
 export function IOSInstallPrompt() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -45,10 +48,9 @@ export function IOSInstallPrompt() {
           <div className="bg-popover border border-border rounded-2xl p-4 shadow-2xl max-w-sm mx-auto">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
-                <img src="/icon-192.png" alt="Pilliox" className="w-10 h-10 rounded-xl" />
                 <div>
-                  <p className="font-semibold text-sm text-foreground">Install Pilliox</p>
-                  <p className="text-xs text-muted-foreground">Add to your Home Screen</p>
+                  <p className="font-semibold text-sm text-foreground">{t("iosInstall.title")}</p>
+                  <p className="text-xs text-muted-foreground">{t("iosInstall.subtitle")}</p>
                 </div>
               </div>
               <button
@@ -63,27 +65,27 @@ export function IOSInstallPrompt() {
               <li className="flex items-center gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 text-blue-500 flex items-center justify-center text-xs font-semibold">1</span>
                 <span>
-                  Tap the{" "}
+                  {t("iosInstall.step1prefix")}{" "}
                   <span className="inline-flex items-center gap-1 font-medium">
                     <Share className="size-3.5 text-blue-500" />
-                    Share
+                    {t("iosInstall.step1share")}
                   </span>{" "}
-                  button in Safari's toolbar
+                  {t("iosInstall.step1suffix")}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 text-blue-500 flex items-center justify-center text-xs font-semibold">2</span>
                 <span>
-                  Scroll down and tap{" "}
+                  {t("iosInstall.step2prefix")}{" "}
                   <span className="inline-flex items-center gap-1 font-medium">
                     <Plus className="size-3.5" />
-                    Add to Home Screen
+                    {t("iosInstall.step2action")}
                   </span>
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 text-blue-500 flex items-center justify-center text-xs font-semibold">3</span>
-                <span>Tap <span className="font-medium">Add</span> in the top-right corner</span>
+                <span>{t("iosInstall.step3prefix")} <span className="font-medium">{t("iosInstall.step3action")}</span> {t("iosInstall.step3suffix")}</span>
               </li>
             </ol>
           </div>
