@@ -41,7 +41,7 @@ export default {
       description:
         "Pilliox pomaga rejestrować leki, suplementy i pomiary medyczne jak INR, bez zamieniania rutyny zdrowotnej w arkusz kalkulacyjny.",
       cta: "Zacznij śledzić",
-      pricing: "Bez karty · 3 dni za darmo, potem 2,99 €/miesiąc",
+      pricing: "Bez karty · 3 dni za darmo, potem 1,99 €/miesiąc",
       pillCardName: "Dawka Marcumar",
       pillCardTime: "08:00 potwierdzone",
     },
@@ -116,7 +116,7 @@ export default {
       feature5: "Bezpieczna kopia zapasowa w chmurze przez Twoje konto",
       feature6: "Angielski, Niemiecki i Polski",
       popular: "Popularne",
-      price: "2,99 €",
+      price: "1,99 €",
       perMonth: "/miesiąc",
       trialIncluded: "3-dniowy darmowy okres próbny wliczony",
       creditCardNote: "Nie wymagana karta płatnicza",
@@ -350,7 +350,7 @@ export default {
     trialDescription:
       "Subskrybuj, aby uzyskać pełen dostęp do Pilliox i wesprzeć dalszy rozwój",
     trialExpired: "Twój okres próbny dobiegł końca",
-    subscribeCTA: "Subskrybuj - €2,99/mies.",
+    subscribeCTA: "Subskrybuj - €1,99/mies.",
     subscribeToAccess:
       "Subskrybuj, aby kontynuować dodawanie wpisów",
     subscribeNow: "Subskrybuj teraz",

@@ -1690,7 +1690,7 @@ app.post('/make-server-c7e1f966/subscription/create-checkout', async (c) => {
         'line_items[0][price_data][product_data][name]': 'Pilliox Premium',
         'line_items[0][price_data][product_data][description]': 'Monthly subscription for INR tracking',
         'line_items[0][price_data][recurring][interval]': 'month',
-        'line_items[0][price_data][unit_amount]': '299', // €2.99 in cents
+        'line_items[0][price_data][unit_amount]': '199', // €1.99 in cents
         'line_items[0][quantity]': '1',
         mode: 'subscription',
         success_url: `${returnUrl || 'https://pilliox.com'}?session_id={CHECKOUT_SESSION_ID}`,
@@ -2022,6 +2022,141 @@ app.post('/make-server-c7e1f966/subscription/complete-checkout', async (c) => {
   } catch (error: any) {
     console.log('[COMPLETE CHECKOUT] ERROR Exception:', error.message);
     return c.json({ error: 'Failed to complete checkout' }, 500);
+  }
+});
+
+// ====== WEB PUSH NOTIFICATION ROUTES ======
+
+// Save (or refresh) a browser push subscription for the authenticated user
+app.post('/make-server-c7e1f966/notification/push-subscription', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    if (!accessToken) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getUserFromToken(accessToken);
+    if (!user) return c.json({ error: 'Invalid token' }, 401);
+
+    const { subscription } = await c.req.json();
+    if (!subscription?.endpoint) return c.json({ error: 'Invalid subscription' }, 400);
+
+    await kvSet(`push_sub:${user.id}`, subscription);
+    console.log(`[push-subscription] Saved push subscription for ${user.id}`);
+    return c.json({ success: true });
+  } catch (err: any) {
+    console.log('[push-subscription] Error:', err.message);
+    return c.json({ error: 'Failed to save push subscription' }, 500);
+  }
+});
+
+// Remove the push subscription (called on logout / notification disable)
+app.delete('/make-server-c7e1f966/notification/push-subscription', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    if (!accessToken) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getUserFromToken(accessToken);
+    if (!user) return c.json({ error: 'Invalid token' }, 401);
+
+    await kvDel(`push_sub:${user.id}`);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: 'Failed to remove push subscription' }, 500);
+  }
+});
+
+// Store the user's current notification schedule on the server
+// (frontend calls this after every reschedule so the server knows what to push)
+app.post('/make-server-c7e1f966/notification/push-schedule', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    if (!accessToken) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getUserFromToken(accessToken);
+    if (!user) return c.json({ error: 'Invalid token' }, 401);
+
+    const { notifications } = await c.req.json();
+    if (!Array.isArray(notifications)) return c.json({ error: 'Invalid schedule' }, 400);
+
+    await kvSet(`push_schedule:${user.id}`, notifications);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: 'Failed to save push schedule' }, 500);
+  }
+});
+
+// Process due notifications: find any that are overdue and send Web Push.
+// Called by the app on every open AND by the SW's periodic background sync.
+app.post('/make-server-c7e1f966/notification/process', async (c) => {
+  try {
+    const accessToken = c.req.header('X-User-Token') || c.req.header('Authorization')?.split(' ')[1];
+    if (!accessToken) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await getUserFromToken(accessToken);
+    if (!user) return c.json({ error: 'Invalid token' }, 401);
+
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+    const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+    const VAPID_SUBJECT = `mailto:admin@pilliox.com`;
+
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.log('[notification/process] VAPID keys not configured');
+      return c.json({ success: true, sent: 0, reason: 'vapid_not_configured' });
+    }
+
+    const sub = await safeKvOperation(() => kvGet(`push_sub:${user.id}`));
+    if (!sub) return c.json({ success: true, sent: 0, reason: 'no_subscription' });
+
+    const schedule: any[] = await safeKvOperation(() => kvGet(`push_schedule:${user.id}`)) || [];
+    const now = Date.now();
+    const GRACE_MS = 60 * 60 * 1000; // fire up to 1 hour late
+
+    const due = schedule.filter(n => {
+      const t = new Date(n.scheduledTime).getTime();
+      return t <= now && now - t <= GRACE_MS;
+    });
+
+    if (due.length === 0) {
+      // Remove any that are outside the grace window
+      const remaining = schedule.filter(n => new Date(n.scheduledTime).getTime() > now);
+      if (remaining.length !== schedule.length) {
+        await safeKvOperation(() => kvSet(`push_schedule:${user.id}`, remaining));
+      }
+      return c.json({ success: true, sent: 0 });
+    }
+
+    // Import web-push at call time (avoids startup cost when VAPID not configured)
+    const webPush = (await import('npm:web-push')).default;
+    webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+    let sent = 0;
+    let invalidSub = false;
+
+    for (const n of due) {
+      try {
+        await webPush.sendNotification(sub, JSON.stringify({
+          title: n.title,
+          body: n.body,
+          tag: `pill-${n.pillId}-${n.id}`,
+        }));
+        sent++;
+        console.log(`[notification/process] Push sent for ${user.id}: ${n.title}`);
+      } catch (pushErr: any) {
+        console.log(`[notification/process] Push failed: ${pushErr.statusCode} ${pushErr.message}`);
+        if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+          // Subscription expired or unsubscribed — remove it
+          await safeKvOperation(() => kvDel(`push_sub:${user.id}`));
+          invalidSub = true;
+          break;
+        }
+      }
+    }
+
+    // Update schedule: remove fired entries and expired ones
+    if (!invalidSub) {
+      const remaining = schedule.filter(n => new Date(n.scheduledTime).getTime() > now);
+      await safeKvOperation(() => kvSet(`push_schedule:${user.id}`, remaining));
+    }
+
+    return c.json({ success: true, sent });
+  } catch (err: any) {
+    console.log('[notification/process] Error:', err.message);
+    return c.json({ error: 'Failed to process notifications' }, 500);
   }
 });
 

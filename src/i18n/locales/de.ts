@@ -41,7 +41,7 @@ export default {
       description:
         "Pilliox hilft Ihnen, Medikamente, Nahrungsergänzungsmittel und medizinische Werte wie INR zu protokollieren, ohne Ihre Gesundheitsroutine in eine Tabelle zu verwandeln.",
       cta: "Jetzt verfolgen",
-      pricing: "Keine Kreditkarte erforderlich · 3 Tage kostenlos, dann 2,99 €/Monat",
+      pricing: "Keine Kreditkarte erforderlich · 3 Tage kostenlos, dann 1,99 €/Monat",
       pillCardName: "Marcumar-Dosis",
       pillCardTime: "08:00 bestätigt",
     },
@@ -116,7 +116,7 @@ export default {
       feature5: "Sicheres Cloud-Backup über Ihr Konto",
       feature6: "Englisch, Deutsch und Polnisch",
       popular: "Beliebt",
-      price: "2,99 €",
+      price: "1,99 €",
       perMonth: "/Monat",
       trialIncluded: "3-tägige kostenlose Testversion inklusive",
       creditCardNote: "Keine Kreditkarte erforderlich",
@@ -356,7 +356,7 @@ export default {
     trialDescription:
       "Subskribieren Sie, um vollen Zugriff auf Pilliox zu erhalten und die weitere Entwicklung zu unterstützen",
     trialExpired: "Ihre Testversion ist abgelaufen",
-    subscribeCTA: "Abonnieren - €2,99/Monat",
+    subscribeCTA: "Abonnieren - €1,99/Monat",
     subscribeToAccess:
       "Abonnieren Sie, um weiter Einträge hinzuzufügen",
     subscribeNow: "Jetzt abonnieren",

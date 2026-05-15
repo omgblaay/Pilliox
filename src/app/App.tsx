@@ -404,27 +404,29 @@ function AppRoutes() {
         <Route
           path="/"
           element={
-            // Logged in on any platform → app
+            // Logged in → app
             accessToken ? (
               <Navigate to="/app" replace />
-            ) : // PWA / native: wait for auth to resolve before redirecting to /auth
-            // so a user with a valid session doesn't flash the login screen
-            (isPWA || isNativeApp) && isLoading ? (
-              null
-            ) : // PWA (standalone) → always go to /auth, never show landing page
-            isPWA ? (
+            ) : // OAuth / Stripe callback landed on root — forward to /auth with
+            // params intact so Supabase can exchange the code before we navigate
+            // away. This happens when the Supabase site URL is the bare domain
+            // and redirectTo doesn't match the allowlist exactly (www vs non-www).
+            window.location.search.includes('code=') ||
+            window.location.hash.includes('access_token=') ? (
               <Navigate
                 to={`/auth${window.location.search}${window.location.hash}`}
                 replace
               />
-            ) : // Android / Capacitor (not logged in) → /auth
-            isNativeApp ? (
+            ) : // PWA / native: wait for session to resolve before redirecting
+            (isPWA || isNativeApp) && isLoading ? (
+              null
+            ) : isPWA || isNativeApp ? (
               <Navigate
                 to={`/auth${window.location.search}${window.location.hash}`}
                 replace
               />
             ) : (
-              // Browser, not logged in → landing page
+              // Regular browser, not logged in → landing page
               <Navigate to="/home" state={{ fromRoot: true }} replace />
             )
           }

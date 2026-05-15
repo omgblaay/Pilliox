@@ -85,7 +85,7 @@ export function SubscriptionPaywall({
     : t("subscription.premiumFeatures");   // "Premium Features"
   const description = hadTrial
     ? t("subscription.paywallDescription") // "Your 3-day trial has ended…"
-    : t("subscription.trialInfo");         // "3 days free, then €2.99/month…"
+    : t("subscription.trialInfo");         // "3 days free, then €1.99/month…"
 
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -127,7 +127,7 @@ export function SubscriptionPaywall({
 
         <div className="bg-muted rounded-lg p-4 mb-6 text-center">
           <div className="text-3xl font-bold text-foreground mb-1">
-            €2.99
+            €1.99
             <span className="text-lg font-normal text-muted-foreground">
               /month
             </span>

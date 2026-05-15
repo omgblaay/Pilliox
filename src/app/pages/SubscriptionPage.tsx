@@ -94,7 +94,7 @@ export function SubscriptionPage() {
                   </span>
                   <span className=" font-semibold text-foreground">
                     {isActive
-                      ? "Premium - €2.99/month"
+                      ? "Premium - €1.99/month"
                       : "Free Trial"}
                   </span>
                 </div>
@@ -181,7 +181,7 @@ export function SubscriptionPage() {
                       {t("subscription.pricing") || "Price"}
                     </span>
                     <span className=" font-semibold text-foreground">
-                      €2.99 /{" "}
+                      €1.99 /{" "}
                       {t("subscription.month") || "month"}
                     </span>
                   </div>
@@ -250,7 +250,7 @@ export function SubscriptionPage() {
             {/* Price + CTA */}
             <div className="p-6 space-y-4 border-b border-border">
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-foreground">€2.99</span>
+                <span className="text-4xl font-bold text-foreground">€1.99</span>
                 <span className="text-muted-foreground">/ {t("subscription.month") || "month"}</span>
   
               </div>

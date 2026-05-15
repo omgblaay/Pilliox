@@ -152,7 +152,7 @@ export function SubscriptionSettings() {
           </span>
           <span className="text-sm font-medium">
             {status.subscription.status === "active"
-              ? "Premium - €2.99/month"
+              ? "Premium - €1.99/month"
               : "Free Trial"}
           </span>
         </div>

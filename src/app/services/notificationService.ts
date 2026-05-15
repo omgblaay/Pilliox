@@ -15,6 +15,11 @@ import {
 } from '@capacitor/local-notifications';
 import { PillSetting } from '../components/PillsSettings';
 import { diffCalendarDays } from '../constants/medicationOptions';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { fetchWithTokenRefresh } from '../../utils/api-client';
+import { VAPID_PUBLIC_KEY } from '../../utils/vapidKey';
+
+const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-c7e1f966`;
 
 export interface NotificationPermissionStatus {
   display: 'granted' | 'denied' | 'prompt';
@@ -85,10 +90,20 @@ class NotificationService {
         if (!('Notification' in window)) {
           throw new Error('Browser does not support notifications');
         }
-        // Restore any notifications that were scheduled before a page reload
+
+        // Push app config into SW IDB so periodic sync can call the server
+        void this.sendConfigToSW();
+
         if (Notification.permission === 'granted') {
+          this.sendToSW({ type: 'RESTORE' });
           this.loadWebNotificationsFromStorage();
+          // Subscribe to Web Push and trigger server-side processing
+          void this.subscribeToWebPush();
+          void this.processServerNotifications();
         }
+
+        this.registerPeriodicSync();
+        this.setupSWMessageListener();
       }
 
       this.initialized = true;
@@ -191,21 +206,25 @@ class NotificationService {
   }
 
   /**
-   * Ensure permissions are granted, request if needed
+   * Ensure permissions are granted, request if needed.
+   * On web, also subscribes to Web Push after permission is granted.
    */
   async ensurePermissions(): Promise<boolean> {
     const status = await this.checkPermissions();
-    
+
     if (status.display === 'granted') {
+      if (!this.isNativePlatform) void this.subscribeToWebPush();
       return true;
     }
 
     if (status.display === 'prompt') {
       const result = await this.requestPermissions();
+      if (result.display === 'granted' && !this.isNativePlatform) {
+        void this.subscribeToWebPush();
+      }
       return result.display === 'granted';
     }
 
-    // Permission denied
     return false;
   }
 
@@ -286,7 +305,61 @@ class NotificationService {
   }
 
   /**
+   * Send a message to the active Service Worker.
+   * Returns true if the SW received the message.
+   */
+  private async sendToSW(message: Record<string, unknown>): Promise<boolean> {
+    if (!('serviceWorker' in navigator)) return false;
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (!registration.active) return false;
+      return new Promise<boolean>(resolve => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = e => resolve(!!e.data?.ok);
+        registration.active!.postMessage(message, [channel.port2]);
+        // Resolve false after 2 s if SW doesn't respond
+        setTimeout(() => resolve(false), 2000);
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  /** Register Periodic Background Sync (Chrome/Android only). */
+  private async registerPeriodicSync(): Promise<void> {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if ('periodicSync' in registration) {
+        await (registration as any).periodicSync.register(
+          'pilliox-notification-check',
+          { minInterval: 15 * 60 * 1000 }, // 15 minutes
+        );
+      }
+    } catch {
+      // Permission not granted or API not available — harmless
+    }
+  }
+
+  /**
+   * Listen for messages from the SW.
+   * When the SW fires a notification in the background it tells the client
+   * to remove that entry from localStorage so it isn't replayed on the next
+   * app open.
+   */
+  private setupSWMessageListener(): void {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'NOTIFICATION_FIRED') {
+        this.removeNotificationFromStorage(event.data.id);
+      }
+    });
+  }
+
+  /**
    * Schedule notifications using Web Notifications API (Browser)
+   * Primary: SW IndexedDB timers (survive tab closure).
+   * Backup: main-thread setTimeout (fires while tab is open).
    */
   private async scheduleWebNotifications(
     pill: PillSetting,
@@ -307,14 +380,9 @@ class NotificationService {
       const delay = scheduledDate.getTime() - now.getTime();
 
       // Skip if too soon or in the past
-      if (delay < minDelayMs) {
-        return;
-      }
-
-      // Skip if delay exceeds max safe setTimeout value — would fire immediately due to 32-bit overflow
-      if (delay > MAX_TIMEOUT_MS) {
-        return;
-      }
+      if (delay < minDelayMs) return;
+      // Skip if delay exceeds max safe setTimeout value
+      if (delay > MAX_TIMEOUT_MS) return;
 
       const notificationId = this.generateNotificationId(pill.id, index);
       scheduledIds.push(notificationId);
@@ -322,7 +390,7 @@ class NotificationService {
       const title = `💊 ${pill.name}`;
       const body = this.getNotificationBody(pill, reminder);
 
-      // Schedule using setTimeout
+      // Backup: main-thread setTimeout fires while the tab is active
       const timeoutId = window.setTimeout(() => {
         void this.showWebNotificationById(title, body, notificationId, pill.id);
         this.scheduledWebNotifications = this.scheduledWebNotifications.filter(
@@ -347,7 +415,16 @@ class NotificationService {
       });
     });
 
+    // Persist to localStorage (main-thread fallback on next app open)
     this.saveWebNotificationsToStorage(storedNotifications, pill.id);
+
+    // Hand the schedule to the SW for background timer tracking
+    if (storedNotifications.length > 0) {
+      void this.sendToSW({ type: 'SCHEDULE_NOTIFICATIONS', notifications: storedNotifications });
+    }
+
+    // Sync full schedule to the server so it can send Web Push when due
+    void this.syncScheduleToServer();
 
     return scheduledIds;
   }
@@ -419,6 +496,12 @@ class NotificationService {
 
     // Remove from localStorage
     this.saveWebNotificationsToStorage([], pillId);
+
+    // Cancel in the SW's IndexedDB
+    void this.sendToSW({ type: 'CANCEL_PILL', pillId });
+
+    // Sync updated schedule to the server
+    void this.syncScheduleToServer();
   }
 
   /**
@@ -558,6 +641,88 @@ class NotificationService {
     const stored: StoredWebNotification = { id: notificationId, pillId: id, title, body, scheduledTime: scheduledDate.toISOString() };
     this.saveWebNotificationsToStorage([stored], id);
   }
+
+  // ── Web Push methods ────────────────────────────────────────────────────────
+
+  /** Convert a base64url string to Uint8Array (required by PushManager.subscribe) */
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  /** Send app config (projectId, anonKey) into SW IDB so periodic sync can authenticate */
+  private async sendConfigToSW(): Promise<void> {
+    await this.sendToSW({
+      type: 'SET_CONFIG',
+      projectId,
+      anonKey: publicAnonKey,
+    });
+    // Also push the current user token
+    const token = localStorage.getItem('accessToken');
+    if (token) await this.sendToSW({ type: 'SET_USER_TOKEN', token });
+  }
+
+  /**
+   * Subscribe to Web Push via the browser's PushManager, then save the
+   * subscription on the server so it can push at the right time.
+   */
+  async subscribeToWebPush(): Promise<void> {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY === 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY') return;
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      let sub = await registration.pushManager.getSubscription();
+      if (!sub) {
+        sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+      await fetchWithTokenRefresh(`${API_BASE}/notification/push-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+    } catch { /* push subscription optional — silent fail */ }
+  }
+
+  /** Sync the full local notification schedule to the server. */
+  private async syncScheduleToServer(): Promise<void> {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+    try {
+      const raw = localStorage.getItem('pilliox_scheduled_notifications');
+      const notifications: StoredWebNotification[] = raw ? JSON.parse(raw) : [];
+      await fetchWithTokenRefresh(`${API_BASE}/notification/push-schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifications }),
+      });
+    } catch { /* server unavailable */ }
+  }
+
+  /**
+   * Ask the server to send Web Push for any due notifications.
+   * Called on app open and by the SW on periodic sync.
+   */
+  async processServerNotifications(): Promise<void> {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+    try {
+      await fetchWithTokenRefresh(`${API_BASE}/notification/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch { /* server unavailable */ }
+  }
+
+  // ── End Web Push methods ────────────────────────────────────────────────────
 
   /**
    * Generate unique notification ID based on pill ID and index
@@ -839,6 +1004,7 @@ class NotificationService {
         this.scheduledWebNotifications.forEach(n => clearTimeout(n.timeoutId));
         this.scheduledWebNotifications = [];
         localStorage.removeItem('pilliox_scheduled_notifications');
+        void this.sendToSW({ type: 'CANCEL_ALL' });
       }
     } catch (error) {
       throw new Error(`Failed to cancel notifications: ${error}`);

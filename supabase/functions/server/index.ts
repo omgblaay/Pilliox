@@ -1660,7 +1660,7 @@ app.post('/make-server-c7e1f966/subscription/create-checkout', async (c) => {
         'line_items[0][price_data][product_data][name]': 'Pilliox Premium',
         'line_items[0][price_data][product_data][description]': 'Monthly subscription for INR tracking',
         'line_items[0][price_data][recurring][interval]': 'month',
-        'line_items[0][price_data][unit_amount]': '299', // €2.99 in cents
+        'line_items[0][price_data][unit_amount]': '199', // €1.99 in cents
         'line_items[0][quantity]': '1',
         mode: 'subscription',
         success_url: `${returnUrl || 'https://pilliox.com'}?session_id={CHECKOUT_SESSION_ID}`,

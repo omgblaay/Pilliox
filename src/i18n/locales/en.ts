@@ -41,7 +41,7 @@ export default {
       description:
         "Pilliox helps you log medications, supplements, and medical values like INR without turning your health routine into a spreadsheet.",
       cta: "Start tracking",
-      pricing: "No card required · 3 days free, then €2.99/month",
+      pricing: "No card required · 3 days free, then €1.99/month",
       pillCardName: "Marcumar dose",
       pillCardTime: "08:00 confirmed",
     },
@@ -116,7 +116,7 @@ export default {
       feature5: "Secure cloud backup through your account",
       feature6: "English, German, and Polish",
       popular: "Popular",
-      price: "€2.99",
+      price: "€1.99",
       perMonth: "/month",
       trialIncluded: "3-day free trial included",
       creditCardNote: "No credit card required",
@@ -357,7 +357,7 @@ export default {
     trialDescription:
       "Subscribe to enjoy full access to Pilliox and support ongoing development",
     trialExpired: "Your trial has ended",
-    subscribeCTA: "Subscribe - €2.99/mo",
+    subscribeCTA: "Subscribe - €1.99/mo",
     subscribeToAccess: "Subscribe to continue adding entries",
     subscribeNow: "Subscribe Now",
     upgradeNow: "Upgrade to Premium",
