@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, Check, Clock, Droplet, Pill, Plus, Trash2 } from "lucide-react";
+import { Bell, Check, Clock, Droplet, Leaf, Pill, Plus, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -25,7 +25,7 @@ export interface AdHocMedicationData {
   name: string;
   dosage: number;
   unit: string;
-  type: "medication" | "value";
+  type: "medication" | "supplement" | "value";
   notificationEnabled: boolean;
   notificationTime: string;
 }
@@ -35,7 +35,7 @@ interface EditingMed {
   name: string;
   dosage: number;
   unit: string;
-  type?: "medication" | "value";
+  type?: "medication" | "supplement" | "value";
   notificationEnabled?: boolean;
   notificationTime?: string;
 }
@@ -68,7 +68,7 @@ export function AdHocMedicationDialog({
   const [name, setName] = useState(DEFAULT_FORM.name);
   const [dosage, setDosage] = useState(DEFAULT_FORM.dosage);
   const [unit, setUnit] = useState(DEFAULT_FORM.unit);
-  const [type, setType] = useState<"medication" | "value">(DEFAULT_FORM.type);
+  const [type, setType] = useState<"medication" | "supplement" | "value">(DEFAULT_FORM.type);
   const [notificationEnabled, setNotificationEnabled] = useState(DEFAULT_FORM.notificationEnabled);
   const [notificationTime, setNotificationTime] = useState(DEFAULT_FORM.notificationTime);
 
@@ -126,7 +126,7 @@ export function AdHocMedicationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 sm:pt-0 pt-20">
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="adhoc-name" className="text-foreground">
@@ -151,7 +151,16 @@ export function AdHocMedicationDialog({
                 onClick={() => setType("medication")}
               >
                 <Pill className="size-4 hidden sm:block" strokeWidth={1.33} />
-                <span>{t("pillsSettings.typePills") || "Medication"}</span>
+                <span>{t("pillsSettings.typeMedication") || "Medication"}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="tabGroup"
+                data-state={type === "supplement" ? "active" : "inactive"}
+                onClick={() => setType("supplement")}
+              >
+                <Leaf className="size-4 hidden sm:block" strokeWidth={1.33} />
+                <span>{t("pillsSettings.typeSupplement") || "Supplement"}</span>
               </Button>
               <Button
                 type="button"
@@ -202,8 +211,8 @@ export function AdHocMedicationDialog({
             </div>
           </div>
 
-          {/* Notification — only for medication type */}
-          {type === "medication" && (
+          {/* Notification — for medication and supplement */}
+          {type !== "value" && (
             <div className="space-y-3 pt-4 border-t border-border">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

@@ -31,7 +31,7 @@ export function NoteDialog({ open, onOpenChange, note, onSave }: NoteDialogProps
           value={tempNote}
           onChange={(e) => setTempNote(e.target.value)}
           rows={5}
-          className="resize-none"
+          className="resize-none mt-20 sm:mt-0"
           autoFocus
         />
         <div className="flex gap-2">
@@ -47,7 +47,7 @@ export function NoteDialog({ open, onOpenChange, note, onSave }: NoteDialogProps
             </Button>
           )}
           <Button
-            variant="secondary"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             className="flex-1"
           >

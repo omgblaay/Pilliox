@@ -579,7 +579,9 @@ export function EditDayDialog({
                   return (
                     <div key={valueSetting.id} className="flex items-center gap-3 p-2 px-4 border border-border rounded-lg dark:border-slate-100/20 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center flex-row gap-2 flex-1">
-                        <div className="h-5 w-2 rounded-full" style={{ backgroundColor: valueSetting.color }} />
+                        {valueSetting.color ? (
+                          <div className="h-5 w-2 rounded-full" style={{ backgroundColor: valueSetting.color }} />
+                        ) : null}
                         <Label htmlFor={`value-${valueSetting.id}`}>{valueSetting.name}</Label>
                       </div>
                       <div className="flex items-center gap-2">
