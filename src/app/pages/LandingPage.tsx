@@ -227,7 +227,7 @@ export default function LandingPage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.18)]" />
                 {t("landing.hero.badge")}
               </div>
-              <h1 className="mt-6 text-balance sm:!text-[5.6rem] text-3xl font-semibold tracking-[-0.04em] text-[#0e0e12] dark:text-white ">
+              <h1 className="mt-6 text-balance sm:!text-[4rem] text-3xl font-semibold tracking-[-0.04em] text-[#0e0e12] dark:text-white ">
                 {t("landing.hero.title")}{" "}
                 <span className="text-blue-400">
                   {t("landing.hero.titleHighlight")}
